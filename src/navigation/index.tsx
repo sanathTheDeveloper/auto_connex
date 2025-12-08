@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
+import DesignSystemScreen from '../screens/DesignSystemScreen';
 import { Colors } from '../constants/theme';
 
 /**
@@ -13,6 +14,7 @@ import { Colors } from '../constants/theme';
 
 export type RootStackParamList = {
   Home: undefined;
+  DesignSystem: undefined;
   // Add more screen types here as you create them
   // Example: Details: { id: string };
 }; 
@@ -23,7 +25,7 @@ export default function Navigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Home"
+        initialRouteName="DesignSystem"
         screenOptions={{
           headerShown: true,
           headerStyle: {
@@ -35,6 +37,13 @@ export default function Navigation() {
           },
         }}
       >
+        <Stack.Screen 
+          name="DesignSystem" 
+          component={DesignSystemScreen}
+          options={{
+            title: 'Design System',
+          }}
+        />
         <Stack.Screen 
           name="Home" 
           component={HomeScreen}
