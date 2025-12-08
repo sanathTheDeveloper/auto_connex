@@ -39,10 +39,6 @@ npm run build:web
 vercel
 ```
 
-## 📖 Documentation
-
-See `.github/copilot-instructions.md` for detailed development guidelines.
-
 ---
 
 **Tech Stack**: React Native • Expo • TypeScript • NativeWind • Vercel

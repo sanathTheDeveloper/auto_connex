@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../constants/theme';
 
 /**
  * Home Screen
@@ -36,55 +37,51 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.surface,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: Spacing.lg,
   },
   title: {
-    fontSize: 36,
+    fontSize: Typography.fontSize['4xl'],
     fontWeight: '700',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
     textAlign: 'center',
-    color: '#111827',
+    color: Colors.text,
   },
   subtitle: {
-    fontSize: 20,
-    color: '#6B7280',
-    marginBottom: 32,
+    fontSize: Typography.fontSize.xl,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xl,
     textAlign: 'center',
   },
   description: {
-    fontSize: 16,
-    color: '#9CA3AF',
+    fontSize: Typography.fontSize.base,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 40,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
+    marginBottom: Spacing['2xl'],
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    ...Shadows.md,
     width: '100%',
     maxWidth: 400,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: Typography.fontSize.xl,
     fontWeight: '600',
-    marginBottom: 16,
-    color: '#111827',
+    marginBottom: Spacing.md,
+    color: Colors.text,
   },
   cardText: {
-    fontSize: 15,
-    color: '#6B7280',
-    lineHeight: 24,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
   },
 });
