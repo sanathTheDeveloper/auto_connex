@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
+import { Colors } from '../constants/theme';
 
 /**
  * Navigation Setup
@@ -26,9 +27,9 @@ export default function Navigation() {
         screenOptions={{
           headerShown: true,
           headerStyle: {
-            backgroundColor: '#FFFFFF',
+            backgroundColor: Colors.background,
           },
-          headerTintColor: '#000000',
+          headerTintColor: Colors.text,
           headerTitleStyle: {
             fontWeight: 'bold',
           },

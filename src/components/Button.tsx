@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Colors } from '../constants/theme';
 
 /**
  * Button Component
@@ -49,15 +50,15 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   primary: {
-    backgroundColor: '#007AFF',
+    backgroundColor: Colors.primary,
   },
   secondary: {
-    backgroundColor: '#5856D6',
+    backgroundColor: Colors.secondary,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#007AFF',
+    borderColor: Colors.primary,
   },
   disabled: {
     opacity: 0.5,
@@ -67,12 +68,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: Colors.background,
   },
   secondaryText: {
-    color: '#FFFFFF',
+    color: Colors.background,
   },
   outlineText: {
-    color: '#007AFF',
+    color: Colors.primary,
   },
 });
