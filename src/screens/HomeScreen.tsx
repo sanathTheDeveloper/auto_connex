@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Typography.fontSize.lg * Typography.lineHeight.normal,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
     marginBottom: Spacing['2xl'],
   },
   card: {
@@ -80,8 +80,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   cardText: {
-    fontSize: Typography.fontSize.sm + 1,
+    fontSize: Typography.fontSize.sm,
     color: Colors.textSecondary,
-    lineHeight: Typography.fontSize.lg * Typography.lineHeight.normal,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
   },
 });
