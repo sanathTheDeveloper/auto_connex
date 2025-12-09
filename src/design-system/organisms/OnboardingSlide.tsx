@@ -50,22 +50,22 @@ export const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
 }) => {
   return (
     <View style={[styles.container, style]}>
-      {/* Image Area - 50% of screen */}
+      {/* Image Area - Top portion */}
       <View style={styles.illustrationContainer}>
         {illustration}
       </View>
 
-      {/* Text Area - 50% of screen */}
+      {/* Text Area - Bottom portion */}
       <View style={styles.textContainer}>
         {/* Heading */}
-        <Text variant="h2" align="center" weight="bold" style={styles.heading}>
+        <Text variant="h3" align="center" weight="bold" style={styles.heading}>
           {heading}
         </Text>
 
-        <Spacer size="md" />
+        <Spacer size="sm" />
 
         {/* Body */}
-        <Text variant="bodySmall" align="center" color="textTertiary" style={styles.body}>
+        <Text variant="body" align="center" color="textTertiary" style={styles.body}>
           {body}
         </Text>
       </View>
@@ -79,30 +79,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   illustrationContainer: {
-    height: '58%',
+    height: '55%',
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
     overflow: 'hidden',
   },
   textContainer: {
-    height: '42%',
-    justifyContent: 'flex-start',
+    height: '45%',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingVertical: Spacing.lg,
     backgroundColor: Colors.white,
   },
   heading: {
-    maxWidth: 340,
-    lineHeight: 42,
+    maxWidth: 360,
+    lineHeight: 38,
     color: Colors.text,
+    fontSize: 28,
   },
   body: {
-    maxWidth: 320,
-    lineHeight: 28,
-    opacity: 0.8,
+    maxWidth: 340,
+    lineHeight: 26,
+    opacity: 0.75,
     color: Colors.textTertiary,
+    fontSize: 17,
   },
 });

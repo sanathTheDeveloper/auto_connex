@@ -78,6 +78,13 @@ interface FormData {
   licenseNumber: string;
   licenseState: string;
   licenseType: string;
+  
+  // Step 4: Payment Details
+  cardNumber: string;
+  cardholderName: string;
+  expiryDate: string;
+  cvv: string;
+  billingPostcode: string;
 }
 
 /**
@@ -89,6 +96,11 @@ interface FormErrors {
   phone?: string;
   abn?: string;
   licenseNumber?: string;
+  cardNumber?: string;
+  cardholderName?: string;
+  expiryDate?: string;
+  cvv?: string;
+  billingPostcode?: string;
 }
 
 /**
@@ -122,6 +134,11 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
     licenseNumber: '',
     licenseState: '',
     licenseType: '',
+    cardNumber: '',
+    cardholderName: '',
+    expiryDate: '',
+    cvv: '',
+    billingPostcode: '',
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
@@ -160,6 +177,14 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
    * Validate Step 3: License
    */
   const validateStep3 = (): boolean => {
+    // Validation removed - allow any input
+    return true;
+  };
+
+  /**
+   * Validate Step 4: Payment Details
+   */
+  const validateStep4 = (): boolean => {
     // Validation removed - allow any input
     return true;
   };
@@ -214,8 +239,11 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
         isValid = validateStep3();
         break;
       case 4:
-        // Final step - complete signup
-        await handleSignup();
+        // Final step - validate payment and complete signup
+        isValid = validateStep4();
+        if (isValid) {
+          await handleSignup();
+        }
         return;
     }
     
@@ -471,35 +499,141 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
   );
 
   /**
-   * Step 4: Payment Setup (Simplified - just consent)
+   * Step 4: Payment Setup (Card Details)
    */
   const renderStep4 = () => (
     <View>
       <Text variant="h2" weight="bold" style={styles.stepTitle}>
-        Almost Done!
+        Payment Details
       </Text>
       <Spacer size="xs" />
       <Text variant="bodySmall" color="textTertiary" style={styles.stepSubtitle}>
-        Review and complete your signup
+        Add your card for marketplace transactions
       </Text>
       
       <Spacer size="xl" />
       
-      <Text variant="bodySmall" color="text" style={styles.consentText}>
-        By completing signup, you agree to our Terms of Service and Privacy Policy.
-      </Text>
+      {/* Card Number */}
+      <Input
+        label="Card Number"
+        value={formData.cardNumber}
+        onChange={(text) => {
+          // Format: XXXX XXXX XXXX XXXX
+          const formatted = text
+            .replace(/\D/g, '')
+            .slice(0, 16)
+            .replace(/(\d{4})/g, '$1 ')
+            .trim();
+          updateField('cardNumber', formatted);
+        }}
+        placeholder="1234 5678 9012 3456"
+        keyboardType="number-pad"
+        leftIcon="card"
+        maxLength={19} // 16 digits + 3 spaces
+        error={formErrors.cardNumber}
+      />
+      
+      <Spacer size="md" />
+      
+      {/* Cardholder Name */}
+      <Input
+        label="Cardholder Name"
+        value={formData.cardholderName}
+        onChange={(text) => updateField('cardholderName', text)}
+        placeholder="John Smith"
+        autoCapitalize="words"
+        leftIcon="user"
+        error={formErrors.cardholderName}
+      />
+      
+      <Spacer size="md" />
+      
+      {/* Expiry Date and CVV - Two Columns */}
+      <View style={styles.cardDetailsRow}>
+        <View style={styles.cardDetailHalf}>
+          <Input
+            label="Expiry Date"
+            value={formData.expiryDate}
+            onChange={(text) => {
+              // Format: MM/YY
+              const formatted = text
+                .replace(/\D/g, '')
+                .slice(0, 4)
+                .replace(/(\d{2})(\d{0,2})/, (match, p1, p2) => 
+                  p2 ? `${p1}/${p2}` : p1
+                );
+              updateField('expiryDate', formatted);
+            }}
+            placeholder="MM/YY"
+            keyboardType="number-pad"
+            leftIcon="calendar"
+            maxLength={5}
+            error={formErrors.expiryDate}
+          />
+        </View>
+        
+        <View style={styles.cardDetailHalf}>
+          <Input
+            label="CVV"
+            value={formData.cvv}
+            onChange={(text) => {
+              const formatted = text.replace(/\D/g, '').slice(0, 3);
+              updateField('cvv', formatted);
+            }}
+            placeholder="123"
+            keyboardType="number-pad"
+            leftIcon="shield-checkmark"
+            maxLength={3}
+            secureTextEntry
+            error={formErrors.cvv}
+          />
+        </View>
+      </View>
+      
+      <Spacer size="md" />
+      
+      {/* Billing Postcode */}
+      <Input
+        label="Billing Postcode"
+        value={formData.billingPostcode}
+        onChange={(text) => {
+          const formatted = text.replace(/\D/g, '').slice(0, 4);
+          updateField('billingPostcode', formatted);
+        }}
+        placeholder="2000"
+        keyboardType="number-pad"
+        leftIcon="map-pin"
+        maxLength={4}
+        error={formErrors.billingPostcode}
+      />
       
       <Spacer size="xl" />
       
-      <View style={styles.bulletContainer}>
-        <Text variant="caption" color="textTertiary" style={styles.bulletItem}>
-          • Weekly marketplace fees apply based on listings
-        </Text>
-        <Text variant="caption" color="textTertiary" style={styles.bulletItem}>
-          • Payment method will be requested after first listing
-        </Text>
-        <Text variant="caption" color="textTertiary" style={styles.bulletItem}>
-          • All dealers are verified before approval
+      {/* Security Badge */}
+      <View style={styles.securityBadge}>
+        <View style={styles.securityIconContainer}>
+          <Text style={styles.securityIcon}>🔒</Text>
+        </View>
+        <View style={styles.securityTextContainer}>
+          <Text variant="caption" weight="semibold" style={styles.securityTitle}>
+            Secure Payment
+          </Text>
+          <Text variant="caption" style={styles.securitySubtitle}>
+            Your card details are encrypted and secure
+          </Text>
+        </View>
+      </View>
+      
+      <Spacer size="md" />
+      
+      {/* Payment Terms */}
+      <View style={styles.termsContainer}>
+        <Text variant="caption" color="textTertiary" style={styles.termsText}>
+          By continuing, you agree to our{' '}
+          <Text variant="caption" style={styles.termsLink}>Terms of Service</Text>
+          {' '}and{' '}
+          <Text variant="caption" style={styles.termsLink}>Privacy Policy</Text>
+          . Card will be charged only for completed transactions.
         </Text>
       </View>
     </View>
@@ -800,6 +934,57 @@ const styles = StyleSheet.create({
   detailValue: {
     color: Colors.text,
     lineHeight: 22,
+  },
+  // Payment Step Styles
+  cardDetailsRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  cardDetailHalf: {
+    flex: 1,
+  },
+  securityBadge: {
+    backgroundColor: Colors.greyscale100,
+    borderRadius: 12,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.greyscale300,
+  },
+  securityIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  securityIcon: {
+    fontSize: 20,
+  },
+  securityTextContainer: {
+    flex: 1,
+  },
+  securityTitle: {
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  securitySubtitle: {
+    color: Colors.textTertiary,
+    opacity: 0.8,
+  },
+  termsContainer: {
+    paddingHorizontal: Spacing.sm,
+  },
+  termsText: {
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  termsLink: {
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });
 

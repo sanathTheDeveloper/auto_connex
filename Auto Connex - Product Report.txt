@@ -1,0 +1,589 @@
+﻿Auto Connex - Product Report 
+
+
+
+
+1. Product Definition
+Vision
+
+AutoConnex is a B2B wholesale vehicle marketplace that redefines how licensed motor dealers and wholesalers connect, transact, and move inventory across Australia. The industry today operates on outdated networks (“traps”) or costly auction houses that extract significant fees. AutoConnex solves this by delivering a single national exchange where wholesalers can list vehicles instantly and dealers can discover, purchase, and arrange transport seamlessly.
+Core MVP Features
+* Wholesaler Inventory Upload
+
+   * 20-photo upload with rego number auto-fill (vehicle details populated automatically).
+
+   * Pros/cons tagging for condition notes.
+
+   * Instant PPSR title check.
+
+      * Dealer Discovery & Search
+
+         * Nationwide inventory access.
+
+         * Searchable by make, model, year, location, or dealer profile.
+
+            * Secure In-App Messaging
+
+               * Encrypted, anonymized chat modeled after Airtasker to prevent leakage.
+
+               * Notifications for new inventory from preferred sellers.
+
+                  * Transaction Handling
+
+                     * Fee-based model: fair flat fee or tiered by vehicle value.
+
+                     * Automated invoicing at transaction close.
+
+                        * Transport Integration
+
+                           * Real-time quotes from logistics partners.
+
+                           * Dealers can instantly calculate total landed cost.
+
+                              * Dealer Verification
+
+                                 * State-by-state license registry integration (LMCT, QLD Dealer License, etc.).
+
+                                 * ABN/ACN cross-checks to ensure compliance.
+
+Long-Term Roadmap
+                                    * Premium Alerts & Auto-Buy: Dealers pay for first-access notifications and automated purchase rules.
+
+                                    * Stock System Integrations: APIs with EasyCars and other dealer management systems to cut manual entry.
+
+                                    * AI Valuations: Benchmark pricing recommendations using transaction history + market data.
+
+                                    * Category Expansion: Beyond cars into caravans, boats, and commercial vehicles.
+
+                                    * Global Growth: Once proven in Australia, replicate in other fragmented dealer–wholesaler markets worldwide.
+
+                                    * Invoice Automation: Auto-generate invoices with the PPSR certificate attached, and flag mismatches
+
+Strategic Positioning
+Where CarSales dominates the retail market, AutoConnex is positioned as the first nationwide wholesale marketplace. The platform offers wholesalers faster liquidity and higher margins while giving dealers broader, more efficient stock access. By modernizing the wholesale-to-dealer supply chain, AutoConnex unlocks efficiency in a multi-billion-dollar industry still stuck in legacy processes.
+
+
+2. Problem & Opportunity — AutoConnex
+Below are the core problems we’re solving, why they exist, and the scale of the opportunity. I’ve included third-party evidence for each.
+
+
+Problem 1: Fragmented wholesale discovery (dealers can’t see national supply in one place)
+What’s happening: Wholesale inventory is siloed across independent auction houses and wholesaler. Dealers must hop between Manheim, Pickles, Carlins, individual wholesaler or private networks, which is slow and opaque. There is no neutral, national aggregator focused on dealer↔wholesaler trade only.
+Evidence of fragmentation
+                                       * Major auction houses and wholesalers run separate, closed ecosystems (e.g., Manheim auctions, Pickles auctions/portals, Carlins dealer portal). A dealer must check each one.
+
+                                       * Market data shows used-car supply has surged while prices cooled—so stock exists, but efficient discovery/matchmaking is the bottleneck. Cox Automotive reports dealer used selling prices fell back to ~Jan-2021 levels even as volumes stayed high; AADA/AutoGrab report a late-2024/early-2025 supply swell and a demand/supply mismatch. This conditions the need for faster, broader sourcing tools. Cox AutomotiveAutotalk Australia+1
+
+Implication & opportunity: A single national marketplace that normalizes data, search and alerts (by make/model, grade, state, price, days-in-stock) collapses dealer sourcing time and increases clearance velocity for wholesalers. That creates fee revenue and strong network effects.
+
+
+Problem 2: High frictional costs erode margins (auction fees + buyer’s premiums)
+What’s happening: Dealers pay significant transaction fees to move wholesale metal through auctions. On lower-value vehicles, these fees consume a material share of gross.
+Evidence of fee burden (AU)
+                                          * Manheim AU: Cars & light commercials ≥$2,001 attract $650 + 1.5% buyer’s fee (effective Aug 2025). manheim.com.au
+
+                                          * Pickles AU: Buyer fees on cars include $650 + 1.33% above $2,000 (plus other admin costs).
+
+                                          * Carlins: Buyer’s premium $595 for >$3,001 (and $395 ≤$3,000) on top of hammer price. carlins.com.au
+
+Implication & opportunity: A flat, transparent, lower take-rate (e.g., modest, tiered buy/sell fees) is immediately compelling to both sides. Under-pricing the incumbents (while adding discovery, logistics quotes, and compliance rails) is a credible wedge.
+
+
+Problem 3: Manual, multi-step compliance & trust (PPSR + licensing) slows deals
+What’s happening: Each trade requires clear-title checks (PPSR) and confidence that counterparties are licensed. Today, dealers do this ad-hoc across government portals—time-consuming and error-prone.
+Evidence of the compliance burden
+                                             * Dealers are legally expected to ensure clear title on used cars; PPSR is the government system and standard evidence (search certificate).
+
+
+                                             * License verification is state-based and public (e.g., VIC LMCT public register; QLD Fair Trading licence check). Today, users must check each register manually. Consumer Affairs VictoriaQueensland Government
+
+Implication & opportunity: AutoConnex can embed one-click PPSR pulls and automated licence checks (via public registers/APIs), auto-generate invoices with the PPSR certificate attached, and flag mismatches—reducing risk and time-to-trade. 
+
+
+Problem 4: Logistics quoting & coordination adds friction—especially interstate
+What’s happening: Australia’s geography makes interstate buying attractive but logistically fiddly. Dealers must hunt for transporters, estimate costs, and manage ETAs, delaying purchase decisions.
+Evidence the logistics step is real and variable
+                                                * Major carriers (e.g., CEVA) provide online quote & book flows and publish surcharge tables, implying non-trivial, variable costs that buyers want to know before committing.
+
+                                                * Typical transit times are multi-day and route-dependent (e.g., Sydney↔Brisbane ~3–6 working days; longer routes often 1–2 weeks). Dealers need reliable, embedded estimates to price margins.
+
+Implication & opportunity: AutoConnex can display instant, lane-based transport estimates (via partner rate cards/APIs) at the listing level and let buyers bundle freight into landed cost—accelerating commit/decline.
+
+
+Problem 5: Information asymmetry & leakage in deal flow
+What’s happening: When contact details are exchanged early (phone/email), deals “leak” off-platform to avoid fees. This undermines marketplace sustainability and data integrity.
+Industry-standard mitigation: Mature marketplaces prevent early exchange of personal details and keep messaging in-app until a transaction is locked. (This is a proven pattern used by large platforms to defend take-rate and user safety.)
+Implication & opportunity: AutoConnex should adopt anonymized profiles, in-app chat, masked phone/email, and release details only post-acceptance—plus enforceable T&Cs. This preserves unit economics and trust.
+
+
+Problem 6: The market is large enough to sustain a vertical, B2B-only network
+What’s happening: There are thousands of AU dealers and a sizeable cohort of wholesalers; used-vehicle throughput is in the millions annually. Even a small slice of dealer-to-dealer trades supports a strong fee business.
+Evidence of market scale
+                                                   * Dealers: ~3,798 new-vehicle dealerships nationwide (AADA 2025)—not counting many independent used-only yards. carlins.com.au
+
+                                                   * Motor vehicle dealers (all): ~4,861 businesses in Australia (IBISWorld, 2024). AADA
+
+                                                   * Motor vehicle wholesalers: ~1,126 businesses (IBISWorld, 2024)
+
+                                                   * Used-car sales volume: 2.32 million used vehicles sold in 2024 (AADA/AutoGrab), with signs of late-year softening (supply > demand) and 2025 inventory rising—further reinforcing the need for efficient wholesale channels. Autotalk Australia
+
+Implication & opportunity: Even capturing a conservative fraction of dealer↔wholesaler transactions with a sub-auction fee model yields meaningful revenue, while our compliance/logistics integrations increase stickiness and reduce churn.
+
+
+What this means for AutoConnex (execution highlights)
+                                                      1. Wedge with lower fees + better sourcing: Launch with transparent, tiered buy/sell fees below incumbent auction charges; pair with powerful alerts (“new Merc A250 < $X within 500km”) to drive daily use. 
+
+                                                      2. Own trust & speed: One-click PPSR, automated licence checks, templated invoices, and in-app chat keep deals compliant and on-platform.
+
+                                                      3. Embed freight economics: Show instant transport estimates on every listing (syndicated rate cards / APIs) so buyers can decide on a true landed basis.
+
+                                                      4. Start focused, then expand: Begin in QLD/VIC lanes with a seeded set of wholesalers and targeted dealer segments (e.g., late-model fleet stock). Expand state-by-state as network density builds.
+3. Target Market & Users
+Primary Target Segments
+1. Wholesalers (Supply-Side Users)
+                                                         * Profile: Independent traders, fleet liquidators, finance company remarketers, and specialist wholesalers.
+
+                                                         * Market Size: ~1,151 motor vehicle wholesaling businesses in Australia (IBISWorld, 2025) .
+
+                                                         * Pain Points:
+
+                                                            * Limited buyer exposure beyond personal networks.
+
+                                                            * Reliance on high-fee auction houses (losing margin on each unit).
+
+                                                            * Friction in clearing stock quickly, especially older or slower-moving vehicles.
+
+                                                               * Motivations to Join:
+
+                                                                  * Lower fees than auctions.
+
+                                                                  * Faster time-to-sale through broader dealer reach.
+
+                                                                  * Integrated logistics → ability to sell interstate without added admin burden.
+
+
+
+2. Licensed Motor Dealers (Demand-Side Users)
+                                                                     * Profile:
+
+                                                                        * Independent used-car yards (majority).
+
+                                                                        * Franchised new-car dealerships (often hold a used-car department).
+
+                                                                        * Small to mid-sized dealer groups (2–10 rooftops).
+
+                                                                           * Market Size: ~4,861 motor vehicle dealer businesses in Australia (IBISWorld, 2024) .
+
+                                                                              * Of these, ~3,700 are new-car dealerships (AADA, 2024), implying 1,000+ used-only independents.
+
+                                                                                 * Pain Points:
+
+                                                                                    * Struggle to source consistent, quality used stock at margin-friendly prices.
+
+                                                                                    * Forced to participate in expensive auctions or rely on “trap” networks (personal wholesaler lists).
+
+                                                                                    * Limited visibility on interstate stock due to logistics uncertainties.
+
+                                                                                       * Motivations to Join:
+
+                                                                                          * Access to broader stock pool at lower cost.
+
+                                                                                          * Time savings with alerts & tailored search.
+
+                                                                                          * Ability to price in transport instantly → no margin surprises.
+
+
+
+3. Transport & Logistics Providers (Partner Segment)
+                                                                                             * Profile: Car carriers, vehicle logistics companies (e.g., CEVA, PrixCar, Reardons).
+
+                                                                                             * Role in Platform: Integrated into checkout as transport providers.
+
+                                                                                             * Pain Points:
+
+                                                                                                * Customer acquisition is fragmented (dealers call multiple carriers manually).
+
+                                                                                                * Poor digital integration.
+
+                                                                                                   * Motivations to Join:
+
+                                                                                                      * Consistent, digital deal flow.
+
+                                                                                                      * Higher utilisation of backloads and lane coverage.
+
+                                                                                                      * Additional revenue channel via platform commissions.
+
+Secondary / Future Target Segments
+                                                                                                         * Fleet & Rental Companies: Large pools of ex-fleet vehicles requiring wholesale disposal (e.g., Hertz, government fleets).
+
+                                                                                                         * Finance & Insurance Companies: Clearing repossessed or written-off vehicles.
+
+                                                                                                         * Category Expansion: Boats, caravans, motorcycles, farm machinery — future opportunity once car marketplace is established.
+
+User Personas
+Persona A: “Jack, the Wholesaler”
+                                                                                                            * Independent wholesaler in Brisbane. Moves ~50 cars/month.
+
+                                                                                                            * Currently sells via auctions (loses ~$400 per car in fees).
+
+                                                                                                            * Wants to expand interstate buyer base but hates managing transport.
+
+                                                                                                            * AutoConnex promise: “List once, sell faster, keep more of your margin, and we’ll handle delivery.”
+
+Persona B: “Maria, the Independent Dealer”
+                                                                                                               * Runs a used-car yard in Melbourne (40 cars on lot).
+
+                                                                                                               * Struggles to source SUVs under $20k; relies on phone calls from trusted wholesalers.
+
+                                                                                                               * Auctions too expensive and time-consuming.
+
+                                                                                                               * AutoConnex promise: “Set alerts for SUVs you need, get notified instantly, price them with freight included, and secure them before competitors.”
+
+
+
+Strategic Takeaway
+AutoConnex focuses on a two-sided market:
+                                                                                                                  * Supply-side (1,151 wholesalers): They want reach & efficiency.
+
+                                                                                                                  * Demand-side (~4,861 dealers, with 1,000+ used-only independents): They want inventory access & margin protection.
+
+                                                                                                                  * Transport partners: An additional revenue enabler and differentiator that makes the model stickier.
+
+This user base is large enough to sustain early traction in Queensland & Victoria, with clear expansion potential nationwide.
+
+
+4. Competitive Landscape
+1. Direct Competitors (Dealer-to-Dealer Marketplaces)
+These platforms most closely overlap with AutoConnex because they enable wholesale vehicle transactions.
+                                                                                                                     * Dealer Auction (Australia)
+
+                                                                                                                        * Focus: Digital wholesale auction platform connecting dealers, wholesalers, and fleet sellers.
+
+                                                                                                                        * Pricing: Subscription + transaction fees per vehicle sold.
+
+                                                                                                                        * Strengths: Broad dealer network, established relationships with OEMs and fleets.
+
+                                                                                                                        * Weaknesses: Auction-based system can be inefficient for dealers seeking instant inventory matching; lacks deep digital integration or real-time pricing intelligence.
+
+                                                                                                                           * Manheim (part of Cox Automotive)
+
+                                                                                                                              * Focus: Physical and online wholesale auctions; one of the largest in the world.
+
+                                                                                                                              * Pricing: Seller fees, buyer fees, add-on services (transport, reconditioning).
+
+                                                                                                                              * Strengths: Scale, trusted global brand, multi-channel access.
+
+                                                                                                                              * Weaknesses: Auction-driven; operationally heavy; more suited to high-volume operators than smaller independents.
+
+                                                                                                                                 * Pickles Auctions
+
+                                                                                                                                    * Focus: Auctions across cars, trucks, industrial equipment.
+
+                                                                                                                                    * Pricing: Seller/buyer commissions.
+
+                                                                                                                                    * Strengths: Market trust, diversified auction categories.
+
+                                                                                                                                    * Weaknesses: Generalist approach, not specialized for dealer-to-dealer efficiency.
+
+
+
+3. Substitutes (Non-Digital / Traditional Methods)
+                                                                                                                                       * Dealer Networks & Phone Brokers – Many dealers still rely on phone calls, personal networks, or local wholesalers to shift inventory. While trusted, these methods are manual, slow, and opaque.
+
+                                                                                                                                       * Physical Wholesale Yards – Still common, but highly inefficient compared to digital solutions.
+
+AutoConnex Differentiation
+                                                                                                                                          * Instant Matching vs Auctions: Moves away from auction inefficiencies, focusing on streamlined dealer-to-dealer trades.
+
+                                                                                                                                          * Transparency & Data Layer: Built-in pricing intelligence and verified dealers reduce friction.
+
+                                                                                                                                          * Scalable Network Effects: As more dealers join, the marketplace efficiency compounds — positioning AutoConnex as infrastructure, not just a platform.
+5. Pricing & Monetization Strategy 
+1. Foundational Model (Early-Stage)
+                                                                                                                                             * Free to List (Launch Phase)
+
+                                                                                                                                                * Both wholesalers and dealers can list and browse inventory for free during the initial adoption period.
+
+                                                                                                                                                * This minimizes friction and accelerates onboarding, solving the cold-start problem.
+
+                                                                                                                                                   * Transaction-Based Fees
+
+                                                                                                                                                      * Revenue is generated only when a successful transaction occurs.
+
+                                                                                                                                                      * Both buyer and seller pay a flat fee, ensuring shared value capture.
+
+                                                                                                                                                      * Suggested launch point: $350 each side per transaction.
+
+
+
+2. Tiered Transaction Fees (Scalable Structure)
+                                                                                                                                                         * To protect dealer margins on lower-value vehicles, fees scale with vehicle value:
+
+                                                                                                                                                            * <$10,000 vehicle value → ~$150 fee per side
+
+                                                                                                                                                            * $10,000–$20,000 → ~$250 fee per side
+
+                                                                                                                                                            * $20,000+ → capped at ~$350 per side
+
+This ensures fairness across vehicle categories and makes the platform viable for both budget and high-ticket stock.
+
+
+3. Mid-to-Long Term Monetization Levers
+
+
+
+                                                                                                                                                               * Premium Features (Subscription Add-Ons)
+
+                                                                                                                                                                  * Advanced notifications (alerts when vehicles matching saved criteria are listed).
+
+                                                                                                                                                                  * Priority access / “auto-buy” functions for high-demand stock.
+
+                                                                                                                                                                  * Analytics dashboard (pricing trends, stock availability by region).
+
+                                                                                                                                                                     * Transport Partnerships (Adjacency Revenue)
+
+                                                                                                                                                                        * Integrated freight/transport quoting system with providers like Reardon’s or Seaver.
+
+                                                                                                                                                                        * AutoConnex earns a “clip” on each transport booking, potentially a larger revenue driver than transaction fees long term.
+
+                                                                                                                                                                        * With scale, this could offset platform fees and allow price flexibility to accelerate growth.
+
+
+
+4. Investor Takeaway
+                                                                                                                                                                           * The two-sided transaction fee model aligns AutoConnex with both buyers and sellers, while undercutting existing incumbents (Pickles/Mannheim).
+
+                                                                                                                                                                           * Tiered pricing ensures fairness and encourages adoption across all vehicle categories.
+
+                                                                                                                                                                           * Future upside through listing fees, premium subscriptions, and transport partnerships creates multiple revenue streams, de-risking reliance on a single model.
+
+
+6. AutoConnex Market Size 
+Methodology (what we measured & how)
+Goal: size the entire wholesale used-vehicle transaction pool in Australia, then apply AutoConnex’s per-side fee model to quantify revenue potential.
+What “wholesale” includes:
+ B2B used-vehicle transactions between wholesalers ↔ dealers and fleet/government remarketers ↔ trade, whether via auctions or off-auction (direct, tender, dealer-to-dealer).
+Data pillars & evidence
+                                                                                                                                                                              * Total used market context: ~2.3–2.4M used-vehicle transactions in 2024 (AADA figure as reported in industry coverage). Mordor Intelligence
+
+                                                                                                                                                                              * Auction baseline (observable): Pickles flagged volumes trending back to ~7,000 vehicles/month (~84k/year) by late-2024; its Q2’24 report cited 16,666 vehicles for the quarter. Manheim (the other national leader) reported +40.3% H1’24 wholesale volume vs. H1’23—evidence of large, rising auction flow.
+
+                                                                                                                                                                              * Fleet/government remarketing is B2B: State fleets sell ex-government vehicles via auction partners (e.g., QFleet through Manheim/Pickles)—demonstrating that fleet disposals predominantly enter wholesale channels. IBISWorld
+
+                                                                                                                                                                              * Size of the corporate fleet parc: Enterprises with 20+ vehicles operate ~2.4M fleet vehicles in Australia (large, recurring source of wholesale disposals). static.ibisworld.com
+
+How we estimated total wholesale transactions (units)
+                                                                                                                                                                                 1. Auctions (observable): Triangulated from Pickles’ run-rate and Manheim growth → 150k (Low) / 170k (Base) / 200k (High) units/yr.
+
+                                                                                                                                                                                 2. Off-auction wholesale from fleet remarketing (modeled): Start with 2.4M fleet vehicles; assume conservative annual replacement (Low 15% / Base 20% / High 25%) and that a majority of those disposals flow through wholesale B2B channels (Low 50% / Base 60% / High 70%), consistent with government/fleet auction practice. static.ibisworld.comIBISWorld
+
+We deliberately keep the replacement rate and B2B share conservative; both are explicit assumptions. Where Australian point estimates are scarce, we anchor to public fleet scale and documented auction pathways and show sensitivity.
+AutoConnex pricing 
+                                                                                                                                                                                    * Per-side fee (both buyer & seller pay):
+≤$10k → $150 | $10–20k → $250 | ≥$20k → $350 (cap)
+→ Revenue per transaction = 2 × per-side fee
+
+                                                                                                                                                                                    * Average fee mix (Base): 20% ≤$10k / 40% $10–20k / 40% ≥$20k → $270/side → $540/txn
+ Sensitivities: Lower-price skew: $240/side → $480/txn. Higher-price skew: $290/side → $580/txn.
+
+
+Key numbers
+1) Estimated annual wholesale units (Australia)
+Component
+	Low assumption
+	Base assumption
+	High assumption
+	Auctions (Pickles/Manheim + others)
+	150,000
+	170,000
+	200,000
+	Fleet off-auction wholesale = Fleet parc × Replacement × B2B share
+	2.4M × 15% × 50% = 180,000
+	2.4M × 20% × 60% = 288,000
+	2.4M × 25% × 70% = 420,000
+	Total wholesale transactions (units)
+	330,000
+	458,000
+	620,000
+	
+
+
+
+2) National TAM (fees only) — applying AutoConnex pricing
+Case
+	Units
+	Avg revenue / txn
+	TAM revenue
+	Low (conservative both ways)
+	330,000
+	$480
+	$158.4M
+	Base
+	458,000
+	$540
+	$247.32M
+	High (optimistic both ways)
+	620,000
+	$580
+	$359.6M
+	
+
+
+
+3) SAM (QLD + NSW first) and SOM scenarios
+We proxy SAM by allocating 55% of national wholesale units to NSW+QLD (two largest markets by used-vehicle activity). 
+Scope
+	Units basis
+	Avg revenue / txn
+	Revenue
+	SAM – Low
+	55% × 330,000 = 181,500
+	$480
+	$87.12M
+	SAM – Base
+	55% × 458,000 = 251,900
+	$540
+	$136.03M
+	SAM – High
+	55% × 620,000 = 341,000
+	$580
+	$197.78M
+	SOM (Base SAM units, 24–36 mo):
+Penetration of SAM
+	Units
+	Avg revenue / txn
+	Revenue / yr
+	3%
+	7,557
+	$540
+	$4.08M
+	5%
+	12,595
+	$540
+	$6.80M
+	10%
+	25,190
+	$540
+	$13.60M
+	
+
+
+
+What this means for AutoConnex
+                                                                                                                                                                                       * Whole-of-wholesale TAM (fees only): ~$160M–$360M/yr, Base ≈ $247M.
+
+                                                                                                                                                                                       * Initial two-state SAM: ~$87M–$198M/yr, Base ≈ $136M.
+
+                                                                                                                                                                                       * Year-3 SOM: realistic 3–10% capture in NSW+QLD equates to ~$4–$14M ARR on fees alone, with transport & premium features representing upside after PMF.
+
+
+
+
+7. Final Recommendations & Key Considerations
+1) Launch Thesis
+                                                                                                                                                                                          * Win supply first, then curate demand. Liquidity in a B2B marketplace is supply-constrained early. Prioritize onboarding high-volume wholesalers (and major fleet remarketers) so dealers see fresh, relevant stock daily.
+
+                                                                                                                                                                                          * Start narrow → expand. Phase 1 in Queensland → New South Wales, and within that, seed 2–3 vehicle segments with repeatable velocity (e.g., late-model SUVs, utes, and popular small cars). Add categories once sell-through is predictable.
+
+                                                                                                                                                                                          * Keep behavior familiar. Default to bank transfer between parties; collect only the platform per-side fee in-app at “mutual accept.” Offer optional card/escrow later—don’t force new payment behavior at MVP.
+
+2) Phased Rollout (90/180/365 days)
+Phase 0–1 (0–90 days): MVP & Seed Liquidity
+                                                                                                                                                                                             * Supply playbook. Personally onboard a first cohort of ~2–3 wholesalers (target ≥12 trades/month each). Offer 90 days of fee reductions or rebates in exchange for exclusive/first-look windows on a portion of stock.
+
+                                                                                                                                                                                             * Listing friction ≈ zero. Free to list; one-tap rego decode; photo checklist; mandatory condition notes (pros/cons) and PPSR auto-attach at invoice.
+
+                                                                                                                                                                                             * Anti-disintermediation v1. In-app chat with masked identities; no phone/email until fees captured; watermark images; unique listing IDs; terms explicitly prohibit off-platform closes for listed stock.
+
+                                                                                                                                                                                             * Dealer access = controlled. Invite/waitlist dealers to maintain wholesaler:dealer balance; guarantee minimum buyer coverage per metro (e.g., 10–15 active buyers/category).
+
+Phase 2 (90–180 days): Liquidity & Trust
+                                                                                                                                                                                                * Pricing enforcement. Lock the tiered per-side fee ($150/$250/$350, both sides) and introduce volume rebates for power sellers (e.g., 10% fee credit at 50+ monthly sales).
+
+                                                                                                                                                                                                * Reputation & SLAs. Launch ratings (fulfilment speed, accuracy), photo/condition standards, and dispute flow (fast mediation; fee credit if materially misdescribed).
+
+                                                                                                                                                                                                * Transport monetization pilot. Integrate 1–2 partners (e.g., CEVA/independent carriers): instant estimates → book → small clip per movement. Don’t block DIY shipping.
+
+                                                                                                                                                                                                * Verification at scale. Automate ABN/ACN + state dealer licence checks; keep manual fallback for edge cases.
+
+Phase 3 (180–365 days): Scale & Monetize
+                                                                                                                                                                                                   * Premium features (opt-in). Saved searches; instant notifications; “auto-buy” for pre-set criteria; priority placement. Keep listing free; monetize urgency.
+
+                                                                                                                                                                                                   * Data products. Dealer comp sheets (buy bands by model/grade/kms), fair-value guides, and “days-to-clear” benchmarks → incremental ARPU and retention.
+
+                                                                                                                                                                                                   * Geo expansion. Roll to VIC/SA/WA once QLD/NSW show sub-7-day median time-to-trade in 2+ categories.
+
+3) Product Must-Haves (MVP → V1)
+                                                                                                                                                                                                      * Core workflows: rego decode; 20-photo standard; structured defects; instant fee calc; accept/decline; invoice generation; fee capture on both sides at acceptance.
+
+                                                                                                                                                                                                      * Trust & safety: dealer licence + ABN/ACN verification; PPSR check; odometer & write-off flags; private feedback loop for serious issues; audit trail on edits.
+
+                                                                                                                                                                                                      * Dispute policy: simple remedies—refund platform fees; optional return protocol if materially misdescribed (wholesaler pays return freight if at fault).
+
+                                                                                                                                                                                                      * Anti-circumvention: masked chat; delayed identity reveal until fees clear; keyword filters for numbers/emails; graduated penalties (fee clawback, suspensions).
+
+4) Pricing & Incentives (execute what you agreed)
+                                                                                                                                                                                                         * Per-side fee (both sides): ≤$10k: $150 | $10–20k: $250 | ≥$20k: $350 (cap).
+
+                                                                                                                                                                                                         * Go-to-market incentives:
+
+                                                                                                                                                                                                            * Free listing (indefinite).
+
+                                                                                                                                                                                                            * Founding wholesaler program: first 90 days at 50% fee or “sell-X get Y free” to upload full inventory.
+
+                                                                                                                                                                                                            * Dealer incentive: credits for first N successful purchases; referral credits for inviting verified dealers.
+
+                                                                                                                                                                                                               * Later (post-PMF): premium notifications/auto-buy; optional buyer-only fee holidays to stimulate demand in weak categories.
+
+5) Payments & Ops
+                                                                                                                                                                                                                  * Default: bank transfer between parties; platform only captures its fee (Airtasker-style).
+
+                                                                                                                                                                                                                  * Options: B2B Pay (payer covers surcharge) and Stripe escrow for high-risk trades later (adds cost; use selectively).
+
+                                                                                                                                                                                                                  * Invoicing: platform auto-issues seller/buyer invoices + PPSR receipt; transport invoice separate if booked via partner.
+
+6) Partnerships
+                                                                                                                                                                                                                     * Transport: 1–2 national carriers plus 1–2 strong intrastate carriers (door-to-door and depot options). Negotiate rate cards and referral tracking from day one.
+
+                                                                                                                                                                                                                     * DMS/stock systems: plan V1 integrations with EasyCars and similar (CSV/API sync) to reduce list-once friction.
+
+                                                                                                                                                                                                                     * Insurance/inspection: optional third-party pre-purchase inspections for higher-value units to cut disputes.
+
+7) Legal, Compliance & Risk
+                                                                                                                                                                                                                        * Licensing: verify per-state dealer licences (LMCT in VIC, etc.); ABN/ACN match to legal entity; keep signed dealer declaration for wholesale-only use.
+
+                                                                                                                                                                                                                        * Terms: explicit ban on off-platform closes for listed stock; fee clawback; dispute & arbitration terms; privacy & data handling.
+
+                                                                                                                                                                                                                        * Consumer law: transactions are B2B; still maintain clear disclosure standards to minimise misrepresentation exposure.
+
+                                                                                                                                                                                                                        * KYC/Fraud: periodic audits; machine flags for “too-good-to-be-true” pricing, VIN anomalies, repeat disputes.
+
+8) Metrics That Matter (board-level)
+                                                                                                                                                                                                                           * Liquidity: % listings with ≥3 dealer views in 24h; time-to-first-offer; sell-through ≤7 days.
+
+                                                                                                                                                                                                                           * Supply health: active wholesalers; units listed/active wholesaler; replenishment rate.
+
+                                                                                                                                                                                                                           * Demand health: active buying dealers; offers/dealer/month; win rate.
+
+                                                                                                                                                                                                                           * Economics: take-rate ($/txn), blended fee/txn, CAC by side, LTV:CAC ≥3:1, cohort retention at 6/12 months.
+
+                                                                                                                                                                                                                           * Trust: dispute rate <1.5%; misdescription rate; NPS by side.
+
+9) Risks & How to Mitigate
+                                                                                                                                                                                                                              * Disintermediation: masked IDs, fee capture at acceptance, watermarking, contract penalties, and value-add tools (PPSR, transport, escrow) that make on-platform cheaper/easier.
+
+                                                                                                                                                                                                                              * Category imbalance: invite gates and waitlists; targeted demand subsidies; seller SLAs.
+
+                                                                                                                                                                                                                              * Low listing quality: photo + condition standards, listing score, soft-block relists that don’t meet criteria.
+
+                                                                                                                                                                                                                              * Payment failures: pre-authorizations where feasible; rapid dunning; alternative payment rails for large trades.
+
+10) Org & Resourcing (lean start)
+                                                                                                                                                                                                                                 * Founding GTM: 1 supply AE (wholesalers), 1 demand AE (dealers), 1 ops/verification specialist, 1 community/CS.
+
+                                                                                                                                                                                                                                 * Product/Eng: PM + 2 full-stack + 1 designer; contract integrator for DMS & payments.
+
+                                                                                                                                                                                                                                 * Advisory: industry advisor (ex-auction/wholesale) for doors-open and playbook refinement.
+
+Bottom Line
+Lead with frictionless listing, strict anti-circumvention, and real liquidity in two states and a few vehicle categories. Monetize with the agreed per-side fee, keep listings free, and use notifications/auto-buy and transport clips to expand ARPU after PMF. Track liquidity and trust relentlessly; if you hit <7-day sell-through in target categories with stable dispute rates, you have the engine to scale nationally.
