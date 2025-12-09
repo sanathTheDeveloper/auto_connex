@@ -34,8 +34,8 @@ export default function DesignSystemScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         {/* Header */}
         <View style={styles.header}>
-          <Image 
-            source={require('../assets/logos/logo-teal.png')} 
+          <Image
+            source={require('../../assets/logos/logo-teal.png')}
             style={styles.logo}
             resizeMode="contain"
           />

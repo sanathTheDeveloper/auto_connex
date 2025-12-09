@@ -12,6 +12,7 @@ export {
   Colors,
   Typography,
   Spacing,
+  SpacingMobile,
   BorderRadius,
   Shadows,
   IconSizes,

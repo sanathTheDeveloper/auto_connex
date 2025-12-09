@@ -90,6 +90,20 @@ export const Typography = {
     '6xl': 73,   // Large display (73.47px from Figma logo)
   },
   
+  // Mobile-optimized font sizes (20% smaller for better fit on iPhone)
+  fontSizeMobile: {
+    xs: 11,      // Small labels, captions
+    sm: 13,      // Secondary text, metadata  
+    base: 15,    // Body text, default
+    lg: 18,      // Emphasized body text
+    xl: 20,      // Small headings
+    '2xl': 24,   // Section headings
+    '3xl': 28,   // Page headings
+    '4xl': 32,   // Hero headings
+    '5xl': 38,   // Display headings
+    '6xl': 56,   // Large display
+  },
+  
   // Font weights
   fontWeight: {
     regular: '400' as const,
@@ -117,6 +131,18 @@ export const Spacing = {
   '2xl': 48,   // 2x extra large
   '3xl': 64,   // 3x extra large
   '4xl': 120,  // 4x extra large (from Figma frames)
+};
+
+// Mobile-optimized spacing (slightly reduced for better screen utilization)
+export const SpacingMobile = {
+  xs: 4,       // Tiny spacing (same)
+  sm: 6,       // Small spacing
+  md: 12,      // Medium spacing (base)
+  lg: 18,      // Large spacing
+  xl: 24,      // Extra large
+  '2xl': 36,   // 2x extra large
+  '3xl': 48,   // 3x extra large
+  '4xl': 80,   // 4x extra large
 };
 
 export const BorderRadius = {
@@ -209,10 +235,37 @@ export const Layout = {
 export const responsive = {
   // Check if running on web
   isWeb: Platform.OS === 'web',
+  
+  // Check if small mobile device (iPhone SE, iPhone 12 Mini, etc.)
+  isSmallMobile: Platform.OS !== 'web' && Dimensions.get('window').width < 375,
+  
+  // Check if standard mobile device
+  isMobile: Platform.OS !== 'web' && Dimensions.get('window').width < 768,
 
   // Get responsive padding based on platform
   getContentPadding: () => {
-    return Platform.OS === 'web' ? Spacing.md : Spacing.lg;
+    const width = Dimensions.get('window').width;
+    if (Platform.OS === 'web') return Spacing.md;
+    if (width < 375) return SpacingMobile.md; // Small mobile
+    return SpacingMobile.lg; // Standard mobile
+  },
+  
+  // Get responsive spacing
+  getSpacing: (size: keyof typeof Spacing) => {
+    const width = Dimensions.get('window').width;
+    if (Platform.OS !== 'web' && width < 768) {
+      return SpacingMobile[size];
+    }
+    return Spacing[size];
+  },
+  
+  // Get responsive font size
+  getFontSize: (size: keyof typeof Typography.fontSize) => {
+    const width = Dimensions.get('window').width;
+    if (Platform.OS !== 'web' && width < 768) {
+      return Typography.fontSizeMobile[size];
+    }
+    return Typography.fontSize[size];
   },
 
   // Get responsive maxWidth for containers

@@ -13,7 +13,7 @@
 
 import React from 'react';
 import { Text as RNText, TextProps as RNTextProps, StyleSheet, TextStyle } from 'react-native';
-import { Colors, Typography } from '../primitives';
+import { Colors, Typography, responsive } from '../primitives';
 
 type TextVariant = 
   | 'display'    // 73px Volkhov Bold - Logo, hero text
@@ -98,65 +98,65 @@ const variantStyles: Record<TextVariant, TextStyle> = {
   // Volkhov variants - for data/dashboards
   display: {
     fontFamily: Typography.fontFamily.volkhov,
-    fontSize: Typography.fontSize['6xl'], // 73px
+    fontSize: responsive.getFontSize('6xl'),
     fontWeight: Typography.fontWeight.bold,
-    lineHeight: Typography.fontSize['6xl'] * 1.4, // Increased more to prevent clipping
-    letterSpacing: 0.12 * Typography.fontSize['6xl'], // 12% from Figma
+    lineHeight: responsive.getFontSize('6xl') * 1.4,
+    letterSpacing: 0.12 * responsive.getFontSize('6xl'),
   },
   h1: {
     fontFamily: Typography.fontFamily.volkhov,
-    fontSize: Typography.fontSize['5xl'], // 48px
+    fontSize: responsive.getFontSize('5xl'),
     fontWeight: Typography.fontWeight.bold,
-    lineHeight: Typography.fontSize['5xl'] * 1.4, // Increased more to prevent clipping
-    letterSpacing: 0.12 * Typography.fontSize['5xl'],
+    lineHeight: responsive.getFontSize('5xl') * 1.4,
+    letterSpacing: 0.12 * responsive.getFontSize('5xl'),
   },
   h2: {
     fontFamily: Typography.fontFamily.volkhov,
-    fontSize: Typography.fontSize['4xl'], // 40px
+    fontSize: responsive.getFontSize('4xl'),
     fontWeight: Typography.fontWeight.bold,
-    lineHeight: Typography.fontSize['4xl'] * 1.4, // Increased more to prevent clipping
-    letterSpacing: 0.12 * Typography.fontSize['4xl'],
+    lineHeight: responsive.getFontSize('4xl') * 1.4,
+    letterSpacing: 0.12 * responsive.getFontSize('4xl'),
   },
   
   // Vesper Libre variants - for listings/transactions
   h3: {
     fontFamily: Typography.fontFamily.vesperLibre,
-    fontSize: Typography.fontSize['3xl'], // 35px
+    fontSize: responsive.getFontSize('3xl'),
     fontWeight: Typography.fontWeight.regular,
-    lineHeight: Typography.fontSize['3xl'] * 1.45, // Increased more to prevent clipping
-    letterSpacing: 0.12 * Typography.fontSize['3xl'],
+    lineHeight: responsive.getFontSize('3xl') * 1.45,
+    letterSpacing: 0.12 * responsive.getFontSize('3xl'),
   },
   h4: {
     fontFamily: Typography.fontFamily.vesperLibre,
-    fontSize: Typography.fontSize['2xl'], // 29px
+    fontSize: responsive.getFontSize('2xl'),
     fontWeight: Typography.fontWeight.regular,
-    lineHeight: Typography.fontSize['2xl'] * 1.45, // Increased for better spacing
-    letterSpacing: 0.12 * Typography.fontSize['2xl'],
+    lineHeight: responsive.getFontSize('2xl') * 1.45,
+    letterSpacing: 0.12 * responsive.getFontSize('2xl'),
   },
   body: {
     fontFamily: Typography.fontFamily.vesperLibre,
-    fontSize: Typography.fontSize.xl, // 24px
+    fontSize: responsive.getFontSize('xl'),
     fontWeight: Typography.fontWeight.regular,
-    lineHeight: Typography.fontSize.xl * Typography.lineHeight.normal,
-    letterSpacing: 0.12 * Typography.fontSize.xl,
+    lineHeight: responsive.getFontSize('xl') * Typography.lineHeight.normal,
+    letterSpacing: 0.12 * responsive.getFontSize('xl'),
   },
   bodySmall: {
     fontFamily: Typography.fontFamily.vesperLibre,
-    fontSize: Typography.fontSize.lg, // 20px
+    fontSize: responsive.getFontSize('lg'),
     fontWeight: Typography.fontWeight.regular,
-    lineHeight: Typography.fontSize.lg * Typography.lineHeight.normal,
+    lineHeight: responsive.getFontSize('lg') * Typography.lineHeight.normal,
   },
   caption: {
     fontFamily: Typography.fontFamily.vesperLibre,
-    fontSize: Typography.fontSize.base, // 16px
+    fontSize: responsive.getFontSize('base'),
     fontWeight: Typography.fontWeight.regular,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
+    lineHeight: responsive.getFontSize('base') * Typography.lineHeight.normal,
   },
   label: {
     fontFamily: Typography.fontFamily.vesperLibre,
-    fontSize: Typography.fontSize.sm, // 14px
+    fontSize: responsive.getFontSize('sm'),
     fontWeight: Typography.fontWeight.medium,
-    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
+    lineHeight: responsive.getFontSize('sm') * Typography.lineHeight.normal,
     letterSpacing: 0.5,
   },
 };

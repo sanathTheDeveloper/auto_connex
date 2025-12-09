@@ -3,18 +3,27 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import DesignSystemScreen from '../screens/DesignSystemScreen';
+import { SplashScreen, OnboardingScreen, WelcomeScreen, SignupScreen } from '../screens/auth';
 import { Colors } from '../constants/theme';
 
 /**
  * Navigation Setup
  * 
  * Define your app's navigation structure here.
- * Add more screens as you implement your Figma designs.
+ * Auth Flow: Splash → Onboarding → Welcome → Signup → Home
  */
 
 export type RootStackParamList = {
+  // Auth Screens
+  Splash: undefined;
+  Onboarding: undefined;
+  Welcome: undefined;
+  Signup: { userType: 'dealer' | 'wholesaler' };
+  
+  // App Screens
   Home: undefined;
   DesignSystem: undefined;
+  
   // Add more screen types here as you create them
   // Example: Details: { id: string };
 }; 
@@ -25,9 +34,9 @@ export default function Navigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="DesignSystem"
+        initialRouteName="Splash"
         screenOptions={{
-          headerShown: true,
+          headerShown: false, // Hide headers for auth flow
           headerStyle: {
             backgroundColor: Colors.background,
           },
@@ -37,11 +46,35 @@ export default function Navigation() {
           },
         }}
       >
+        {/* Auth Flow Screens */}
+        <Stack.Screen 
+          name="Splash" 
+          component={SplashScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Onboarding" 
+          component={OnboardingScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Welcome" 
+          component={WelcomeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Signup" 
+          component={SignupScreen}
+          options={{ headerShown: false }}
+        />
+        
+        {/* Development/Testing Screens */}
         <Stack.Screen 
           name="DesignSystem" 
           component={DesignSystemScreen}
           options={{
             title: 'Design System',
+            headerShown: true,
           }}
         />
         <Stack.Screen 
@@ -49,8 +82,10 @@ export default function Navigation() {
           component={HomeScreen}
           options={{
             title: 'Auto Connex',
+            headerShown: true,
           }}
         />
+        
         {/* Add more screens here */}
       </Stack.Navigator>
     </NavigationContainer>

@@ -28,7 +28,7 @@ import {
   View,
   Platform,
 } from 'react-native';
-import { Colors, Spacing, BorderRadius } from '../primitives';
+import { Colors, Spacing, BorderRadius, responsive } from '../primitives';
 import { Text } from './Text';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -117,9 +117,9 @@ export const Button: React.FC<ButtonProps> = ({
             />
           )}
           <Text
-            variant={size === 'sm' ? 'bodySmall' : 'body'}
+            variant={size === 'sm' ? 'caption' : 'bodySmall'}
             color={textColor as any}
-            weight="semibold"
+            weight="medium"
             style={styles.text}
           >
             {children}
@@ -140,7 +140,7 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Platform.OS === 'android' ? BorderRadius.md : BorderRadius.lg,
+    borderRadius: Platform.OS === 'android' ? BorderRadius.md : BorderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   text: {
     textAlign: 'center',
-    letterSpacing: Platform.OS === 'android' ? 0 : -0.3,
+    letterSpacing: Platform.OS === 'android' ? 0 : 0.3,
   },
   iconLeft: {
     marginRight: Spacing.sm,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
 });
 
@@ -176,40 +176,40 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
   primary: {
     backgroundColor: Colors.primary,
     ...(Platform.OS === 'android' ? {
-      elevation: 2,
+      elevation: 1,
     } : {
       shadowColor: Colors.primary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
     }),
   },
   secondary: {
     backgroundColor: Colors.secondary,
     ...(Platform.OS === 'android' ? {
-      elevation: 2,
+      elevation: 1,
     } : {
       shadowColor: Colors.secondary,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.25,
-      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.18,
+      shadowRadius: 4,
     }),
   },
   accent: {
     backgroundColor: Colors.accent,
     ...(Platform.OS === 'android' ? {
-      elevation: 2,
+      elevation: 1,
     } : {
       shadowColor: Colors.accent,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.35,
-      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
     }),
   },
   outline: {
     backgroundColor: 'transparent',
-    borderWidth: Platform.OS === 'android' ? 2 : 1.5,
-    borderColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -217,23 +217,23 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
 };
 
 /**
- * Size-specific styles (iOS/Web optimized heights)
+ * Size-specific styles (Mobile-optimized for comfortable tap targets - min 44px)
  */
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
   sm: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    minHeight: Platform.OS === 'android' ? 36 : 32,
+    paddingHorizontal: responsive.isMobile ? responsive.getSpacing('md') : Spacing.md,
+    paddingVertical: responsive.isMobile ? responsive.getSpacing('sm') + 2 : Spacing.sm,
+    minHeight: 40, // Slightly below Apple's 44px for truly small buttons
   },
   md: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Platform.OS === 'android' ? Spacing.md : 12,
-    minHeight: Platform.OS === 'android' ? 48 : 44,
+    paddingHorizontal: responsive.isMobile ? responsive.getSpacing('lg') : Spacing.lg,
+    paddingVertical: responsive.isMobile ? 14 : 12,
+    minHeight: 48, // Apple's recommended tap target
   },
   lg: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Platform.OS === 'android' ? Spacing.lg : 16,
-    minHeight: Platform.OS === 'android' ? 56 : 50,
+    paddingHorizontal: responsive.isMobile ? responsive.getSpacing('xl') : Spacing.xl,
+    paddingVertical: responsive.isMobile ? 12 : 16,
+    minHeight: 46, // Sleeker mobile button
   },
 };
 
@@ -243,8 +243,9 @@ const sizeStyles: Record<ButtonSize, ViewStyle> = {
 function getTextColor(variant: ButtonVariant): string {
   switch (variant) {
     case 'outline':
+      return Colors.text;
     case 'ghost':
-      return Colors.primary;
+      return Colors.textTertiary;
     default:
       return Colors.white;
   }

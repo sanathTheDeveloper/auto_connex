@@ -63,6 +63,45 @@ export type { BadgeProps } from './molecules/Badge';
 export { Avatar } from './molecules/Avatar';
 export type { AvatarProps } from './molecules/Avatar';
 
+export { Modal } from './molecules/Modal';
+export type { ModalProps, ModalVariant } from './molecules/Modal';
+
+export { VerificationBadge } from './molecules/VerificationBadge';
+export type { VerificationBadgeProps } from './molecules/VerificationBadge';
+
+// ============ Auth Molecules ============
+export {
+  PhoneInput,
+  EmailInput,
+  PasswordInput,
+  ABNInput,
+  LicenseInput,
+  validateAustralianPhone,
+  validateEmail,
+  validatePassword,
+  validateABN,
+  validateLicense,
+  getPasswordStrength,
+  formatABNForDisplay,
+} from './molecules/auth';
+export type {
+  PhoneInputProps,
+  EmailInputProps,
+  PasswordInputProps,
+  ABNInputProps,
+  LicenseInputProps,
+} from './molecules/auth';
+
+// ============ Organisms ============
+export { OnboardingSlide } from './organisms/OnboardingSlide';
+export type { OnboardingSlideProps } from './organisms/OnboardingSlide';
+
+export { OnboardingPagination } from './organisms/OnboardingPagination';
+export type { OnboardingPaginationProps } from './organisms/OnboardingPagination';
+
+export { OnboardingActions } from './organisms/OnboardingActions';
+export type { OnboardingActionsProps } from './organisms/OnboardingActions';
+
 /**
  * Design System Documentation
  * 

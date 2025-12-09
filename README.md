@@ -522,22 +522,355 @@ npm run build:web
 - [x] Design system demo screen
 - [x] Navigation setup
 - [x] Font loading in App.tsx
+- [x] Atomic Design system (Primitives, Atoms, Molecules)
+- [x] Onboarding flow planning & documentation
 
 ### 🔄 In Progress
-- [ ] Additional icon downloads
-- [ ] Product image assets
-- [ ] Component library expansion
+- [ ] Onboarding implementation (Splash → 3 slides → User type → Signup)
+- [ ] Authentication screens with validation
+- [ ] Business verification (ABN/License)
 
 ### ⏳ Planned
-- [ ] Home screen implementation
+- [ ] Home screen with listing toggle
 - [ ] Product listing components
-- [ ] Authentication screens
 - [ ] Vehicle detail screens
-- [ ] User profile screens
+- [ ] Messaging system
+- [ ] User profile & dashboard
+- [ ] Search & filters
 
 ---
 
-## 👨‍💻 Development Notes
+## � Knowledge Base: Onboarding Implementation
+
+### Problem Statement
+> *"Australia's wholesale vehicle trade is fragmented and costly. Dealers must use multiple platforms and manual processes to find verified stock, leading to slow deals, higher fees, and limited nationwide access."*
+
+### Mission Statement
+> *"AutoConnex provides a trusted digital marketplace where licensed dealers and wholesalers can quickly list, discover, and complete wholesale vehicle transactions with lower fees, built-in verification, and streamlined logistics."*
+
+---
+
+### User Personas (from Figma Research)
+
+#### 1. **Jack** - The Fast-Mover Wholesaler
+- **Location**: Brisbane, QLD
+- **Volume**: ~550 vehicles/month
+- **Pain Points**: High auction fees ($400-700/car), manual admin, buyer ghosting
+- **Wants**: Faster sale cycles, nationwide reach, lower fees, auto compliance
+- **Quote**: *"I want to move stock fast with good margins — not waste time on old systems and high auction fees."*
+
+#### 2. **Maria** - The Margin Protector (Independent Dealer)
+- **Location**: Melbourne, VIC
+- **Inventory**: ~40 cars on lot
+- **Target Vehicles**: Small cars + affordable SUVs
+- **Pain Points**: Auctions expensive, late stock alerts, unclear transport pricing
+- **Wants**: Steady stock flow, nationwide sourcing, price clarity, verified sellers
+- **Quote**: *"I need reliable, profitable stock without chasing 10 different wholesalers every day."*
+
+#### 3. **Reece** - The Carrier Manager (Transport Partner)
+- **Location**: Sydney, NSW
+- **Fleet**: 6 trucks (NSW ↔ QLD/VIC)
+- **Pain Points**: Idle trucks during low auction weeks, manual quoting, paperwork errors
+- **Wants**: Continuous job flow, digital bookings, predictable scheduling
+- **Quote**: *"We have capacity — we just need more steady and predictable job flow."*
+
+---
+
+### Competitor Analysis (Reviewed from Figma)
+
+| Platform | Strengths | Patterns to Adopt |
+|----------|-----------|-------------------|
+| **Cars24** | Progressive multi-step onboarding, strong verification | Step-by-step signup with progress indicator |
+| **Spinny** | Clean card-based listings, trust indicators | Verification badges, professional UI |
+| **Cartrade** | User type selection upfront, tiered access | "What brings you here?" screen |
+| **Pickles Auctions** | Auction-focused, bid management | Offer/counter-offer system |
+| **MotorPlatform** | B2B marketplace patterns | Business verification flow |
+
+**Key Insight**: All successful platforms prioritize **trust** (verification badges) and **user type differentiation** (dealer vs wholesaler experiences).
+
+---
+
+### Onboarding Flow Chart (from Figma node 174:1399)
+
+```
+Splash (2-3s)
+  ↓
+Onboarding Carousel (3 slides)
+  ├─ Slide 1: App Preview (listings grid)
+  ├─ Slide 2: Features (PPSR, Search, Quotes)
+  └─ Slide 3: Benefits (Lower fees, Faster, Verified)
+  ↓
+Welcome Screen
+  └─ "What brings you here?"
+     ├─ I am a Dealer (retail focus)
+     └─ I am a Wholesaler (inventory focus)
+  ↓
+Multi-Step Signup
+  ├─ Step 1: Name + Business Email + Phone
+  ├─ Step 2: ABN/ACN Verification
+  ├─ Step 3: License (LMCT/QLD Dealer License)
+  └─ Step 4: Payment Terms & Card Details
+  ↓
+Home Screen
+  ├─ Toggle: Available Listings ↔ My Listings
+  ├─ Search Bar + Filters
+  └─ Bottom Nav: Home | Search | Sell | Notifications | Account
+```
+
+---
+
+### Technical Specifications
+
+#### **Onboarding Assets**
+- **Approach**: Use placeholder illustrations (simple geometric shapes with brand colors)
+- **Icons**: Ionicons for features (shield-checkmark, search, flash, globe)
+- **Storage**: `src/assets/images/onboarding/`
+- **Format**: SVG or vector icons preferred, PNG fallback for illustrations
+
+#### **Animations**
+- **Style**: iOS-style slide animations with spring physics
+- **Libraries**: React Native Reanimated 2 or Animated API
+- **Transitions**:
+  - Onboarding slides: Horizontal swipe with parallax effect
+  - Screen transitions: Slide from right (iOS pattern)
+  - Modals: Scale + fade with spring bounce
+  - Success states: Checkmark scale animation
+
+#### **Validation Rules**
+
+##### Australian Phone Number
+- **Format**: `+61 4XX XXX XXX`
+- **Rules**:
+  - Must start with `+61` or `04`
+  - Mobile numbers start with `04` (after country code becomes `4`)
+  - Total 10 digits after country code
+  - No spaces/dashes in submission (formatting display only)
+- **Example**: `+61 412 345 678` or `0412 345 678`
+- **Regex**: `/^(\+61|0)4\d{8}$/`
+
+##### Australian Business Number (ABN)
+- **Format**: `XX XXX XXX XXX` (11 digits)
+- **Rules**:
+  - Must be exactly 11 digits
+  - Checksum validation (weighted algorithm):
+    1. Subtract 1 from first digit
+    2. Multiply each digit by weights [10,1,3,5,7,9,11,13,15,17,19]
+    3. Sum all products
+    4. Result must be divisible by 89
+- **Example**: `51 824 753 556`
+- **Mock Lookup**: Simulate API call with 1-2s delay, return business name/address
+
+```typescript
+// ABN Checksum Validation
+function validateABN(abn: string): boolean {
+  const digits = abn.replace(/\s/g, '');
+  if (digits.length !== 11) return false;
+  
+  const weights = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+  const firstDigit = parseInt(digits[0]) - 1;
+  let sum = firstDigit * weights[0];
+  
+  for (let i = 1; i < 11; i++) {
+    sum += parseInt(digits[i]) * weights[i];
+  }
+  
+  return sum % 89 === 0;
+}
+```
+
+##### Email
+- **Format**: RFC 5322 compliant
+- **Regex**: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
+- **Additional**: Check for common typos (gamil.com, yahooo.com)
+
+##### License Number
+- **Format**: State-specific (LMCT for QLD, Dealer License for NSW/VIC)
+- **Rules**: Alphanumeric, 6-12 characters
+- **Example**: `LMCT123456` (Queensland)
+
+---
+
+### Design Decisions & Rationale
+
+#### 1. **User Type Selection Upfront**
+**Why**: Competitors like Cars24 and Cartrade do this to personalize the experience.  
+**Implementation**: 
+- Dealers see "Buy" focused UI (Available Listings default)
+- Wholesalers see "Sell" focused UI (My Listings default)
+- Store in `AuthContext` as `userType: 'dealer' | 'wholesaler'`
+
+#### 2. **Progressive Disclosure in Signup**
+**Why**: Reduces cognitive load and drop-off rates.  
+**Implementation**: 4-step wizard
+1. Basic info (low friction)
+2. Business verification (trust building)
+3. License (compliance)
+4. Payment (final commitment)
+
+#### 3. **Mock ABN Lookup**
+**Why**: Real ABR API requires ABN + paid tier. Mock for MVP.  
+**Implementation**:
+```typescript
+// Mock ABN lookup service
+const mockABNLookup = async (abn: string) => {
+  await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
+  
+  const mockData = {
+    '51824753556': { name: 'Tesla Motors Australia Pty Ltd', address: 'Sydney NSW' },
+    '53004085616': { name: 'Toyota Australia', address: 'Melbourne VIC' },
+    // Add more mock entries
+  };
+  
+  return mockData[abn.replace(/\s/g, '')] || null;
+};
+```
+
+#### 4. **Consent Transparency**
+**Why**: Figma note: *"Ensure users consent to email sharing"*  
+**Implementation**: Clear checkbox with info tooltip:
+> ✓ *"I understand my email will be shared with buyers after sale confirmation for invoice delivery and direct communication."*
+
+#### 5. **iOS-Style Animations**
+**Why**: iOS users represent premium segment in automotive market.  
+**Implementation**:
+- Spring physics for natural feel (`useNativeDriver: true`)
+- Gesture-based navigation (swipe back)
+- Haptic feedback on important actions
+- Smooth 60fps transitions
+
+---
+
+### Component Architecture (Atomic Design)
+
+```
+src/design-system/
+├── primitives/          ✅ Colors, Typography, Spacing, Shadows
+├── atoms/               ✅ Text, Button, Icon, Spacer, Divider
+├── molecules/           ✅ Card, Input, Badge, Avatar
+│   └── auth/            🆕 PhoneInput, EmailInput, ABNInput, LicenseInput
+├── organisms/           🆕 TO BUILD
+│   ├── OnboardingSlide.tsx
+│   ├── OnboardingPagination.tsx
+│   ├── OnboardingActions.tsx
+│   ├── UserTypeCard.tsx
+│   ├── FormWizard.tsx
+│   ├── BusinessVerification.tsx
+│   └── VerificationBadge.tsx
+└── templates/           🆕 TO BUILD
+    └── AuthTemplate.tsx
+```
+
+---
+
+### Implementation Checklist
+
+**Phase 1: Organisms & Molecules** (2-3 hours)
+- [ ] OnboardingSlide organism (image + title + description)
+- [ ] OnboardingPagination (dot indicators)
+- [ ] OnboardingActions (Skip/Next/Get Started)
+- [ ] PhoneInput molecule (+61 country code, validation)
+- [ ] EmailInput molecule (RFC 5322 validation)
+- [ ] ABNInput molecule (11 digits, checksum validation)
+- [ ] LicenseInput molecule (state selection, alphanumeric)
+- [ ] PasswordInput molecule (toggle visibility)
+
+**Phase 2: Screens** (3-4 hours)
+- [ ] SplashScreen (logo + tagline + gradient)
+- [ ] OnboardingScreen (3 slides with carousel)
+- [ ] WelcomeScreen (user type selection)
+- [ ] SignupScreen (4-step wizard)
+- [ ] PaymentSetupScreen (card details + consent)
+
+**Phase 3: State & Navigation** (2 hours)
+- [ ] AuthContext (user state, persist to AsyncStorage)
+- [ ] Mock ABN lookup service
+- [ ] Validation utilities (phone, email, ABN)
+- [ ] Conditional navigation (AuthStack vs AppStack)
+- [ ] HomeScreen with listing toggle
+
+**Phase 4: Polish** (1-2 hours)
+- [ ] iOS-style animations (spring physics)
+- [ ] Loading states & spinners
+- [ ] Success modal ("Welcome to AutoConnex!")
+- [ ] Error handling & toast notifications
+- [ ] Accessibility (screen readers, focus)
+
+**Total Estimated Time**: 8-11 hours
+
+---
+
+### API Mock Services (MVP)
+
+```typescript
+// src/services/mockAPI.ts
+
+// ABN Lookup (simulates ABR API)
+export const mockABNLookup = async (abn: string) => {
+  await delay(1500);
+  const cleanABN = abn.replace(/\s/g, '');
+  return mockABNDatabase[cleanABN] || null;
+};
+
+// License Verification (simulates state gov API)
+export const mockLicenseVerify = async (license: string, state: string) => {
+  await delay(1000);
+  return { valid: true, type: 'LMCT', expiryDate: '2026-12-31' };
+};
+
+// User Registration
+export const mockUserSignup = async (userData: SignupData) => {
+  await delay(2000);
+  return {
+    success: true,
+    userId: generateUUID(),
+    verificationStatus: 'pending',
+  };
+};
+```
+
+---
+
+### Testing Scenarios
+
+#### Happy Path
+1. ✅ Splash screen loads → auto-navigates after 3s
+2. ✅ Swipe through 3 onboarding slides → tap "Get Started"
+3. ✅ Select "I am a Dealer" → proceeds to signup
+4. ✅ Enter valid name, email, phone → validates, proceeds
+5. ✅ Enter valid ABN → auto-fills business name → proceeds
+6. ✅ Enter valid license → shows verified badge → proceeds
+7. ✅ Enter card details + check consents → submits
+8. ✅ Success modal appears → navigates to Home screen
+9. ✅ Home shows "Available Listings" (dealer default)
+
+#### Error Paths
+1. ❌ Invalid phone format → shows inline error
+2. ❌ Invalid email → shows inline error
+3. ❌ Invalid ABN (checksum fails) → shows error
+4. ❌ ABN not found in mock DB → shows "Business not found"
+5. ❌ Missing required field → prevents proceeding
+6. ❌ Network error simulation → shows retry option
+
+#### Edge Cases
+- Back button during signup → confirms exit (unsaved data)
+- App backgrounded during signup → persists form state
+- Rapid tapping "Next" button → debounced, single submission
+- Pasting text with spaces → auto-formats (phone/ABN)
+
+---
+
+### Accessibility Considerations
+
+- **Screen Readers**: All inputs have labels, buttons have accessible names
+- **Focus Management**: Auto-focus next input on form submission
+- **Color Contrast**: All text meets WCAG AA (4.5:1 ratio)
+- **Tap Targets**: Minimum 44x44pt (iOS), 48x48dp (Android)
+- **Error Announcements**: Screen reader announces validation errors
+- **Form Labels**: Associated with inputs via `accessibilityLabel`
+
+---
+
+## �👨‍💻 Development Notes
 
 ### Adding a New Screen
 
@@ -592,4 +925,5 @@ Internal project - Follow these guidelines:
 
 **Built with ❤️ using React Native + Expo**  
 **Design System v1.0.0**  
+**Onboarding Knowledge Base v1.0.0**  
 **Last Updated**: December 8, 2025

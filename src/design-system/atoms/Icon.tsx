@@ -37,7 +37,7 @@ type ColorKey = keyof typeof Colors;
 export interface IconProps {
   /** Icon name from the chosen family */
   name: string;
-  /** Icon family (default: Ionicons) */
+  /** Icon family (default: MaterialIcons) */
   family?: IconFamily;
   /** Size preset or custom number */
   size?: IconSize;
@@ -59,7 +59,7 @@ export interface IconProps {
  */
 export const Icon: React.FC<IconProps> = ({
   name,
-  family = 'Ionicons',
+  family = 'MaterialIcons',
   size = 'md',
   color = 'text',
   style,

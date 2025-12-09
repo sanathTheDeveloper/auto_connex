@@ -14,6 +14,7 @@ import {
   VesperLibre_900Black,
 } from '@expo-google-fonts/vesper-libre';
 import Navigation from './src/navigation';
+import { AuthProvider } from './src/contexts/AuthContext';
 import { Colors, Spacing } from './src/constants/theme';
 import { Text } from './src/design-system';
 
@@ -27,6 +28,7 @@ import { Text } from './src/design-system';
  * - Loads brand fonts (Volkhov + Vesper Libre) from Google Fonts
  * - Shows loading screen while fonts download
  * - Applies brand colors from design system
+ * - Wraps app with AuthProvider for authentication state
  */
 
 export default function App() {
@@ -68,10 +70,12 @@ export default function App() {
   }
 
   return (
-    <View style={styles.appContainer}>
-      <Navigation />
-      <StatusBar style="auto" />
-    </View>
+    <AuthProvider>
+      <View style={styles.appContainer}>
+        <Navigation />
+        <StatusBar style="auto" />
+      </View>
+    </AuthProvider>
   );
 }
 
