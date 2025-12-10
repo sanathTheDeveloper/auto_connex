@@ -82,7 +82,7 @@ export default function Navigation() {
           component={HomeScreen}
           options={{
             title: 'Auto Connex',
-            headerShown: true,
+            headerShown: false,
           }}
         />
         
