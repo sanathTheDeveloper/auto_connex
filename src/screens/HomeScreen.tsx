@@ -21,6 +21,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+// Components
+import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS } from '../components';
+import type { FilterOptions } from '../components';
+
 // Design System
 import { Text } from '../design-system/atoms/Text';
 import { Spacer } from '../design-system/atoms/Spacer';
@@ -37,8 +41,6 @@ import {
 
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
-const APP_ICON = require('../../assets/logos/app-icon-teal.png');
-const LOGO_LOCKUP = require('../../assets/logos/logo-lockup-teal.png');
 
 // ============================================================================
 // TYPES
@@ -48,35 +50,6 @@ const LOGO_LOCKUP = require('../../assets/logos/logo-lockup-teal.png');
 // ============================================================================
 // SUB-COMPONENTS
 // ============================================================================
-
-/**
- * Header with app icon and logo lockup
- * Clean, modern design following brand guidelines
- */
-const Header: React.FC = () => (
-  <View style={styles.header}>
-    {/* Left: Menu icon */}
-    <TouchableOpacity style={styles.headerIconButton}>
-      <Ionicons name="menu-outline" size={24} color={Colors.text} />
-    </TouchableOpacity>
-
-    {/* Center: Brand */}
-    <View style={styles.headerBrand}>
-      <Image source={APP_ICON} style={styles.appIcon} resizeMode="contain" />
-      <Image source={LOGO_LOCKUP} style={styles.logoLockup} resizeMode="contain" />
-    </View>
-
-    {/* Right: Notification & Settings */}
-    <View style={styles.headerRight}>
-      <TouchableOpacity style={styles.headerIconButton}>
-        <Ionicons name="notifications-outline" size={22} color={Colors.text} />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.headerIconButton}>
-        <Ionicons name="settings-outline" size={22} color={Colors.text} />
-      </TouchableOpacity>
-    </View>
-  </View>
-);
 
 /**
  * Vehicle card action buttons (heart, share, message)
@@ -240,32 +213,121 @@ const EmptyState: React.FC = () => (
 
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  // Filter vehicles based on search query
+  // Filter vehicles based on search query and filters
   const filteredVehicles = VEHICLES.filter((vehicle) => {
-    if (searchQuery.trim() === '') return true;
+    // Text search
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        vehicle.make.toLowerCase().includes(query) ||
+        vehicle.model.toLowerCase().includes(query) ||
+        vehicle.location.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
 
-    const query = searchQuery.toLowerCase();
-    return (
-      vehicle.make.toLowerCase().includes(query) ||
-      vehicle.model.toLowerCase().includes(query) ||
-      vehicle.location.toLowerCase().includes(query)
-    );
+    // Make filter
+    if (filters.make.length > 0 && !filters.make.includes(vehicle.make)) {
+      return false;
+    }
+
+    // State filter
+    if (filters.state.length > 0 && !filters.state.includes(vehicle.state)) {
+      return false;
+    }
+
+    // Transmission filter
+    if (filters.transmission.length > 0 && !filters.transmission.includes(vehicle.transmission)) {
+      return false;
+    }
+
+    // Fuel type filter
+    if (filters.fuelType.length > 0 && !filters.fuelType.includes(vehicle.fuelType)) {
+      return false;
+    }
+
+    // Condition filter
+    if (filters.condition.length > 0 && !filters.condition.includes(vehicle.condition)) {
+      return false;
+    }
+
+    // Price range filter
+    if (vehicle.price < filters.priceRange[0] || vehicle.price > filters.priceRange[1]) {
+      return false;
+    }
+
+    // Verified only filter
+    if (filters.verifiedOnly && !vehicle.verified) {
+      return false;
+    }
+
+    return true;
   });
+
+  // Count active filters
+  const activeFilterCount = () => {
+    let count = 0;
+    if (filters.make.length > 0) count++;
+    if (filters.state.length > 0) count++;
+    if (filters.transmission.length > 0) count++;
+    if (filters.fuelType.length > 0) count++;
+    if (filters.condition.length > 0) count++;
+    if (filters.priceRange[0] !== 0 || filters.priceRange[1] !== 999999) count++;
+    if (filters.verifiedOnly) count++;
+    return count;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header with Gradient */}
+      <Header
+        onMenuPress={() => setIsMenuOpen(true)}
+        onNotificationPress={() => console.log('Notifications pressed')}
+      />
+
+      {/* Slide-out Menu */}
+      <DrawerMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        onOpen={() => setIsMenuOpen(true)}
+        onNavigate={(screen) => console.log('Navigate to:', screen)}
+        userName="John Dealer"
+        userType="dealer"
+        activeScreen="Home"
+      />
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={setFilters}
+        initialFilters={filters}
+        notificationsEnabled={notificationsEnabled}
+        onToggleNotifications={setNotificationsEnabled}
+      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Header />
-        <Spacer size="md" />
+        {/* Page Title - Centered */}
+        <View style={styles.titleSection}>
+          <Text variant="h2" weight="bold" align="center">
+            Marketplace
+          </Text>
+          <Text variant="bodySmall" color="textTertiary" align="center">
+            Verified wholesale vehicles
+          </Text>
+        </View>
+        <Spacer size="lg" />
 
         {/* Search Bar with Filter */}
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={20} color={Colors.textTertiary} />
+            <Ionicons name="search-outline" size={18} color={Colors.textTertiary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search vehicles..."
@@ -274,16 +336,27 @@ export default function HomeScreen() {
               onChangeText={setSearchQuery}
             />
           </View>
-          <TouchableOpacity style={styles.filterButton}>
-            <Ionicons name="options-outline" size={22} color={Colors.text} />
+          <TouchableOpacity
+            style={[styles.filterButton, activeFilterCount() > 0 && styles.filterButtonActive]}
+            onPress={() => setIsFilterOpen(true)}
+          >
+            <Ionicons name="options-outline" size={18} color={Colors.white} />
+            {activeFilterCount() > 0 && (
+              <View style={styles.filterBadge}>
+                <Text variant="caption" style={styles.filterBadgeText}>
+                  {activeFilterCount()}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
-        <Spacer size="md" />
+        <Spacer size="lg" />
 
-        <Text variant="caption" color="textTertiary">
-          {filteredVehicles.length} vehicles found
+        {/* Results Count */}
+        <Text variant="caption" color="textTertiary" style={{ marginBottom: Spacing.sm }}>
+          {filteredVehicles.length} vehicles available
         </Text>
-        <Spacer size="md" />
+        <Spacer size="xs" />
 
         {/* Vehicle Listings */}
         {filteredVehicles.length > 0 ? (
@@ -315,46 +388,24 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  headerIconButton: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerBrand: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  appIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-  },
-  logoLockup: {
-    width: 130,
-    height: 32,
+    paddingBottom: Spacing['3xl'],
   },
 
-  // Search Bar
+  // Title Section - Enhanced for better hierarchy and centered for mobile
+  titleSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+
+  // Search Bar - Improved with brand colors
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   searchBar: {
     flex: 1,
@@ -364,33 +415,59 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: Colors.text,
-    paddingVertical: Spacing.xs,
+    paddingVertical: 2,
+    fontFamily: 'VesperLibre',
   },
   filterButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.surface,
+    width: 40,
+    height: 40,
+    backgroundColor: Colors.primary,
     borderRadius: BorderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
+    ...Shadows.sm,
+  },
+  filterButtonActive: {
+    backgroundColor: Colors.secondary,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: Colors.accent,
+    minWidth: 16,
+    height: 16,
+    borderRadius: BorderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '600',
   },
 
-  // Vehicle Card
+  // Vehicle Card - Enhanced with better elevation and spacing
   vehicleCardWrapper: {
-    marginBottom: Spacing.xl,
-    paddingTop: 40,
+    marginBottom: Spacing['2xl'],
+    paddingTop: 48,
   },
   vehicleCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius['2xl'],
     overflow: 'visible',
-    ...Shadows.md,
+    ...Shadows.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   vehicleImageContainer: {
     position: 'relative',
@@ -399,16 +476,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -60,
+    marginTop: -68,
     zIndex: 2,
   },
   vehicleImage: {
     width: '100%',
-    height: 220,
+    height: 240,
     backgroundColor: 'transparent',
   },
   vehicleDetails: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   vehicleHeader: {
     flexDirection: 'row',
@@ -424,18 +502,23 @@ const styles = StyleSheet.create({
     marginBottom: -4,
   },
 
-  // Card Actions
+  // Card Actions - Improved spacing
   cardActionsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: Spacing.lg,
     paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xs,
   },
   actionButtonBottom: {
-    padding: Spacing.xs,
+    padding: Spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    width: 40,
+    height: 40,
   },
 
   // Stats Grid
