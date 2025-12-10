@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -36,128 +37,46 @@ import {
 
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
+const APP_ICON = require('../../assets/logos/app-icon-teal.png');
+const LOGO_LOCKUP = require('../../assets/logos/logo-lockup-teal.png');
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-type TabType = 'browse' | 'my-listings' | 'saved';
-type FilterType = 'all' | 'verified' | 'featured';
 
 // ============================================================================
 // SUB-COMPONENTS
 // ============================================================================
 
 /**
- * Header with search and navigation
+ * Header with app icon and logo lockup
+ * Clean, modern design following brand guidelines
  */
-const Header: React.FC<{ vehicleCount: number }> = ({ vehicleCount }) => (
+const Header: React.FC = () => (
   <View style={styles.header}>
-    <View style={styles.headerTop}>
-      <View style={styles.headerLeft}>
-        <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search" size={24} color={Colors.text} />
-        </TouchableOpacity>
-        <Spacer size="sm" />
-        <TouchableOpacity style={styles.sourcingDropdown}>
-          <Text variant="body" weight="bold">Sourcing</Text>
-          <Spacer size="xs" />
-          <Ionicons name="chevron-down" size={20} color={Colors.text} />
-        </TouchableOpacity>
-      </View>
+    {/* Left: Menu icon */}
+    <TouchableOpacity style={styles.headerIconButton}>
+      <Ionicons name="menu-outline" size={24} color={Colors.text} />
+    </TouchableOpacity>
 
-      <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="notifications-outline" size={24} color={Colors.text} />
-        </TouchableOpacity>
-        <Spacer size="sm" />
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="menu" size={24} color={Colors.text} />
-        </TouchableOpacity>
-      </View>
+    {/* Center: Brand */}
+    <View style={styles.headerBrand}>
+      <Image source={APP_ICON} style={styles.appIcon} resizeMode="contain" />
+      <Image source={LOGO_LOCKUP} style={styles.logoLockup} resizeMode="contain" />
     </View>
 
-    <View style={styles.vehicleCountBar}>
-      <Text variant="bodySmall" color="textTertiary">
-        {vehicleCount} vehicles available
-      </Text>
+    {/* Right: Notification & Settings */}
+    <View style={styles.headerRight}>
+      <TouchableOpacity style={styles.headerIconButton}>
+        <Ionicons name="notifications-outline" size={22} color={Colors.text} />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.headerIconButton}>
+        <Ionicons name="settings-outline" size={22} color={Colors.text} />
+      </TouchableOpacity>
     </View>
   </View>
 );
-
-/**
- * Tab navigation component
- */
-const TabBar: React.FC<{
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
-}> = ({ activeTab, onTabChange }) => {
-  const tabs: { key: TabType; label: string }[] = [
-    { key: 'browse', label: 'Browse All' },
-    { key: 'my-listings', label: 'My Listings' },
-    { key: 'saved', label: 'Saved' },
-  ];
-
-  return (
-    <View style={styles.tabs}>
-      {tabs.map(({ key, label }) => (
-        <TouchableOpacity
-          key={key}
-          style={[styles.tab, activeTab === key && styles.tabActive]}
-          onPress={() => onTabChange(key)}
-        >
-          <Text
-            variant="bodySmall"
-            weight={activeTab === key ? 'bold' : 'regular'}
-            color={activeTab === key ? 'primary' : 'text'}
-          >
-            {label}
-          </Text>
-          {activeTab === key && <View style={styles.tabIndicator} />}
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-};
-
-/**
- * Filter chips component
- */
-const FilterChips: React.FC<{
-  selectedFilter: FilterType;
-  onFilterChange: (filter: FilterType) => void;
-  totalCount: number;
-}> = ({ selectedFilter, onFilterChange, totalCount }) => {
-  const filters: { key: FilterType; label: string }[] = [
-    { key: 'all', label: `All (${totalCount})` },
-    { key: 'verified', label: '✓ Verified' },
-    { key: 'featured', label: '⭐ Featured' },
-  ];
-
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.filtersContainer}
-    >
-      {filters.map(({ key, label }) => (
-        <TouchableOpacity
-          key={key}
-          style={[styles.filterChip, selectedFilter === key && styles.filterChipActive]}
-          onPress={() => onFilterChange(key)}
-        >
-          <Text
-            variant="caption"
-            weight="medium"
-            color={selectedFilter === key ? 'background' : 'text'}
-          >
-            {label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-};
 
 /**
  * Vehicle card action buttons (heart, share, message)
@@ -272,10 +191,9 @@ const VehicleCard: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => (
         {/* Title with Verified Badge */}
         <View style={styles.vehicleHeader}>
           <View style={styles.vehicleTitleSection}>
-            <View style={styles.titleRow}>
-              <Text variant="body" weight="bold" numberOfLines={1}>
-                {vehicle.year} {vehicle.make} {vehicle.model}
-              </Text>
+            <Text variant="body" weight="bold">
+              {vehicle.year} {vehicle.make} {vehicle.model}
+              {vehicle.verified && '  '}
               {vehicle.verified && (
                 <Image
                   source={VERIFIED_BADGE}
@@ -283,9 +201,9 @@ const VehicleCard: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => (
                   resizeMode="contain"
                 />
               )}
-            </View>
+            </Text>
             {vehicle.variant && (
-              <Text variant="caption" color="textTertiary" numberOfLines={1}>
+              <Text variant="caption" color="textTertiary">
                 {vehicle.variant}
               </Text>
             )}
@@ -321,24 +239,18 @@ const EmptyState: React.FC = () => (
 // ============================================================================
 
 export default function HomeScreen() {
-  const [activeTab, setActiveTab] = useState<TabType>('browse');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
 
-  // Filter vehicles based on search and filter selection
+  // Filter vehicles based on search query
   const filteredVehicles = VEHICLES.filter((vehicle) => {
-    const matchesSearch =
-      searchQuery.trim() === '' ||
-      vehicle.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vehicle.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vehicle.location.toLowerCase().includes(searchQuery.toLowerCase());
+    if (searchQuery.trim() === '') return true;
 
-    const matchesFilter =
-      selectedFilter === 'all' ||
-      (selectedFilter === 'verified' && vehicle.verified) ||
-      (selectedFilter === 'featured' && vehicle.featured);
-
-    return matchesSearch && matchesFilter;
+    const query = searchQuery.toLowerCase();
+    return (
+      vehicle.make.toLowerCase().includes(query) ||
+      vehicle.model.toLowerCase().includes(query) ||
+      vehicle.location.toLowerCase().includes(query)
+    );
   });
 
   return (
@@ -347,20 +259,28 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Header vehicleCount={filteredVehicles.length} />
+        <Header />
         <Spacer size="md" />
 
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        {/* Search Bar with Filter */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={20} color={Colors.textTertiary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search vehicles..."
+              placeholderTextColor={Colors.textTertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          <TouchableOpacity style={styles.filterButton}>
+            <Ionicons name="options-outline" size={22} color={Colors.text} />
+          </TouchableOpacity>
+        </View>
         <Spacer size="md" />
 
-        <FilterChips
-          selectedFilter={selectedFilter}
-          onFilterChange={setSelectedFilter}
-          totalCount={VEHICLES.length}
-        />
-        <Spacer size="lg" />
-
-        <Text variant="caption" color="text">
+        <Text variant="caption" color="textTertiary">
           {filteredVehicles.length} vehicles found
         </Text>
         <Spacer size="md" />
@@ -400,82 +320,65 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
-  },
-  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
+    alignItems: 'flex-start',
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
-  headerLeft: {
-    flexDirection: 'row',
+  headerIconButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerBrand: {
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  searchButton: {
-    padding: Spacing.sm,
-  },
-  sourcingDropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
+  appIcon: {
+    width: 44,
+    height: 44,
     borderRadius: BorderRadius.md,
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  vehicleCountBar: {
-    paddingVertical: Spacing.xs,
+  logoLockup: {
+    width: 130,
+    height: 32,
   },
 
-  // Tabs
-  tabs: {
+  // Search Bar
+  searchContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.md,
     alignItems: 'center',
-    position: 'relative',
-  },
-  tabActive: {},
-  tabIndicator: {
-    position: 'absolute',
-    bottom: -1,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: Colors.primary,
-  },
-
-  // Filters
-  filtersContainer: {
-    flexDirection: 'row',
     gap: Spacing.sm,
   },
-  filterChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.surface,
-    marginRight: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
   },
-  filterChipActive: {
-    backgroundColor: Colors.primary,
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text,
+    paddingVertical: Spacing.xs,
+  },
+  filterButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Vehicle Card
@@ -515,16 +418,10 @@ const styles = StyleSheet.create({
   vehicleTitleSection: {
     flex: 1,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'nowrap',
-    gap: 6,
-  },
   verifiedBadgeInline: {
-    width: 22,
-    height: 22,
-    marginTop: -1,
+    width: 24,
+    height: 24,
+    marginBottom: -4,
   },
 
   // Card Actions
