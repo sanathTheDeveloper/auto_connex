@@ -27,10 +27,17 @@ import {
   ViewStyle,
   View,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { Colors, Spacing, BorderRadius, responsive } from '../primitives';
 import { Text } from './Text';
 import { Ionicons } from '@expo/vector-icons';
+
+// Helper to detect mobile viewport (including mobile web)
+const isMobileViewport = () => {
+  const width = Dimensions.get('window').width;
+  return width < 768; // True for both native mobile and mobile web
+};
 
 type ButtonVariant = 
   | 'primary'    // #0ABAB5 teal (main actions)
@@ -117,7 +124,7 @@ export const Button: React.FC<ButtonProps> = ({
             />
           )}
           <Text
-            variant={size === 'sm' ? 'caption' : 'bodySmall'}
+            variant={getTextVariant(size)}
             color={textColor as any}
             weight="medium"
             style={styles.text}
@@ -218,22 +225,23 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
 
 /**
  * Size-specific styles (Mobile-optimized for comfortable tap targets - min 44px)
+ * Applies to both native mobile AND mobile web viewports
  */
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
   sm: {
-    paddingHorizontal: responsive.isMobile ? responsive.getSpacing('md') : Spacing.md,
-    paddingVertical: responsive.isMobile ? responsive.getSpacing('sm') + 2 : Spacing.sm,
-    minHeight: 40, // Slightly below Apple's 44px for truly small buttons
+    paddingHorizontal: isMobileViewport() ? Spacing.md : Spacing.lg,
+    paddingVertical: isMobileViewport() ? Spacing.xs : Spacing.sm,
+    minHeight: isMobileViewport() ? 38 : 40, // Compact for mobile
   },
   md: {
-    paddingHorizontal: responsive.isMobile ? responsive.getSpacing('lg') : Spacing.lg,
-    paddingVertical: responsive.isMobile ? 14 : 12,
-    minHeight: 48, // Apple's recommended tap target
+    paddingHorizontal: isMobileViewport() ? Spacing.lg : Spacing.xl,
+    paddingVertical: isMobileViewport() ? Spacing.sm : Spacing.md,
+    minHeight: isMobileViewport() ? 44 : 48, // Apple's recommended 44px for mobile
   },
   lg: {
-    paddingHorizontal: responsive.isMobile ? responsive.getSpacing('xl') : Spacing.xl,
-    paddingVertical: responsive.isMobile ? 12 : 16,
-    minHeight: 46, // Sleeker mobile button
+    paddingHorizontal: isMobileViewport() ? Spacing.xl : Spacing['2xl'],
+    paddingVertical: isMobileViewport() ? Spacing.sm + 2 : Spacing.lg,
+    minHeight: isMobileViewport() ? 48 : 52, // Comfortable for mobile
   },
 };
 
@@ -252,18 +260,36 @@ function getTextColor(variant: ButtonVariant): string {
 }
 
 /**
- * Get icon size based on button size
+ * Get icon size based on button size (smaller on mobile viewports)
  */
 function getIconSize(size: ButtonSize): number {
+  const mobile = isMobileViewport();
   switch (size) {
     case 'sm':
-      return 16;
+      return mobile ? 14 : 16;
     case 'md':
-      return 20;
+      return mobile ? 18 : 20;
     case 'lg':
-      return 24;
+      return mobile ? 20 : 24;
     default:
-      return 20;
+      return mobile ? 18 : 20;
+  }
+}
+
+/**
+ * Get text variant based on button size (smaller on mobile viewports)
+ */
+function getTextVariant(size: ButtonSize): 'caption' | 'label' | 'bodySmall' {
+  const mobile = isMobileViewport();
+  switch (size) {
+    case 'sm':
+      return mobile ? 'label' : 'caption';
+    case 'md':
+      return mobile ? 'caption' : 'bodySmall';
+    case 'lg':
+      return mobile ? 'bodySmall' : 'bodySmall';
+    default:
+      return 'caption';
   }
 }
 

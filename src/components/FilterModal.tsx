@@ -215,11 +215,11 @@ export const FilterModal: React.FC<FilterModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleReset}>
-            <Text variant="bodySmall" style={{ color: Colors.primary }}>
+            <Text variant="caption" style={{ color: Colors.primary }}>
               Reset
             </Text>
           </TouchableOpacity>
-          <Text variant="body">
+          <Text variant="caption">
             Filter Vehicles
           </Text>
           <TouchableOpacity onPress={onClose}>
