@@ -699,7 +699,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                   <>
                     <Button
                       variant="ghost"
-                      size="lg"
+                      size="md"
                       onPress={handleBack}
                       style={styles.backButton}
                     >
@@ -708,7 +708,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                     
                     <Button
                       variant="primary"
-                      size="lg"
+                      size="md"
                       onPress={handleNext}
                       loading={isLoading}
                       style={styles.nextButton}
@@ -720,7 +720,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                 ) : (
                   <Button
                     variant="primary"
-                    size="lg"
+                    size="md"
                     fullWidth
                     onPress={handleNext}
                     loading={isLoading}

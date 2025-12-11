@@ -20,6 +20,8 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation';
 
 // Components
 import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS } from '../components';
@@ -144,9 +146,14 @@ const StatsGrid: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => (
 /**
  * Individual vehicle card
  */
-const VehicleCard: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => (
+interface VehicleCardProps {
+  vehicle: Vehicle;
+  onPress: () => void;
+}
+
+const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress }) => (
   <View style={styles.vehicleCardWrapper}>
-    <TouchableOpacity style={styles.vehicleCard} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.vehicleCard} activeOpacity={0.7} onPress={onPress}>
       {/* Vehicle Image */}
       <View style={styles.vehicleImageContainer}>
         <Image
@@ -211,7 +218,13 @@ const EmptyState: React.FC = () => (
 // MAIN COMPONENT
 // ============================================================================
 
-export default function HomeScreen() {
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+
+interface HomeScreenProps {
+  navigation: HomeScreenNavigationProp;
+}
+
+export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -361,7 +374,11 @@ export default function HomeScreen() {
         {/* Vehicle Listings */}
         {filteredVehicles.length > 0 ? (
           filteredVehicles.map((vehicle) => (
-            <VehicleCard key={vehicle.id} vehicle={vehicle} />
+            <VehicleCard 
+              key={vehicle.id} 
+              vehicle={vehicle}
+              onPress={() => navigation.navigate('VehicleDetails', { vehicleId: vehicle.id })}
+            />
           ))
         ) : (
           <EmptyState />

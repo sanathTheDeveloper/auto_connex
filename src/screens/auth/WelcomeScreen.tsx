@@ -130,7 +130,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
       <View style={styles.footer}>
         <Button
           variant="primary"
-          size="lg"
+          size="md"
           fullWidth
           onPress={handleContinue}
           disabled={!selectedType}

@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import DesignSystemScreen from '../screens/DesignSystemScreen';
+import VehicleDetailsScreen from '../screens/VehicleDetailsScreen';
 import { SplashScreen, OnboardingScreen, WelcomeScreen, SignupScreen } from '../screens/auth';
 import { Colors } from '../constants/theme';
 
@@ -23,6 +24,7 @@ export type RootStackParamList = {
   // App Screens
   Home: undefined;
   DesignSystem: undefined;
+  VehicleDetails: { vehicleId: string };
   
   // Add more screen types here as you create them
   // Example: Details: { id: string };
@@ -82,6 +84,16 @@ export default function Navigation() {
           component={HomeScreen}
           options={{
             title: 'Auto Connex',
+            headerShown: false,
+          }}
+        />
+        
+        {/* Vehicle Details Screen */}
+        <Stack.Screen 
+          name="VehicleDetails" 
+          component={VehicleDetailsScreen}
+          options={{
+            title: 'Vehicle Details',
             headerShown: false,
           }}
         />

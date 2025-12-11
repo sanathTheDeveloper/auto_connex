@@ -55,7 +55,7 @@ export const OnboardingActions: React.FC<OnboardingActionsProps> = ({
       <View style={[styles.container, styles.lastSlideContainer, style]}>
         <Button
           variant="primary"
-          size="lg"
+          size="md"
           fullWidth
           onPress={onGetStarted}
           loading={loading}
@@ -72,7 +72,7 @@ export const OnboardingActions: React.FC<OnboardingActionsProps> = ({
       {/* Skip Button - Left */}
       <Button
         variant="ghost"
-        size="md"
+        size="sm"
         onPress={onSkip}
       >
         Skip
@@ -81,7 +81,7 @@ export const OnboardingActions: React.FC<OnboardingActionsProps> = ({
       {/* Next Button - Right */}
       <Button
         variant="primary"
-        size="md"
+        size="sm"
         onPress={onNext}
       >
         Next
