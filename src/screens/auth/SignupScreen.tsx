@@ -13,8 +13,8 @@
  * />
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,21 +23,16 @@ import { Text } from '../../design-system/atoms/Text';
 import { Button } from '../../design-system/atoms/Button';
 import { Spacer } from '../../design-system/atoms/Spacer';
 import { Input } from '../../design-system/molecules/Input';
-import { Modal } from '../../design-system/molecules/Modal';
-import { VerificationBadge } from '../../design-system/molecules/VerificationBadge';
+import { Select } from '../../design-system/molecules/Select';
 import {
   PhoneInput,
   EmailInput,
   ABNInput,
-  LicenseInput,
-  validateAustralianPhone,
-  validateEmail,
-  validateABN,
-  validateLicense,
 } from '../../design-system/molecules/auth';
-import { Colors, Spacing } from '../../design-system/primitives';
+import { Colors, Spacing, BorderRadius } from '../../design-system/primitives';
 import { useAuth, SignupData } from '../../contexts/AuthContext';
-import { lookupABN, verifyLicense, BusinessEntity } from '../../services/mockAPI';
+import { lookupABN } from '../../services/mockAPI';
+import { AUSTRALIAN_STATES, LICENSE_TYPES } from '../../data/australia';
 import { WelcomeModal } from './WelcomeModal';
 
 // Navigation types
@@ -80,11 +75,11 @@ interface FormData {
   licenseType: string;
   
   // Step 4: Payment Details
-  cardNumber: string;
   cardholderName: string;
+  cardNumber: string;
   expiryDate: string;
   cvv: string;
-  billingPostcode: string;
+  termsAccepted: boolean;
 }
 
 /**
@@ -96,11 +91,10 @@ interface FormErrors {
   phone?: string;
   abn?: string;
   licenseNumber?: string;
-  cardNumber?: string;
   cardholderName?: string;
+  cardNumber?: string;
   expiryDate?: string;
   cvv?: string;
-  billingPostcode?: string;
 }
 
 /**
@@ -112,15 +106,63 @@ interface FormErrors {
  * 3. License Verification (state-specific)
  * 4. Payment Setup (card details, consent)
  */
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route }) => {
   const { userType } = route.params;
   const { signup } = useAuth();
-  
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isABNVerified, setIsABNVerified] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Animation values
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [animatingStep, setAnimatingStep] = useState(1);
+
+  /**
+   * Animate transition between steps
+   */
+  const animateToStep = (newStep: number, direction: 'forward' | 'back') => {
+    const toValue = direction === 'forward' ? -SCREEN_WIDTH : SCREEN_WIDTH;
+
+    // Slide out current step
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Update step and reset position for slide in
+      setAnimatingStep(newStep);
+      setCurrentStep(newStep);
+      slideAnim.setValue(direction === 'forward' ? SCREEN_WIDTH : -SCREEN_WIDTH);
+
+      // Slide in new step
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 8,
+          tension: 65,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
@@ -134,11 +176,11 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
     licenseNumber: '',
     licenseState: '',
     licenseType: '',
-    cardNumber: '',
     cardholderName: '',
+    cardNumber: '',
     expiryDate: '',
     cvv: '',
-    billingPostcode: '',
+    termsAccepted: false,
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
@@ -219,11 +261,11 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
   };
 
   /**
-   * Navigate to next step
+   * Navigate to next step with animation
    */
   const handleNext = async () => {
     let isValid = false;
-    
+
     switch (currentStep) {
       case 1:
         isValid = validateStep1();
@@ -246,18 +288,18 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
         }
         return;
     }
-    
+
     if (isValid) {
-      setCurrentStep(prev => prev + 1);
+      animateToStep(currentStep + 1, 'forward');
     }
   };
 
   /**
-   * Navigate to previous step
+   * Navigate to previous step with animation
    */
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
+      animateToStep(currentStep - 1, 'back');
     }
   };
 
@@ -290,21 +332,37 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
   };
 
   /**
-   * Render current step content
+   * Render current step content with animation
    */
   const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return renderStep1();
-      case 2:
-        return renderStep2();
-      case 3:
-        return renderStep3();
-      case 4:
-        return renderStep4();
-      default:
-        return null;
-    }
+    const getStepContent = () => {
+      switch (animatingStep) {
+        case 1:
+          return renderStep1();
+        case 2:
+          return renderStep2();
+        case 3:
+          return renderStep3();
+        case 4:
+          return renderStep4();
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <Animated.View
+        style={[
+          styles.animatedContainer,
+          {
+            transform: [{ translateX: slideAnim }],
+            opacity: fadeAnim,
+          },
+        ]}
+      >
+        {getStepContent()}
+      </Animated.View>
+    );
   };
 
   /**
@@ -312,15 +370,15 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
    */
   const renderStep1 = () => (
     <View>
-      <Text variant="h2" weight="bold" style={styles.stepTitle}>
+      <Text variant="h4" weight="bold" style={styles.stepTitle}>
         Contact Information
       </Text>
       <Spacer size="xs" />
-      <Text variant="bodySmall" color="textTertiary" style={styles.stepSubtitle}>
+      <Text variant="caption" weight="medium" style={styles.stepSubtitle}>
         Let's start with your basic details
       </Text>
       
-      <Spacer size="xl" />
+      <Spacer size="lg" />
       
       <Input
         label="Full Name"
@@ -354,11 +412,11 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
    */
   const renderStep2 = () => (
     <View>
-      <Text variant="h2" weight="bold" style={styles.stepTitle}>
+      <Text variant="h4" weight="bold" style={styles.stepTitle}>
         Business Verification
       </Text>
       <Spacer size="xs" />
-      <Text variant="bodySmall" color="textTertiary" style={styles.stepSubtitle}>
+      <Text variant="caption" weight="medium" style={styles.stepSubtitle}>
         Enter your ABN to verify your business
       </Text>
       
@@ -393,27 +451,23 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
         <>
           <Spacer size="xl" />
           
-          {/* Success Banner with Verification Badge */}
+          {/* Success Banner with Verification Badge - Centered pill shape */}
           <View style={styles.verificationBanner}>
             <View style={styles.verificationIconContainer}>
               <Text style={styles.verificationIcon}>✓</Text>
             </View>
-            <View style={styles.verificationTextContainer}>
-              <Text variant="bodySmall" weight="bold" style={styles.verificationTitle}>
-                ABN Verified
-              </Text>
-              <Text variant="caption" style={styles.verificationSubtitle}>
-                Business details confirmed
-              </Text>
-            </View>
+            <Text variant="caption" weight="semibold" style={styles.verificationTitle}>
+              ABN Verified Successfully
+            </Text>
           </View>
           
           <Spacer size="lg" />
           
-          {/* Business Details Card */}
+          {/* Business Details Card - Beige/Cream background matching design */}
           <View style={styles.businessDetailsCard}>
+            {/* Header */}
             <View style={styles.detailsHeader}>
-              <Text variant="bodySmall" weight="bold" style={styles.detailsHeaderText}>
+              <Text variant="h4" weight="bold" style={styles.detailsHeaderText}>
                 Business Details
               </Text>
             </View>
@@ -421,17 +475,19 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
             <View style={styles.detailsDivider} />
             
             <View style={styles.detailsContent}>
+              {/* Business Name */}
               <View style={styles.detailRow}>
-                <Text variant="caption" style={styles.detailKey}>
+                <Text variant="caption" weight="semibold" style={styles.detailKey}>
                   BUSINESS NAME
                 </Text>
-                <Text variant="body" weight="semibold" style={styles.detailValue}>
+                <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
                   {formData.businessName}
                 </Text>
               </View>
               
+              {/* Trading Name */}
               <View style={styles.detailRow}>
-                <Text variant="caption" style={styles.detailKey}>
+                <Text variant="caption" weight="semibold" style={styles.detailKey}>
                   TRADING NAME
                 </Text>
                 <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
@@ -439,8 +495,9 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                 </Text>
               </View>
               
+              {/* Address */}
               <View style={styles.detailRow}>
-                <Text variant="caption" style={styles.detailKey}>
+                <Text variant="caption" weight="semibold" style={styles.detailKey}>
                   ADDRESS
                 </Text>
                 <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
@@ -448,9 +505,10 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                 </Text>
               </View>
               
+              {/* State and Postcode - Two columns */}
               <View style={styles.detailsRow}>
                 <View style={styles.detailRowHalf}>
-                  <Text variant="caption" style={styles.detailKey}>
+                  <Text variant="caption" weight="semibold" style={styles.detailKey}>
                     STATE
                   </Text>
                   <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
@@ -459,7 +517,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                 </View>
                 
                 <View style={styles.detailRowHalf}>
-                  <Text variant="caption" style={styles.detailKey}>
+                  <Text variant="caption" weight="semibold" style={styles.detailKey}>
                     POSTCODE
                   </Text>
                   <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
@@ -479,22 +537,54 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
    */
   const renderStep3 = () => (
     <View>
-      <Text variant="h2" weight="bold" style={styles.stepTitle}>
-        Dealer License
+      <Text variant="h4" weight="bold" style={styles.stepTitle}>
+        License Details
       </Text>
       <Spacer size="xs" />
-      <Text variant="bodySmall" color="textTertiary" style={styles.stepSubtitle}>
-        Verify your motor dealer license
+      <Text variant="caption" weight="medium" style={styles.stepSubtitle}>
+        Verify your dealer or wholesaler license
       </Text>
       
       <Spacer size="xl" />
       
-      <LicenseInput
+      {/* License Number Input */}
+      <Input
+        label={"Dealer License Number"}
         value={formData.licenseNumber}
-        onChange={(text) => updateField('licenseNumber', text)}
+        onChange={(text) => updateField('licenseNumber', text.toUpperCase())}
+        placeholder="LMCT12345"
+        autoCapitalize="characters"
+        autoCorrect={false}
+        leftIcon="description"
         error={formErrors.licenseNumber}
-        state={formData.state as any}
       />
+      
+      <Spacer size="md" />
+      
+      {/* State and Type - Two columns */}
+      <View style={styles.licenseRow}>
+        <View style={styles.licenseHalf}>
+          <Select
+            label="State"
+            value={formData.licenseState}
+            onChange={(value) => updateField('licenseState', value)}
+            options={AUSTRALIAN_STATES}
+            placeholder="Select"
+          />
+        </View>
+
+        <View style={styles.licenseHalf}>
+          <Select
+            label="Type"
+            value={formData.licenseType}
+            onChange={(value) => updateField('licenseType', value)}
+            options={LICENSE_TYPES}
+            placeholder="Select"
+          />
+        </View>
+      </View>
+      
+      <Spacer size="lg" />
     </View>
   );
 
@@ -503,22 +593,45 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
    */
   const renderStep4 = () => (
     <View>
-      <Text variant="h2" weight="bold" style={styles.stepTitle}>
-        Payment Details
+      <Text variant="h4" weight="bold" style={styles.stepTitle}>
+        Payment Setup
       </Text>
       <Spacer size="xs" />
-      <Text variant="bodySmall" color="textTertiary" style={styles.stepSubtitle}>
-        Add your card for marketplace transactions
+      <Text variant="caption" weight="medium" style={styles.stepSubtitle}>
+        Securely set up your billing details
       </Text>
-      
-      <Spacer size="xl" />
-      
+
+      <Spacer size="md" />
+
+      {/* Escrow Info Banner */}
+      <View style={styles.escrowBanner}>
+        <Text variant="caption" weight="semibold" style={styles.escrowTitle}>
+          Payment Protection
+        </Text>
+        <Text variant="caption" style={styles.escrowText}>
+          No charge will be made until your license is fully verified. Payments are held in escrow for 7 days before release.
+        </Text>
+      </View>
+
+      <Spacer size="md" />
+
+      {/* Cardholder Name */}
+      <Input
+        label="Cardholder Name"
+        value={formData.cardholderName}
+        onChange={(text) => updateField('cardholderName', text)}
+        placeholder="Name on card"
+        autoCapitalize="words"
+        error={formErrors.cardholderName}
+      />
+
+      <Spacer size="sm" />
+
       {/* Card Number */}
       <Input
         label="Card Number"
         value={formData.cardNumber}
         onChange={(text) => {
-          // Format: XXXX XXXX XXXX XXXX
           const formatted = text
             .replace(/\D/g, '')
             .slice(0, 16)
@@ -526,52 +639,37 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
             .trim();
           updateField('cardNumber', formatted);
         }}
-        placeholder="1234 5678 9012 3456"
+        placeholder="0000 0000 0000 0000"
         keyboardType="number-pad"
-        leftIcon="card"
-        maxLength={19} // 16 digits + 3 spaces
+        leftIcon="credit-card"
+        maxLength={19}
         error={formErrors.cardNumber}
       />
-      
-      <Spacer size="md" />
-      
-      {/* Cardholder Name */}
-      <Input
-        label="Cardholder Name"
-        value={formData.cardholderName}
-        onChange={(text) => updateField('cardholderName', text)}
-        placeholder="John Smith"
-        autoCapitalize="words"
-        leftIcon="user"
-        error={formErrors.cardholderName}
-      />
-      
-      <Spacer size="md" />
-      
-      {/* Expiry Date and CVV - Two Columns */}
+
+      <Spacer size="sm" />
+
+      {/* Expiry and CVV - Two Columns */}
       <View style={styles.cardDetailsRow}>
         <View style={styles.cardDetailHalf}>
           <Input
-            label="Expiry Date"
+            label="Expiry"
             value={formData.expiryDate}
             onChange={(text) => {
-              // Format: MM/YY
               const formatted = text
                 .replace(/\D/g, '')
                 .slice(0, 4)
-                .replace(/(\d{2})(\d{0,2})/, (match, p1, p2) => 
+                .replace(/(\d{2})(\d{0,2})/, (_, p1, p2) =>
                   p2 ? `${p1}/${p2}` : p1
                 );
               updateField('expiryDate', formatted);
             }}
             placeholder="MM/YY"
             keyboardType="number-pad"
-            leftIcon="calendar"
             maxLength={5}
             error={formErrors.expiryDate}
           />
         </View>
-        
+
         <View style={styles.cardDetailHalf}>
           <Input
             label="CVV"
@@ -582,60 +680,31 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
             }}
             placeholder="123"
             keyboardType="number-pad"
-            leftIcon="shield-checkmark"
             maxLength={3}
             secureTextEntry
             error={formErrors.cvv}
           />
         </View>
       </View>
-      
+
       <Spacer size="md" />
-      
-      {/* Billing Postcode */}
-      <Input
-        label="Billing Postcode"
-        value={formData.billingPostcode}
-        onChange={(text) => {
-          const formatted = text.replace(/\D/g, '').slice(0, 4);
-          updateField('billingPostcode', formatted);
-        }}
-        placeholder="2000"
-        keyboardType="number-pad"
-        leftIcon="map-pin"
-        maxLength={4}
-        error={formErrors.billingPostcode}
-      />
-      
-      <Spacer size="xl" />
-      
-      {/* Security Badge */}
-      <View style={styles.securityBadge}>
-        <View style={styles.securityIconContainer}>
-          <Text style={styles.securityIcon}>🔒</Text>
+
+      {/* Terms Checkbox */}
+      <TouchableOpacity
+        style={styles.termsCheckboxRow}
+        onPress={() => setFormData(prev => ({ ...prev, termsAccepted: !prev.termsAccepted }))}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.checkbox, formData.termsAccepted && styles.checkboxChecked]}>
+          {formData.termsAccepted && <Text style={styles.checkboxTick}>✓</Text>}
         </View>
-        <View style={styles.securityTextContainer}>
-          <Text variant="caption" weight="semibold" style={styles.securityTitle}>
-            Secure Payment
-          </Text>
-          <Text variant="caption" style={styles.securitySubtitle}>
-            Your card details are encrypted and secure
-          </Text>
-        </View>
-      </View>
-      
-      <Spacer size="md" />
-      
-      {/* Payment Terms */}
-      <View style={styles.termsContainer}>
-        <Text variant="caption" color="textTertiary" style={styles.termsText}>
-          By continuing, you agree to our{' '}
+        <Text variant="caption" style={styles.termsCheckboxText}>
+          I agree to the{' '}
           <Text variant="caption" style={styles.termsLink}>Terms of Service</Text>
           {' '}and{' '}
           <Text variant="caption" style={styles.termsLink}>Privacy Policy</Text>
-          . Card will be charged only for completed transactions.
         </Text>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 
@@ -683,38 +752,39 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
           >
             {/* Centered Card Container */}
             <View style={styles.cardContainer}>
-              {/* Progress Indicator */}
-              {renderProgress()}
-              
-              <Spacer size="lg" />
-              
-              {/* Step Content */}
-              {renderStepContent()}
-              
-              <Spacer size="xl" />
-              
-              {/* Action Buttons - Inside Card */}
+              {/* Card Content */}
+              <View style={styles.cardContent}>
+                {/* Progress Indicator */}
+                {renderProgress()}
+
+                <Spacer size="sm" />
+
+                {/* Step Content */}
+                {renderStepContent()}
+              </View>
+
+              {/* Action Buttons - Pinned to bottom */}
               <View style={styles.actions}>
                 {currentStep > 1 ? (
                   <>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="md"
                       onPress={handleBack}
                       style={styles.backButton}
                     >
                       Back
                     </Button>
-                    
+
                     <Button
                       variant="primary"
                       size="md"
                       onPress={handleNext}
                       loading={isLoading}
                       style={styles.nextButton}
-                      disabled={currentStep === 2 && !isABNVerified}
+                      disabled={(currentStep === 2 && !isABNVerified) || (currentStep === 4 && !formData.termsAccepted)}
                     >
-                      {currentStep === 4 ? 'Finish' : 'Continue'}
+                      {currentStep === 3 ? 'Verify License' : currentStep === 4 ? 'Register' : 'Continue'}
                     </Button>
                   </>
                 ) : (
@@ -759,33 +829,39 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  animatedContainer: {
+    width: '100%',
+  },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
-    minHeight: '100%',
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing['3xl'],
+    paddingBottom: Spacing.xs,
   },
   cardContainer: {
     backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: Spacing.xl,
+    borderRadius: 16,
+    paddingHorizontal: Spacing.md,
     paddingTop: Spacing.lg,
-    marginHorizontal: 'auto',
+    paddingBottom: Spacing.md,
     width: '100%',
-    maxWidth: 480,
+    maxWidth: 400,
+    alignSelf: 'center',
     shadowColor: Colors.text,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardContent: {
+    overflow: 'hidden',
   },
   progressContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
   },
   progressDot: {
     width: 8,
@@ -801,13 +877,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success,
   },
   stepTitle: {
-    fontSize: 26,
-    lineHeight: 32,
     textAlign: 'center',
     marginBottom: 4,
   },
   stepSubtitle: {
-    opacity: 0.65,
+    color: Colors.greyscale700,
+    opacity: 0.85,
     lineHeight: 20,
     textAlign: 'center',
   },
@@ -824,8 +899,10 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     width: '100%',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   backButton: {
     flex: 1,
@@ -839,73 +916,58 @@ const styles = StyleSheet.create({
   },
   verificationBanner: {
     backgroundColor: Colors.success + '10',
-    borderRadius: 16,
-    padding: Spacing.lg,
+    borderRadius: 100,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.success + '30',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    alignSelf: 'center',
   },
   verificationIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: Colors.success,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.success,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   verificationIcon: {
-    fontSize: 28,
+    fontSize: 16,
     color: Colors.white,
     fontWeight: 'bold',
-  },
-  verificationTextContainer: {
-    flex: 1,
+    lineHeight: 16,
   },
   verificationTitle: {
     color: Colors.success,
-    marginBottom: 2,
-  },
-  verificationSubtitle: {
-    color: Colors.text,
-    opacity: 0.6,
+    lineHeight: 18,
   },
   businessDetailsCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.greyscale300,
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.greyscale300 + '60',
     overflow: 'hidden',
-    shadowColor: Colors.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
   detailsHeader: {
     backgroundColor: Colors.backgroundAlt,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.greyscale300,
+    borderBottomColor: Colors.greyscale300 + '60',
   },
   detailsHeaderText: {
     color: Colors.text,
-    letterSpacing: 0.3,
+    letterSpacing: -0.3,
+    fontSize: 18,
   },
   detailsDivider: {
-    height: 1,
-    backgroundColor: Colors.greyscale300,
+    height: 0,
   },
   detailsContent: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
   detailsLabel: {
     letterSpacing: 0.5,
@@ -914,73 +976,177 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     flexDirection: 'column',
-    gap: 6,
+    gap: 2,
   },
   detailsRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   detailRowHalf: {
     flex: 1,
     flexDirection: 'column',
-    gap: 6,
+    gap: 2,
   },
   detailKey: {
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
     opacity: 0.5,
-    fontSize: 12,
+    fontSize: 10,
+    color: Colors.greyscale700,
   },
   detailValue: {
     color: Colors.text,
-    lineHeight: 22,
+    lineHeight: 18,
+    fontSize: 14,
+  },
+  // License Step Styles
+  helperText: {
+    color: Colors.textTertiary,
+    opacity: 0.8,
+    marginTop: -8,
+  },
+  helperTextSmall: {
+    color: Colors.textTertiary,
+    opacity: 0.7,
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+  inputLabel: {
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  licenseRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  licenseHalf: {
+    flex: 1,
+    position: 'relative',
+  },
+  selectPlaceholder: {
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    backgroundColor: Colors.surface,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectPlaceholderText: {
+    color: Colors.textTertiary,
+    flex: 1,
+  },
+  dropdownIcon: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+    marginLeft: 8,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.greyscale300,
+    marginTop: 4,
+    maxHeight: 140,
+    zIndex: 1000,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  dropdownScroll: {
+    maxHeight: 140,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: Spacing.sm,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.greyscale300 + '50',
+    backgroundColor: Colors.white,
+  },
+  dropdownItemSelected: {
+    backgroundColor: Colors.primary + '08',
+  },
+  dropdownItemText: {
+    color: Colors.text,
+    flex: 1,
+    fontSize: 13,
+  },
+  dropdownItemTextSelected: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  dropdownCheckmark: {
+    fontSize: 12,
+    color: Colors.primary,
+    fontWeight: 'bold',
+    marginLeft: 6,
   },
   // Payment Step Styles
   cardDetailsRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   cardDetailHalf: {
     flex: 1,
   },
-  securityBadge: {
-    backgroundColor: Colors.greyscale100,
-    borderRadius: 12,
+  escrowBanner: {
+    backgroundColor: Colors.success + '10',
+    borderRadius: 10,
     padding: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.greyscale300,
+    borderColor: Colors.success + '20',
   },
-  securityIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  escrowTitle: {
+    color: Colors.success,
+    marginBottom: 4,
+  },
+  escrowText: {
+    color: Colors.text,
+    lineHeight: 18,
+    opacity: 0.8,
+  },
+  termsCheckboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
-  securityIcon: {
-    fontSize: 20,
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  securityTextContainer: {
+  checkboxTick: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  termsCheckboxText: {
     flex: 1,
-  },
-  securityTitle: {
-    color: Colors.text,
-    marginBottom: 2,
-  },
-  securitySubtitle: {
-    color: Colors.textTertiary,
-    opacity: 0.8,
-  },
-  termsContainer: {
-    paddingHorizontal: Spacing.sm,
-  },
-  termsText: {
+    color: Colors.greyscale700,
     lineHeight: 18,
-    textAlign: 'center',
   },
   termsLink: {
     color: Colors.primary,

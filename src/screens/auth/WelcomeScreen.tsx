@@ -2,23 +2,39 @@
  * WelcomeScreen Component
  * 
  * User type selection screen (Dealer vs Wholesaler).
- * Shows two cards with distinct options and scale animation on press.
- * Follows competitor patterns (Cartrade/Cars24).
+ * Modern design with gradient backgrounds, animated cards, and brand-compliant typography.
+ * Follows competitor patterns (Cartrade/Cars24) with Auto Connex brand identity.
  * 
  * @example
- * <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
+ * <Stack.Screen name="Welcome" component={WelcomeScreen} opt  description  checkmarkIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: `${Colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },olor: Colors.greyscale700,
+    lineHeight: 17,
+  },={{ heade  featureText: {
+    marginLeft: Spacing.sm,
+    flex: 1,
+    lineHeight: 18,
+    color: Colors.greyscale700,
+  },: false }} />
  */
 
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, ScrollView, Platform } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../design-system/atoms/Text';
 import { Spacer } from '../../design-system/atoms/Spacer';
-import { Button } from '../../design-system/atoms/Button';
+import { PillButton } from '../../design-system/atoms/PillButton';
 import { Card } from '../../design-system/molecules/Card';
-import { Colors, Spacing, BorderRadius } from '../../design-system/primitives';
+import { Colors, Spacing, BorderRadius, Shadows } from '../../design-system/primitives';
 
 // Navigation types
 type RootStackParamList = {
@@ -67,77 +83,86 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Scrollable Content */}
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      {/* Gradient Background */}
+      <LinearGradient
+        colors={[
+          Colors.backgroundAlt,
+          Colors.tealLight + '15',
+          Colors.primary + '20',
+          Colors.backgroundAlt
+        ]}
+        locations={[0, 0.3, 0.7, 1]}
+        style={styles.gradientBackground}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text variant="h2" weight="bold" align="center" style={styles.title}>
-            What brings you here?
-          </Text>
-          <Spacer size="xs" />
-          <Text variant="bodySmall" color="textTertiary" align="center" style={styles.subtitle}>
-            Select your role to get started with your personalized experience
-          </Text>
-        </View>
-
-        <Spacer size="xl" />
-
-        {/* User Type Cards */}
-        <View style={styles.cardsContainer}>
-          {/* Dealer Card */}
-          <UserTypeCard
-            type="dealer"
-            icon="storefront"
-            title="I am a Dealer"
-            description="Buy vehicles from wholesalers for retail sales to consumers. Access exclusive networks and pricing."
-            features={[
-              'Access nationwide inventory',
-              'Verified sellers and history',
-              'Instant quotes and financing',
-              'Streamlined retail management'
-            ]}
-            isSelected={selectedType === 'dealer'}
-            onSelect={() => handleSelectType('dealer')}
-          />
-
-          <Spacer size="lg" />
-
-          {/* Wholesaler Card */}
-          <UserTypeCard
-            type="wholesaler"
-            icon="business"
-            title="I am a Wholesaler"
-            description="Sell vehicles in bulk to verified dealers across Australia. Manage fleet operations efficiently."
-            features={[
-              'List your inventory instantly',
-              'Direct buyer contact',
-              'Lower marketplace fees',
-              'Bulk transaction tools'
-            ]}
-            isSelected={selectedType === 'wholesaler'}
-            onSelect={() => handleSelectType('wholesaler')}
-          />
-        </View>
-
-        <Spacer size="xl" />
-      </ScrollView>
-
-      {/* Fixed Continue Button */}
-      <View style={styles.footer}>
-        <Button
-          variant="primary"
-          size="md"
-          fullWidth
-          onPress={handleContinue}
-          disabled={!selectedType}
+        {/* Scrollable Content */}
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          Continue
-        </Button>
-      </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text variant="h4" weight="bold" align="center">
+              What brings you here?
+            </Text>
+            <Spacer size="xs" />
+            <Text variant="bodySmall" align="center" style={styles.subtitle}>
+              Select your role to get started
+            </Text>
+          </View>
+
+          <Spacer size="2xl" />
+
+          {/* User Type Cards */}
+          <View style={styles.cardsContainer}>
+            {/* Dealer Card */}
+            <UserTypeCard
+              type="dealer"
+              icon="storefront"
+              title="I am a Dealer"
+              description="Buy vehicles from wholesalers for retail sales"
+              features={[
+                'Access nationwide inventory',
+                'PPSR verified vehicles',
+                'Instant quotes & financing'
+              ]}
+              isSelected={selectedType === 'dealer'}
+              onSelect={() => handleSelectType('dealer')}
+            />
+
+            <Spacer size="lg" />
+
+            {/* Wholesaler Card */}
+            <UserTypeCard
+              type="wholesaler"
+              icon="business"
+              title="I am a Wholesaler"
+              description="Sell vehicles in bulk to verified dealers"
+              features={[
+                'List inventory instantly',
+                'Direct buyer contact',
+                'Lower marketplace fees'
+              ]}
+              isSelected={selectedType === 'wholesaler'}
+              onSelect={() => handleSelectType('wholesaler')}
+            />
+          </View>
+
+          <Spacer size="3xl" />
+        </ScrollView>
+
+        {/* Fixed Continue Button */}
+        <View style={styles.footer}>
+          <PillButton
+            variant="next"
+            onPress={handleContinue}
+            disabled={!selectedType}
+            style={styles.continueButton}
+          >
+            Continue
+          </PillButton>
+        </View>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -169,7 +194,7 @@ const UserTypeCard: React.FC<UserTypeCardProps> = ({
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.96,
+      toValue: 0.98,
       tension: 100,
       friction: 7,
       useNativeDriver: true,
@@ -185,6 +210,11 @@ const UserTypeCard: React.FC<UserTypeCardProps> = ({
     }).start();
   };
 
+  // Gradient colors based on type
+  const gradientColors: [string, string] = type === 'dealer' 
+    ? [Colors.primary, Colors.secondary]
+    : [Colors.accent, '#FF6B8A'];
+
   return (
     <TouchableOpacity
       onPress={onSelect}
@@ -195,41 +225,52 @@ const UserTypeCard: React.FC<UserTypeCardProps> = ({
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <Card
           variant="outlined"
-          style={StyleSheet.flatten([styles.card, isSelected && styles.cardSelected])}
+          style={StyleSheet.flatten([
+            styles.card, 
+            isSelected && styles.cardSelected,
+            isSelected && { shadowColor: Colors.primary }
+          ])}
         >
           {/* Checkmark indicator - Top Right */}
           {isSelected && (
             <View style={styles.checkmarkCircle}>
-              <Ionicons name="checkmark-circle" size={28} color={Colors.primary} />
+              <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
             </View>
           )}
 
-          {/* Icon */}
-          <View style={[styles.iconContainer, isSelected && styles.iconContainerSelected]}>
-            <Ionicons name={icon} size={28} color={isSelected ? Colors.primary : Colors.textTertiary} />
+          {/* Icon and Title Row */}
+          <View style={styles.headerRow}>
+            <LinearGradient
+              colors={gradientColors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.iconContainer}
+            >
+              <Ionicons name={icon} size={24} color={Colors.white} />
+            </LinearGradient>
+
+            {/* Title - Volkhov Font */}
+            <Text variant="body" weight="semibold" style={styles.cardTitle}>
+              {title}
+            </Text>
           </View>
 
           <Spacer size="md" />
 
-          {/* Title */}
-          <Text variant="h4" weight="bold" color="text">
-            {title}
-          </Text>
-
-          <Spacer size="xs" />
-
-          {/* Description */}
-          <Text variant="caption" color="textTertiary" style={styles.description}>
+          {/* Description - Vesper Libre Font */}
+          <Text variant="caption" weight="medium" style={styles.description}>
             {description}
           </Text>
 
           <Spacer size="md" />
 
-          {/* Features List */}
+          {/* Features List - Vesper Libre Font */}
           {features.map((feature, index) => (
             <View key={index} style={styles.featureRow}>
-              <Ionicons name="checkmark" size={16} color={Colors.text} />
-              <Text variant="caption" color="text" style={styles.featureText}>
+              <View style={styles.checkmarkIcon}>
+                <Ionicons name="checkmark" size={11} color={Colors.primary} />
+              </View>
+              <Text variant="caption" style={styles.featureText}>
                 {feature}
               </Text>
             </View>
@@ -243,39 +284,46 @@ const UserTypeCard: React.FC<UserTypeCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.backgroundAlt,
+  },
+  gradientBackground: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
+    maxWidth: Platform.OS === 'web' ? 480 : undefined,
+    alignSelf: Platform.OS === 'web' ? 'center' : undefined,
+    width: '100%',
   },
   header: {
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
+    paddingHorizontal: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    opacity: 0.65,
-    lineHeight: 22,
+    color: Colors.greyscale700,
+    lineHeight: 20,
+    opacity: 0.85,
   },
   cardsContainer: {
     width: '100%',
   },
   card: {
-    padding: Spacing.lg,
+    padding: Spacing['2xl'],
     position: 'relative',
     backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.sm,
   },
   cardSelected: {
     borderWidth: 2,
     borderColor: Colors.primary,
     backgroundColor: Colors.white,
+    ...Shadows.md,
   },
   checkmarkCircle: {
     position: 'absolute',
@@ -283,39 +331,58 @@ const styles = StyleSheet.create({
     right: Spacing.md,
     zIndex: 10,
   },
-  iconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.greyscale100,
-    justifyContent: 'center',
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  iconContainerSelected: {
-    backgroundColor: `${Colors.primary}12`,
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  cardTitle: {
+    marginLeft: Spacing.md,
+    flex: 1,
   },
   description: {
+    color: Colors.greyscale700,
     lineHeight: 20,
-    opacity: 0.7,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: Spacing.xs + 2,
-    paddingRight: Spacing.sm,
+    marginBottom: Spacing.sm,
+    paddingRight: Spacing.xs,
+  },
+  checkmarkIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: `${Colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
   },
   featureText: {
     marginLeft: Spacing.sm,
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 19,
+    color: Colors.greyscale700,
   },
   footer: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     paddingBottom: Spacing.lg,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+  },
+  continueButton: {
+    minWidth: 200,
+    maxWidth: Platform.OS === 'web' ? 480 : undefined,
+    width: Platform.OS === 'web' ? '100%' : undefined,
   },
 });
 

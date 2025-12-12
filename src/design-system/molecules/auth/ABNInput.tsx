@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 14,
     fontWeight: '600',
-    lineHeight: 14,
+    lineHeight: 8,
   },
   verifiedIndicator: {
     position: 'absolute',
@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   verifiedText: {
-    fontSize: 26,
+    fontSize: 24,
     color: Colors.success,
-    lineHeight: 26,
+    lineHeight: 20,
   },
 });
 

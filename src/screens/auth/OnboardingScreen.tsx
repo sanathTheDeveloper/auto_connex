@@ -173,13 +173,15 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
           contentContainerStyle={styles.scrollContent}
           style={styles.scrollView}
         >
-          {SLIDES.map((slide) => (
+          {SLIDES.map((slide, index) => (
             <View key={slide.id} style={[styles.slideContainer, { width: slideWidth }]}>
               <OnboardingSlide
                 illustration={slide.illustration}
                 gradientColors={slide.gradientColors}
                 heading={slide.heading}
                 body={slide.body}
+                showSkip={index < SLIDES.length - 1}
+                onSkip={handleSkip}
               />
             </View>
           ))}

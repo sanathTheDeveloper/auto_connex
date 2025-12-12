@@ -41,6 +41,9 @@ export type { TextComponentProps } from './atoms/Text';
 export { Button } from './atoms/Button';
 export type { ButtonProps } from './atoms/Button';
 
+export { PillButton } from './atoms/PillButton';
+export type { PillButtonProps } from './atoms/PillButton';
+
 export { Icon } from './atoms/Icon';
 export type { IconProps } from './atoms/Icon';
 
@@ -56,6 +59,9 @@ export type { CardProps } from './molecules/Card';
 
 export { Input } from './molecules/Input';
 export type { InputProps } from './molecules/Input';
+
+export { Select } from './molecules/Select';
+export type { SelectProps, SelectOption } from './molecules/Select';
 
 export { Badge } from './molecules/Badge';
 export type { BadgeProps } from './molecules/Badge';
