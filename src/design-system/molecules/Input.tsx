@@ -95,7 +95,7 @@ export const Input: React.FC<InputProps> = ({
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
-        <Text variant="label" color="text" style={styles.label}>
+        <Text variant="caption" weight="regular" color="text" style={styles.label}>
           {label}
         </Text>
       )}

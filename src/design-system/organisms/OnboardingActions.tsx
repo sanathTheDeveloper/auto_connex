@@ -17,6 +17,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Button } from '../atoms/Button';
+import { PillButton } from '../atoms/PillButton';
 import { Spacing } from '../primitives';
 
 export interface OnboardingActionsProps {
@@ -66,26 +67,17 @@ export const OnboardingActions: React.FC<OnboardingActionsProps> = ({
     );
   }
 
-  // Slides 1-2: Show Skip (left) + Next (right)
+  // Slides 1-2: Show Next button only (Skip moved to top-right of image)
   return (
     <View style={[styles.container, styles.navigationContainer, style]}>
-      {/* Skip Button - Left */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onPress={onSkip}
-      >
-        Skip
-      </Button>
-
-      {/* Next Button - Right */}
-      <Button
-        variant="primary"
-        size="sm"
+      {/* Next Button - Centered */}
+      <PillButton
+        variant="next"
         onPress={onNext}
+        style={styles.nextButton}
       >
-        Next
-      </Button>
+        Swipe
+      </PillButton>
     </View>
   );
 };
@@ -102,11 +94,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Slides 1-2 layout (Skip left, Next right)
+  // Slides 1-2 layout (Next button centered)
   navigationContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.md,
+  },
+
+  nextButton: {
+    minWidth: 180,
   },
 });

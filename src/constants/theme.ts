@@ -90,18 +90,18 @@ export const Typography = {
     '6xl': 73,   // Large display (73.47px from Figma logo)
   },
   
-  // Mobile-optimized font sizes (20% smaller for better fit on iPhone)
+  // Mobile-optimized font sizes (optimized for 375px-428px viewport)
   fontSizeMobile: {
-    xs: 11,      // Small labels, captions
-    sm: 13,      // Secondary text, metadata  
-    base: 15,    // Body text, default
-    lg: 18,      // Emphasized body text
-    xl: 20,      // Small headings
-    '2xl': 24,   // Section headings
-    '3xl': 28,   // Page headings
-    '4xl': 32,   // Hero headings
-    '5xl': 38,   // Display headings
-    '6xl': 56,   // Large display
+    xs: 10,      // Small labels, captions
+    sm: 12,      // Secondary text, metadata  
+    base: 13,    // Body text, default
+    lg: 14,      // Emphasized body text
+    xl: 15,      // Body text (main)
+    '2xl': 17,   // Section headings
+    '3xl': 20,   // Page headings
+    '4xl': 24,   // Hero headings
+    '5xl': 28,   // Display headings
+    '6xl': 34,   // Large display
   },
   
   // Font weights

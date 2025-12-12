@@ -126,7 +126,7 @@ export const Button: React.FC<ButtonProps> = ({
           <Text
             variant={getTextVariant(size)}
             color={textColor as any}
-            weight="medium"
+            weight="regular"
             style={styles.text}
           >
             {children}
@@ -147,7 +147,7 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Platform.OS === 'android' ? BorderRadius.md : BorderRadius.xl,
+    borderRadius: Platform.OS === 'android' ? BorderRadius.md : BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -225,22 +225,22 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
 
 /**
  * Size-specific styles (Mobile-optimized for comfortable tap targets - min 44px)
- * Applies to both native mobile AND mobile web viewports
+ * Heights match Input component for visual consistency (44px on mobile/iOS, 48px on desktop/Android)
  */
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
   sm: {
     paddingHorizontal: isMobileViewport() ? Spacing.md : Spacing.lg,
-    paddingVertical: isMobileViewport() ? Spacing.xs : Spacing.sm,
-    minHeight: isMobileViewport() ? 38 : 40, // Compact for mobile
+    paddingVertical: isMobileViewport() ? 6 : Spacing.sm,
+    minHeight: isMobileViewport() ? 36 : 40, // Compact for mobile
   },
   md: {
     paddingHorizontal: isMobileViewport() ? Spacing.lg : Spacing.xl,
-    paddingVertical: isMobileViewport() ? Spacing.sm : Spacing.md,
-    minHeight: isMobileViewport() ? 44 : 48, // Apple's recommended 44px for mobile
+    paddingVertical: isMobileViewport() ? 8 : Spacing.md,
+    minHeight: isMobileViewport() ? 44 : 48, // Matches Input component height
   },
   lg: {
     paddingHorizontal: isMobileViewport() ? Spacing.xl : Spacing['2xl'],
-    paddingVertical: isMobileViewport() ? Spacing.sm + 2 : Spacing.lg,
+    paddingVertical: isMobileViewport() ? 10 : Spacing.lg,
     minHeight: isMobileViewport() ? 48 : 52, // Comfortable for mobile
   },
 };
@@ -277,17 +277,17 @@ function getIconSize(size: ButtonSize): number {
 }
 
 /**
- * Get text variant based on button size (smaller on mobile viewports)
+ * Get text variant based on button size (smaller text for modern UI)
  */
-function getTextVariant(size: ButtonSize): 'caption' | 'label' | 'bodySmall' {
+function getTextVariant(size: ButtonSize): 'caption' | 'label' | 'bodySmall' | 'body' {
   const mobile = isMobileViewport();
   switch (size) {
     case 'sm':
-      return mobile ? 'label' : 'caption';
+      return 'label';     // 12-14px
     case 'md':
-      return mobile ? 'caption' : 'bodySmall';
+      return 'caption';   // 13-16px - smaller, more consistent
     case 'lg':
-      return mobile ? 'bodySmall' : 'bodySmall';
+      return mobile ? 'caption' : 'bodySmall';  // 13-20px
     default:
       return 'caption';
   }

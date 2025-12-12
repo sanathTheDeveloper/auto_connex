@@ -23,5 +23,8 @@ export type { ModalProps, ModalVariant } from './Modal';
 export { VerificationBadge } from './VerificationBadge';
 export type { VerificationBadgeProps } from './VerificationBadge';
 
+export { Select } from './Select';
+export type { SelectProps, SelectOption } from './Select';
+
 // Auth molecules
 export * from './auth';
