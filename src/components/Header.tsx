@@ -3,16 +3,18 @@
  *
  * Reusable header with gradient background, app branding, and navigation icons.
  * Uses Auto Connex brand colors for gradient (teal to cyan).
+ * Supports collapsible mode that shrinks to just logo and icons when scrolled.
  *
  * @example
  * <Header
  *   onMenuPress={() => navigation.openDrawer()}
  *   onNotificationPress={() => navigation.navigate('Notifications')}
+ *   isCollapsed={scrollY > 50}
  * />
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image, Platform, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
@@ -34,20 +36,63 @@ export interface HeaderProps {
   withGradient?: boolean;
   /** Custom gradient colors (defaults to brand teal gradient) */
   gradientColors?: readonly [string, string, ...string[]];
+  /** Scroll position for animated collapse (Animated.Value) */
+  scrollY?: Animated.Value;
 }
 
 // ============================================================================
 // COMPONENT
 // ============================================================================
 
+// Animation constants
+const SCROLL_THRESHOLD = 80;
+const EXPANDED_HEIGHT = Platform.OS === 'ios' ? 140 : 120;
+const COLLAPSED_HEIGHT = Platform.OS === 'ios' ? 80 : 72;
+
 export const Header: React.FC<HeaderProps> = ({
   onMenuPress,
   onNotificationPress,
   withGradient = true,
   gradientColors = [Colors.primary, Colors.secondary],
+  scrollY,
 }) => {
+  // Animated values based on scroll position
+  const animatedHeight = scrollY
+    ? scrollY.interpolate({
+        inputRange: [0, SCROLL_THRESHOLD],
+        outputRange: [EXPANDED_HEIGHT, COLLAPSED_HEIGHT],
+        extrapolate: 'clamp',
+      })
+    : EXPANDED_HEIGHT;
+
+  // App icon scales down slightly when scrolled (keeps it larger)
+  const appIconSize = scrollY
+    ? scrollY.interpolate({
+        inputRange: [0, SCROLL_THRESHOLD],
+        outputRange: [1, 0.85],
+        extrapolate: 'clamp',
+      })
+    : 1;
+
+  // Logo lockup fades out when scrolled
+  const logoOpacity = scrollY
+    ? scrollY.interpolate({
+        inputRange: [0, SCROLL_THRESHOLD * 0.6],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+      })
+    : 1;
+
+  const logoHeight = scrollY
+    ? scrollY.interpolate({
+        inputRange: [0, SCROLL_THRESHOLD * 0.6],
+        outputRange: [36, 0],
+        extrapolate: 'clamp',
+      })
+    : 36;
+
   const headerContent = (
-    <View style={styles.header}>
+    <Animated.View style={[styles.header, { height: animatedHeight }]}>
       {/* Left: Menu icon */}
       <TouchableOpacity
         style={styles.headerIconButton}
@@ -60,8 +105,24 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Center: Brand */}
       <View style={styles.headerBrand}>
-        <Image source={APP_ICON} style={styles.appIcon} resizeMode="contain" />
-        <Image source={LOGO_LOCKUP} style={styles.logoLockup} resizeMode="contain" />
+        {/* App Icon - always visible, scales down when scrolled */}
+        {scrollY ? (
+          <Animated.Image
+            source={APP_ICON}
+            style={[styles.appIcon, { transform: [{ scale: appIconSize }] }]}
+            resizeMode="contain"
+          />
+        ) : (
+          <Image source={APP_ICON} style={styles.appIcon} resizeMode="contain" />
+        )}
+        {/* Logo Lockup - fades out and collapses when scrolled */}
+        {scrollY ? (
+          <Animated.View style={{ opacity: logoOpacity, height: logoHeight, overflow: 'hidden' }}>
+            <Image source={LOGO_LOCKUP} style={styles.logoLockup} resizeMode="contain" />
+          </Animated.View>
+        ) : (
+          <Image source={LOGO_LOCKUP} style={styles.logoLockup} resizeMode="contain" />
+        )}
       </View>
 
       {/* Right: Notification */}
@@ -73,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
       >
         <Ionicons name="notifications-outline" size={22} color={Colors.white} />
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 
   if (withGradient) {
@@ -98,22 +159,22 @@ export const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
   gradientContainer: {
-    paddingTop: Platform.OS === 'ios' ? Spacing.xl : Spacing.lg,
-    paddingBottom: Spacing.lg,
     paddingHorizontal: Spacing.lg,
     borderBottomLeftRadius: BorderRadius['2xl'],
     borderBottomRightRadius: BorderRadius['2xl'],
+    overflow: 'hidden',
   },
   plainContainer: {
-    paddingTop: Platform.OS === 'ios' ? Spacing.xl : Spacing.lg,
-    paddingBottom: Spacing.lg,
     paddingHorizontal: Spacing.lg,
     backgroundColor: Colors.white,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? Spacing.lg : Spacing.md,
+    paddingBottom: Spacing.md,
   },
   headerIconButton: {
     width: 44,
@@ -125,13 +186,14 @@ const styles = StyleSheet.create({
   },
   headerBrand: {
     alignItems: 'center',
-    gap: Spacing.xs,
+    justifyContent: 'center',
+    gap: Spacing.sm,
     flex: 1,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
   },
   appIcon: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.lg,
   },
   logoLockup: {
