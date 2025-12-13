@@ -60,7 +60,7 @@ export const Text: React.FC<TextComponentProps> = ({
   ...rest
 }) => {
   const variantStyle = variantStyles[variant];
-  const colorValue = Colors[color] || Colors.text;
+  const colorValue = color ? Colors[color] || '#000000' : '#000000';
   const fontWeight = weight ? Typography.fontWeight[weight] : undefined;
 
   return (
@@ -82,7 +82,7 @@ export const Text: React.FC<TextComponentProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    color: Colors.text,
+    color: '#000000', // Pure black for all text
     includeFontPadding: false, // Android: prevents extra padding
     textAlignVertical: 'center', // Android: centers text vertically
     paddingTop: 2, // iOS: prevents top clipping of ascenders
@@ -120,14 +120,14 @@ const variantStyles: Record<TextVariant, TextStyle> = {
   
   // Vesper Libre variants - for listings/transactions
   h3: {
-    fontFamily: Typography.fontFamily.vesperLibre,
+    fontFamily: Typography.fontFamily.volkhov,
     fontSize: responsive.getFontSize('3xl'),
     fontWeight: Typography.fontWeight.regular,
     lineHeight: responsive.getFontSize('3xl') * 1.35,
     letterSpacing: 0,
   },
   h4: {
-    fontFamily: Typography.fontFamily.vesperLibre,
+    fontFamily: Typography.fontFamily.volkhov,
     fontSize: responsive.getFontSize('2xl'),
     fontWeight: Typography.fontWeight.regular,
     lineHeight: responsive.getFontSize('2xl') * 1.35,

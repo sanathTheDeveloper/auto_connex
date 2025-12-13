@@ -8,12 +8,12 @@
  * <Stack.Screen name="Home" component={HomeScreen} />
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
   SafeAreaView,
-  ScrollView,
+  Animated,
   TouchableOpacity,
   Image,
   Platform,
@@ -30,19 +30,18 @@ import type { FilterOptions } from '../components';
 // Design System
 import { Text } from '../design-system/atoms/Text';
 import { Spacer } from '../design-system/atoms/Spacer';
-import { Colors, Spacing, BorderRadius, Shadows } from '../design-system/primitives';
+import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../design-system/primitives';
 
 // Data
 import {
   Vehicle,
   VEHICLES,
   getVehicleImage,
-  formatCompactPrice,
-  formatMileage,
 } from '../data/vehicles';
 
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
+
 
 // ============================================================================
 // TYPES
@@ -54,104 +53,72 @@ const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
 // ============================================================================
 
 /**
- * Vehicle card action buttons (heart, share, message)
+ * Vehicle card action buttons (heart, share, message) - Modern compact style
  */
-const CardActions: React.FC = () => (
+interface CardActionsProps {
+  isFavorite: boolean;
+  onFavoritePress: () => void;
+  onSharePress?: () => void;
+  onMessagePress?: () => void;
+}
+
+const CardActions: React.FC<CardActionsProps> = ({
+  isFavorite,
+  onFavoritePress,
+  onSharePress,
+  onMessagePress
+}) => (
   <View style={styles.cardActionsRow}>
-    <TouchableOpacity style={styles.actionButtonBottom}>
-      <Ionicons name="heart-outline" size={24} color={Colors.text} />
+    <TouchableOpacity
+      style={[styles.actionButton, isFavorite && styles.actionButtonActive]}
+      onPress={onFavoritePress}
+      activeOpacity={0.7}
+    >
+      <Ionicons
+        name={isFavorite ? "heart" : "heart-outline"}
+        size={20}
+        color={isFavorite ? Colors.accent : Colors.text}
+      />
     </TouchableOpacity>
-    <TouchableOpacity style={styles.actionButtonBottom}>
-      <Ionicons name="share-social-outline" size={24} color={Colors.text} />
+    <TouchableOpacity style={styles.actionButton} onPress={onSharePress} activeOpacity={0.7}>
+      <Ionicons name="share-social-outline" size={20} color={Colors.text} />
     </TouchableOpacity>
-    <TouchableOpacity style={styles.actionButtonBottom}>
-      <Ionicons name="chatbubble-outline" size={24} color={Colors.text} />
+    <TouchableOpacity style={styles.actionButton} onPress={onMessagePress} activeOpacity={0.7}>
+      <Ionicons name="chatbubble-outline" size={20} color={Colors.text} />
     </TouchableOpacity>
   </View>
 );
 
 /**
- * Vehicle stats grid (3x3 layout)
+ * Compact spec pill component with icon
  */
-const StatsGrid: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => (
-  <View style={styles.statsGrid}>
-    {/* Row 1: Pricing */}
-    <View style={styles.statsRow}>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Trade Price</Text>
-        <Text variant="bodySmall" weight="bold" style={{ color: Colors.primary }}>
-          {formatCompactPrice(vehicle.tradePrice)}
-        </Text>
-      </View>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Retail Price</Text>
-        <Text variant="bodySmall" weight="bold" style={{ color: Colors.primary }}>
-          {formatCompactPrice(vehicle.retailPrice)}
-        </Text>
-      </View>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Over Trade</Text>
-        <Text variant="bodySmall" weight="bold" style={{ color: Colors.warning }}>
-          {formatCompactPrice(vehicle.overTrade)}
-        </Text>
-      </View>
-    </View>
+interface SpecPillProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}
 
-    {/* Row 2: Vehicle Details */}
-    <View style={styles.statsRow}>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Age</Text>
-        <Text variant="bodySmall" weight="medium" color="text">
-          {vehicle.age}y
-        </Text>
-      </View>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Kms</Text>
-        <Text variant="bodySmall" weight="medium" style={{ color: '#007AFF' }}>
-          {formatMileage(vehicle.mileage)}
-        </Text>
-      </View>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Trans</Text>
-        <Text variant="bodySmall" weight="medium" color="text">
-          {vehicle.transmission === 'automatic' ? 'Auto' : 'Manual'}
-        </Text>
-      </View>
+const SpecPill: React.FC<SpecPillProps> = ({ icon, label, value }) => (
+  <View style={styles.specPill}>
+    <View style={styles.specPillIconContainer}>
+      <Ionicons name={icon} size={18} color={Colors.primary} />
     </View>
-
-    {/* Row 3: Seller Info */}
-    <View style={styles.statsRow}>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Seller</Text>
-        <Text variant="bodySmall" weight="medium" color="text">
-          {vehicle.sellerType}
-        </Text>
-      </View>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Fuel</Text>
-        <Text variant="bodySmall" weight="medium" color="text" style={{ textTransform: 'capitalize' }}>
-          {vehicle.fuelType}
-        </Text>
-      </View>
-      <View style={styles.statCell}>
-        <Text variant="caption" color="textTertiary">Location</Text>
-        <Text variant="bodySmall" weight="medium" color="text">
-          {vehicle.state}
-        </Text>
-      </View>
-    </View>
+    <Text variant="label" color="textTertiary" style={styles.specPillLabel}>{label}</Text>
+    <Text variant="caption" color="text" style={styles.specPillValue}>{value}</Text>
   </View>
 );
 
 /**
- * Individual vehicle card
+ * Individual vehicle card - Redesigned for better UX
  */
 interface VehicleCardProps {
   vehicle: Vehicle;
   onPress: () => void;
+  isFavorite: boolean;
+  onFavoritePress: () => void;
 }
 
-const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress }) => (
+const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress, isFavorite, onFavoritePress }) => (
   <View style={styles.vehicleCardWrapper}>
     <TouchableOpacity style={styles.vehicleCard} activeOpacity={0.7} onPress={onPress}>
       {/* Vehicle Image */}
@@ -165,33 +132,63 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress }) => (
 
       {/* Vehicle Details */}
       <View style={styles.vehicleDetails}>
-        <CardActions />
-        <Spacer size="sm" />
+        {/* Actions Row - Top right aligned */}
+        <View style={styles.actionsRow}>
+          <CardActions
+            isFavorite={isFavorite}
+            onFavoritePress={onFavoritePress}
+          />
+        </View>
 
-        {/* Title with Verified Badge */}
-        <View style={styles.vehicleHeader}>
-          <View style={styles.vehicleTitleSection}>
-            <Text variant="body" weight="bold">
-              {vehicle.year} {vehicle.make} {vehicle.model}
-              {vehicle.verified && '  '}
-              {vehicle.verified && (
+        {/* Title Section - Below actions */}
+        <View style={styles.vehicleTitleSection}>
+          <Text variant="body" weight="bold" color="text" style={styles.titleText}>
+            {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.variant}
+            {vehicle.verified && (
+              <Text>
+                {'  '}
                 <Image
                   source={VERIFIED_BADGE}
-                  style={styles.verifiedBadgeInline}
-                  resizeMode="contain"
+                  style={styles.verifiedBadgeIcon}
                 />
-              )}
-            </Text>
-            {vehicle.variant && (
-              <Text variant="caption" color="textTertiary">
-                {vehicle.variant}
               </Text>
             )}
+          </Text>
+          <View style={styles.subtitleRow}>
+            <Ionicons name="location-outline" size={12} color={Colors.textTertiary} />
+            <Text variant="caption" color="textTertiary"> {vehicle.location}</Text>
+            <Text variant="caption" color="textTertiary"> • </Text>
+            <Text variant="caption" color="textTertiary">{vehicle.dealer}</Text>
           </View>
         </View>
 
-        <Spacer size="sm" />
-        <StatsGrid vehicle={vehicle} />
+        <Spacer size="md" />
+
+        {/* Price Section - Two columns */}
+        <View style={styles.priceSection}>
+          <View style={styles.priceColumn}>
+            <Text variant="label" color="textTertiary">Trade Price</Text>
+            <Text variant="bodySmall" weight="semibold" color="text">
+              ${vehicle.tradePrice.toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.priceDivider} />
+          <View style={styles.priceColumn}>
+            <Text variant="label" color="textTertiary">Retail Price</Text>
+            <Text variant="bodySmall" weight="semibold" color="text">
+              ${vehicle.retailPrice.toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        <Spacer size="md" />
+
+        {/* Specs Row with Icons - Bigger and more visible */}
+        <View style={styles.specsRow}>
+          <SpecPill icon="speedometer-outline" label="Odometer" value={`${vehicle.mileage.toLocaleString()} km`} />
+          <SpecPill icon="cog-outline" label="Transmission" value={vehicle.transmission === 'automatic' ? 'Auto' : 'Manual'} />
+          <SpecPill icon="flash-outline" label="Fuel Type" value={vehicle.fuelType.charAt(0).toUpperCase() + vehicle.fuelType.slice(1)} />
+        </View>
       </View>
     </TouchableOpacity>
   </View>
@@ -230,6 +227,24 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  // Track favorite vehicles
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  const toggleFavorite = (vehicleId: string) => {
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(vehicleId)) {
+        newFavorites.delete(vehicleId);
+      } else {
+        newFavorites.add(vehicleId);
+      }
+      return newFavorites;
+    });
+  };
+
+  // Scroll tracking for collapsible header
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   // Filter vehicles based on search query and filters
   const filteredVehicles = VEHICLES.filter((vehicle) => {
@@ -296,10 +311,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Gradient */}
+      {/* Header with Gradient - Collapses on scroll */}
       <Header
         onMenuPress={() => setIsMenuOpen(true)}
         onNotificationPress={() => console.log('Notifications pressed')}
+        scrollY={scrollY}
       />
 
       {/* Slide-out Menu */}
@@ -322,16 +338,21 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
       />
-      <ScrollView
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
       >
         {/* Page Title - Centered */}
         <View style={styles.titleSection}>
-          <Text variant="h2" weight="bold" align="center">
+          <Text variant="h3" weight="bold" align="center">
             Marketplace
           </Text>
-          <Text variant="bodySmall" color="textTertiary" align="center">
+          <Text variant="caption" color="textTertiary" align="center">
             Verified wholesale vehicles
           </Text>
         </View>
@@ -356,7 +377,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <Ionicons name="options-outline" size={18} color={Colors.white} />
             {activeFilterCount() > 0 && (
               <View style={styles.filterBadge}>
-                <Text variant="caption" style={styles.filterBadgeText}>
+                <Text variant="label" style={styles.filterBadgeText}>
                   {activeFilterCount()}
                 </Text>
               </View>
@@ -374,10 +395,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         {/* Vehicle Listings */}
         {filteredVehicles.length > 0 ? (
           filteredVehicles.map((vehicle) => (
-            <VehicleCard 
-              key={vehicle.id} 
+            <VehicleCard
+              key={vehicle.id}
               vehicle={vehicle}
               onPress={() => navigation.navigate('VehicleDetails', { vehicleId: vehicle.id })}
+              isFavorite={favorites.has(vehicle.id)}
+              onFavoritePress={() => toggleFavorite(vehicle.id)}
             />
           ))
         ) : (
@@ -385,7 +408,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         )}
 
         <Spacer size="xl" />
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
@@ -441,7 +464,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text,
     paddingVertical: 2,
-    fontFamily: 'VesperLibre',
+    fontFamily: Typography.fontFamily.vesperLibre,
   },
   filterButton: {
     width: 40,
@@ -473,7 +496,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Vehicle Card - Enhanced with better elevation and spacing
+  // Vehicle Card - Modern redesigned layout
   vehicleCardWrapper: {
     marginBottom: Spacing['2xl'],
     paddingTop: 48,
@@ -482,7 +505,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius['2xl'],
     overflow: 'visible',
-    ...Shadows.lg,
+    ...Shadows.md,
     borderWidth: 1,
     borderColor: Colors.borderLight,
   },
@@ -503,53 +526,111 @@ const styles = StyleSheet.create({
   },
   vehicleDetails: {
     padding: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
-  vehicleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  vehicleTitleSection: {
-    flex: 1,
-  },
-  verifiedBadgeInline: {
-    width: 24,
-    height: 24,
-    marginBottom: -4,
+    paddingTop: Spacing.sm,
   },
 
-  // Card Actions - Improved spacing
-  cardActionsRow: {
+  // Actions Row - Top right aligned
+  actionsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: Spacing.lg,
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.xs,
-  },
-  actionButtonBottom: {
-    padding: Spacing.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    width: 40,
-    height: 40,
+    marginBottom: Spacing.xs,
   },
 
-  // Stats Grid
-  statsGrid: {
-    gap: Spacing.md,
+  // Vehicle Title Section
+  vehicleTitleSection: {
+    gap: 4,
   },
-  statsRow: {
+  titleText: {
+    flex: 1,
+  },
+  verifiedBadgeIcon: {
+    width: 18,
+    height: 18,
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+
+  // Price Section - Two columns
+  priceSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+  },
+  priceColumn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  priceDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: Colors.borderLight,
+    marginHorizontal: Spacing.md,
+  },
+
+  // Specs Row - Bigger icons for mobile visibility
+  specsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: Spacing.sm,
   },
-  statCell: {
+  specPill: {
     flex: 1,
-    alignItems: 'flex-start',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.surface,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  specPillIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  specPillLabel: {
+    fontSize: 14,
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  specPillValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+
+  // Card Actions - Compact modern style (top-right placement)
+  cardActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 18,
+    backgroundColor: Colors.white,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionButtonActive: {
+    backgroundColor: Colors.accent + '15',
   },
 
   // Empty State

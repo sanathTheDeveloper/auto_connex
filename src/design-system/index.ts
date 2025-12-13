@@ -75,6 +75,9 @@ export type { ModalProps, ModalVariant } from './molecules/Modal';
 export { VerificationBadge } from './molecules/VerificationBadge';
 export type { VerificationBadgeProps } from './molecules/VerificationBadge';
 
+export { Accordion } from './molecules/Accordion';
+export type { AccordionProps } from './molecules/Accordion';
+
 // ============ Auth Molecules ============
 export {
   PhoneInput,

@@ -9,6 +9,35 @@
 // TYPES
 // ============================================================================
 
+export interface PPSRDetails {
+  status: 'clear' | 'encumbered' | 'stolen' | 'written-off';
+  checkDate: string;
+  certificateNumber?: string;
+  details: {
+    moneyOwing: boolean;
+    stolen: boolean;
+    writtenOff: boolean;
+    validRegistration: boolean;
+  };
+}
+
+export interface ConditionReport {
+  pros: string[];
+  cons: string[];
+}
+
+export interface AfterMarketExtra {
+  name: string;
+  cost: number;
+  category?: 'Electronics' | 'Comfort' | 'Safety' | 'Exterior' | 'Performance';
+}
+
+export interface SellerDetails {
+  abn?: string;
+  memberSince?: string;
+  rating?: number;
+}
+
 export interface Vehicle {
   id: string;
   make: string;
@@ -33,6 +62,16 @@ export interface Vehicle {
   verified: boolean;
   featured?: boolean;
   imageKey: VehicleImageKey;
+  
+  // NEW FIELDS for wholesaler upload features
+  images?: VehicleImageKey[];
+  registration?: string;
+  askingPrice?: number;
+  ppsr?: PPSRDetails;
+  conditionReport?: ConditionReport;
+  afterMarketExtras?: string[]; // Legacy - kept for backwards compatibility
+  afterMarketExtrasDetailed?: AfterMarketExtra[];
+  sellerDetails?: SellerDetails;
 }
 
 // ============================================================================
@@ -108,10 +147,10 @@ export const VEHICLES: Vehicle[] = [
     variant: 'Ascent Sport',
     year: 2023,
     age: 1,
-    price: 32500,
+    price: 37300,
     tradePrice: 30500,
-    retailPrice: 34500,
-    overTrade: 4000,
+    retailPrice: 39500,
+    overTrade: 9000,
     location: 'Sydney',
     state: 'NSW',
     mileage: 15000,
@@ -125,6 +164,67 @@ export const VEHICLES: Vehicle[] = [
     verified: true,
     featured: true,
     imageKey: 'toyota-camry',
+    images: [
+      'toyota-camry',
+      'honda-accord',
+      'mazda-cx5',
+      'ford-ranger',
+      'hyundai-tucson',
+      'tesla-model3',
+      'bmw-3series',
+      'mercedes-cclass',
+      'audi-a4',
+      'volkswagen-golf',
+      'porsche-911',
+      'lexus-rx',
+      'subaru-outback',
+      'kia-sportage',
+      'nissan-xtrail',
+      'jeep-wrangler',
+      'range-rover',
+      'mustang-gt',
+      'chevrolet-camaro',
+      'lamborghini-huracan',
+    ],
+    registration: 'ABC-123',
+    askingPrice: 37300, // Trade price ($30,500) + Extras ($6,800) = $37,300
+    ppsr: {
+      status: 'clear',
+      checkDate: '2025-12-10',
+      certificateNumber: '123456789',
+      details: {
+        moneyOwing: false,
+        stolen: false,
+        writtenOff: false,
+        validRegistration: true,
+      },
+    },
+    conditionReport: {
+      pros: [
+        'Excellent service history',
+        'Single owner vehicle',
+        'Low mileage for age',
+        'Recently serviced at authorized dealer',
+        'All maintenance records available',
+      ],
+      cons: [
+        'Minor paint chip on front bonnet',
+        'Driver seat shows light wear',
+      ],
+    },
+    afterMarketExtras: ['GPS Navigation', 'Reverse Camera', 'Leather Seats', 'Sunroof', 'Tow Bar'],
+    afterMarketExtrasDetailed: [
+      { name: 'GPS Navigation', cost: 1200, category: 'Electronics' },
+      { name: 'Reverse Camera', cost: 450, category: 'Safety' },
+      { name: 'Leather Seats', cost: 2800, category: 'Comfort' },
+      { name: 'Sunroof', cost: 1500, category: 'Comfort' },
+      { name: 'Tow Bar', cost: 850, category: 'Exterior' },
+    ],
+    sellerDetails: {
+      abn: '12 345 678 901',
+      memberSince: '2019',
+      rating: 4.8,
+    },
   },
   {
     id: '2',
@@ -150,6 +250,43 @@ export const VEHICLES: Vehicle[] = [
     verified: true,
     featured: false,
     imageKey: 'honda-accord',
+    images: ['honda-accord', 'toyota-camry', 'bmw-3series'],
+    registration: 'XYZ-789',
+    askingPrice: 28900,
+    ppsr: {
+      status: 'clear',
+      checkDate: '2025-12-08',
+      certificateNumber: '987654321',
+      details: {
+        moneyOwing: false,
+        stolen: false,
+        writtenOff: false,
+        validRegistration: true,
+      },
+    },
+    conditionReport: {
+      pros: [
+        'Full logbook service history',
+        'Non-smoking vehicle',
+        'Premium sound system',
+        'Recent brake service',
+      ],
+      cons: [
+        'Minor stone chips on windscreen',
+        'Light scratches on rear bumper',
+      ],
+    },
+    afterMarketExtras: ['Apple CarPlay', 'Blind Spot Monitoring', 'Heated Seats'],
+    afterMarketExtrasDetailed: [
+      { name: 'Apple CarPlay', cost: 650, category: 'Electronics' },
+      { name: 'Blind Spot Monitoring', cost: 1100, category: 'Safety' },
+      { name: 'Heated Seats', cost: 950, category: 'Comfort' },
+    ],
+    sellerDetails: {
+      abn: '98 765 432 109',
+      memberSince: '2020',
+      rating: 4.6,
+    },
   },
   {
     id: '3',
@@ -625,8 +762,8 @@ export const formatFullPrice = (price: number): string => {
 };
 
 /**
- * Format mileage (e.g., 15k km)
+ * Format mileage with full number (e.g., 15,000 km)
  */
 export const formatMileage = (mileage: number): string => {
-  return `${(mileage / 1000).toFixed(0)}k km`;
+  return `${mileage.toLocaleString('en-AU')} km`;
 };

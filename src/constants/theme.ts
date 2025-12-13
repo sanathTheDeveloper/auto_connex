@@ -18,9 +18,10 @@ export const Colors = {
   surface: '#F2F2F7',        // Card/surface background
   
   // Text colors
-  text: '#050505',           // Primary text (near black from Figma)
-  textSecondary: '#F0F0F0',  // Secondary text (light gray "Text Alt" from Figma)
-  textTertiary: '#8E8E93',   // Tertiary/muted text
+  text: '#000000',           // Primary text (pure black for maximum readability)
+  textSecondary: '#374151',  // Secondary text (darker gray - better contrast)
+  textMuted: '#6B7280',      // Muted text (medium gray for subtle info)
+  textTertiary: '#9CA3AF',   // Tertiary/light text (light gray for hints)
   
   // Border colors
   border: '#E7E7E7',         // Default border
