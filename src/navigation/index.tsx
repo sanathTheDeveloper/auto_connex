@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import DesignSystemScreen from '../screens/DesignSystemScreen';
 import VehicleDetailsScreen from '../screens/VehicleDetailsScreen';
+import ConversationListScreen from '../screens/ConversationListScreen';
+import MessagesScreen from '../screens/MessagesScreen';
 import { SplashScreen, OnboardingScreen, WelcomeScreen, SignupScreen } from '../screens/auth';
 import { Colors } from '../constants/theme';
 
@@ -20,14 +22,13 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Welcome: undefined;
   Signup: { userType: 'dealer' | 'wholesaler' };
-  
+
   // App Screens
   Home: undefined;
   DesignSystem: undefined;
   VehicleDetails: { vehicleId: string };
-  
-  // Add more screen types here as you create them
-  // Example: Details: { id: string };
+  ConversationList: undefined;
+  Messages: { vehicleId?: string; dealerId?: string };
 }; 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -46,6 +47,8 @@ export default function Navigation() {
           headerTitleStyle: {
             fontWeight: 'bold',
           },
+          // Smooth transitions for all screens
+          animation: 'slide_from_right',
         }}
       >
         {/* Auth Flow Screens */}
@@ -89,16 +92,36 @@ export default function Navigation() {
         />
         
         {/* Vehicle Details Screen */}
-        <Stack.Screen 
-          name="VehicleDetails" 
+        <Stack.Screen
+          name="VehicleDetails"
           component={VehicleDetailsScreen}
           options={{
             title: 'Vehicle Details',
             headerShown: false,
+            animation: 'slide_from_right',
+            animationDuration: 300,
           }}
         />
-        
-        {/* Add more screens here */}
+
+        {/* Conversation List Screen (Messenger-style inbox) */}
+        <Stack.Screen
+          name="ConversationList"
+          component={ConversationListScreen}
+          options={{
+            title: 'Messages',
+            headerShown: false,
+          }}
+        />
+
+        {/* Messages Screen (Individual chat) */}
+        <Stack.Screen
+          name="Messages"
+          component={MessagesScreen}
+          options={{
+            title: 'Chat',
+            headerShown: false,
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -28,6 +28,7 @@ import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS } from '../components'
 import type { FilterOptions } from '../components';
 
 // Design System
+import { responsive } from '../design-system/primitives';
 import { Text } from '../design-system/atoms/Text';
 import { Spacer } from '../design-system/atoms/Spacer';
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../design-system/primitives';
@@ -104,7 +105,7 @@ const SpecPill: React.FC<SpecPillProps> = ({ icon, label, value }) => (
       <Ionicons name={icon} size={18} color={Colors.primary} />
     </View>
     <Text variant="label" color="textTertiary" style={styles.specPillLabel}>{label}</Text>
-    <Text variant="caption" color="text" style={styles.specPillValue}>{value}</Text>
+    <Text variant="bodySmall" weight="medium" color="text" style={styles.specPillValue}>{value}</Text>
   </View>
 );
 
@@ -116,12 +117,21 @@ interface VehicleCardProps {
   onPress: () => void;
   isFavorite: boolean;
   onFavoritePress: () => void;
+  onMessagePress: () => void;
+  onSharePress: () => void;
 }
 
-const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress, isFavorite, onFavoritePress }) => (
+const VehicleCard: React.FC<VehicleCardProps> = ({ 
+  vehicle, 
+  onPress, 
+  isFavorite, 
+  onFavoritePress,
+  onMessagePress,
+  onSharePress 
+}) => (
   <View style={styles.vehicleCardWrapper}>
-    <TouchableOpacity style={styles.vehicleCard} activeOpacity={0.7} onPress={onPress}>
-      {/* Vehicle Image */}
+    <View style={styles.vehicleCard}>
+      {/* Vehicle Image - Not clickable */}
       <View style={styles.vehicleImageContainer}>
         <Image
           source={getVehicleImage(vehicle.imageKey)}
@@ -132,65 +142,72 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onPress, isFavorite,
 
       {/* Vehicle Details */}
       <View style={styles.vehicleDetails}>
-        {/* Actions Row - Top right aligned */}
+        {/* Actions Row - Top right aligned - Not clickable for navigation */}
         <View style={styles.actionsRow}>
           <CardActions
             isFavorite={isFavorite}
             onFavoritePress={onFavoritePress}
+            onMessagePress={onMessagePress}
+            onSharePress={onSharePress}
           />
         </View>
 
-        {/* Title Section - Below actions */}
-        <View style={styles.vehicleTitleSection}>
-          <Text variant="body" weight="bold" color="text" style={styles.titleText}>
-            {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.variant}
-            {vehicle.verified && (
-              <Text>
-                {'  '}
-                <Image
-                  source={VERIFIED_BADGE}
-                  style={styles.verifiedBadgeIcon}
-                />
+        <Spacer size="sm" />
+
+        {/* Clickable Content Area - Below actions */}
+        <TouchableOpacity activeOpacity={0.4} onPress={onPress}>
+          {/* Title Section - Below actions */}
+          <View style={styles.vehicleTitleSection}>
+            <Text variant="h4" weight="bold" color="text" style={styles.titleText}>
+              {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.variant}
+              {vehicle.verified && (
+                <Text>
+                  {'  '}
+                  <Image
+                    source={VERIFIED_BADGE}
+                    style={styles.verifiedBadgeIcon}
+                  />
+                </Text>
+              )}
+            </Text>
+            <View style={styles.subtitleRow}>
+              <Ionicons name="location-outline" size={12} color={Colors.textTertiary} />
+              <Text variant="caption" color="textTertiary"> {vehicle.location}</Text>
+              <Text variant="caption" color="textTertiary"> • </Text>
+              <Text variant="caption" color="textTertiary">{vehicle.dealer}</Text>
+            </View>
+          </View>
+
+          <Spacer size="md" />
+
+          {/* Price Section - Two columns */}
+          <View style={styles.priceSection}>
+            <View style={styles.priceColumn}>
+              <Text variant="caption" color="textTertiary">Trade Price</Text>
+              <Text variant="body" weight="semibold" color="text">
+                ${vehicle.tradePrice.toLocaleString()}
               </Text>
-            )}
-          </Text>
-          <View style={styles.subtitleRow}>
-            <Ionicons name="location-outline" size={12} color={Colors.textTertiary} />
-            <Text variant="caption" color="textTertiary"> {vehicle.location}</Text>
-            <Text variant="caption" color="textTertiary"> • </Text>
-            <Text variant="caption" color="textTertiary">{vehicle.dealer}</Text>
+            </View>
+            <View style={styles.priceDivider} />
+            <View style={styles.priceColumn}>
+              <Text variant="caption" color="textTertiary">Retail Price</Text>
+              <Text variant="body" weight="semibold" color="text">
+                ${vehicle.retailPrice.toLocaleString()}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        <Spacer size="md" />
+          <Spacer size="md" />
 
-        {/* Price Section - Two columns */}
-        <View style={styles.priceSection}>
-          <View style={styles.priceColumn}>
-            <Text variant="label" color="textTertiary">Trade Price</Text>
-            <Text variant="bodySmall" weight="semibold" color="text">
-              ${vehicle.tradePrice.toLocaleString()}
-            </Text>
+          {/* Specs Row with Icons - Bigger and more visible */}
+          <View style={styles.specsRow}>
+            <SpecPill icon="speedometer-outline" label="Odometer" value={`${vehicle.mileage.toLocaleString()} km`} />
+            <SpecPill icon="cog-outline" label="Transmission" value={vehicle.transmission === 'automatic' ? 'Auto' : 'Manual'} />
+            <SpecPill icon="flash-outline" label="Fuel Type" value={vehicle.fuelType.charAt(0).toUpperCase() + vehicle.fuelType.slice(1)} />
           </View>
-          <View style={styles.priceDivider} />
-          <View style={styles.priceColumn}>
-            <Text variant="label" color="textTertiary">Retail Price</Text>
-            <Text variant="bodySmall" weight="semibold" color="text">
-              ${vehicle.retailPrice.toLocaleString()}
-            </Text>
-          </View>
-        </View>
-
-        <Spacer size="md" />
-
-        {/* Specs Row with Icons - Bigger and more visible */}
-        <View style={styles.specsRow}>
-          <SpecPill icon="speedometer-outline" label="Odometer" value={`${vehicle.mileage.toLocaleString()} km`} />
-          <SpecPill icon="cog-outline" label="Transmission" value={vehicle.transmission === 'automatic' ? 'Auto' : 'Manual'} />
-          <SpecPill icon="flash-outline" label="Fuel Type" value={vehicle.fuelType.charAt(0).toUpperCase() + vehicle.fuelType.slice(1)} />
-        </View>
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   </View>
 );
 
@@ -201,11 +218,11 @@ const EmptyState: React.FC = () => (
   <View style={styles.emptyState}>
     <Text variant="h2">🔍</Text>
     <Spacer size="md" />
-    <Text variant="h4" color="textTertiary" align="center">
+    <Text variant="h3" weight="semibold" color="textTertiary" align="center">
       No vehicles found
     </Text>
     <Spacer size="sm" />
-    <Text variant="bodySmall" color="textTertiary" align="center">
+    <Text variant="body" color="textTertiary" align="center">
       Try adjusting your search or filters
     </Text>
   </View>
@@ -323,7 +340,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
         onOpen={() => setIsMenuOpen(true)}
-        onNavigate={(screen) => console.log('Navigate to:', screen)}
+        onNavigate={(screen) => {
+          if (screen === 'Messages') {
+            navigation.navigate('ConversationList');
+          } else if (screen === 'Home') {
+            // Already on Home
+          } else {
+            console.log('Navigate to:', screen);
+          }
+        }}
         userName="John Dealer"
         userType="dealer"
         activeScreen="Home"
@@ -349,7 +374,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       >
         {/* Page Title - Centered */}
         <View style={styles.titleSection}>
-          <Text variant="h3" weight="bold" align="center">
+          <Text variant="h2" weight="bold" align="center">
             Marketplace
           </Text>
           <Text variant="caption" color="textTertiary" align="center">
@@ -401,6 +426,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               onPress={() => navigation.navigate('VehicleDetails', { vehicleId: vehicle.id })}
               isFavorite={favorites.has(vehicle.id)}
               onFavoritePress={() => toggleFavorite(vehicle.id)}
+              onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
+              onSharePress={() => console.log('Share vehicle:', vehicle.id)}
             />
           ))
         ) : (
@@ -461,7 +488,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: responsive.getFontSize('lg'),
     color: Colors.text,
     paddingVertical: 2,
     fontFamily: Typography.fontFamily.vesperLibre,
@@ -492,7 +519,7 @@ const styles = StyleSheet.create({
   },
   filterBadgeText: {
     color: Colors.white,
-    fontSize: 10,
+    fontSize: responsive.getFontSize('sm'),
     fontWeight: '600',
   },
 
@@ -601,13 +628,13 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   specPillLabel: {
-    fontSize: 14,
     marginTop: 2,
     textTransform: 'capitalize',
+    // fontSize handled by Text component variant
   },
   specPillValue: {
-    fontSize: 14,
     fontWeight: '500',
+    // fontSize handled by Text component variant
   },
 
   // Card Actions - Compact modern style (top-right placement)
