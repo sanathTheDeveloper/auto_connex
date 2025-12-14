@@ -2,7 +2,7 @@
  * MessagesScreen Component
  *
  * Chat interface for car negotiations between buyers and dealers.
- * Features: Price negotiation, invoice creation/sending, transport options,
+ * Features: Price negotiation, transport options,
  * and deal locking flow as per the Auto Connex workflow.
  */
 
@@ -20,6 +20,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -43,7 +44,7 @@ interface MessagesScreenProps {
 }
 
 // Message types
-type MessageType = 'text' | 'offer' | 'invoice' | 'transport' | 'system' | 'deal_locked' | 'vehicle_card';
+type MessageType = 'text' | 'offer' | 'transport' | 'system' | 'deal_locked' | 'vehicle_card';
 
 interface Message {
   id: string;
@@ -54,9 +55,8 @@ interface Message {
   data?: {
     amount?: number;
     originalPrice?: number;
-    status?: 'pending' | 'accepted' | 'rejected' | 'paid';
+    status?: 'pending' | 'accepted' | 'rejected';
     transportType?: 'pickup' | 'delivery';
-    invoiceId?: string;
     // Vehicle card data
     vehicleId?: string;
     vehicleYear?: number;
@@ -96,7 +96,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
     make: vehicle.make,
     model: vehicle.model,
     variant: vehicle.variant,
-    price: vehicle.tradePrice,
+    price: vehicle.price, // This is the buying/asking price
   };
 
   const [messageText, setMessageText] = useState('');
@@ -122,7 +122,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
         vehicleMake: vehicle.make,
         vehicleModel: vehicle.model,
         vehicleVariant: vehicle.variant,
-        vehiclePrice: vehicle.tradePrice,
+        vehiclePrice: vehicle.price, // Buying price
         vehicleLocation: vehicle.location,
         vehicleDealer: vehicle.dealer,
         vehicleImageKey: vehicle.imageKey,
@@ -138,7 +138,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
     {
       id: '3',
       type: 'text',
-      content: `Yes, it's still available! Great choice. The asking price is $${MOCK_VEHICLE.price.toLocaleString()}. Would you like to make an offer?`,
+      content: `Yes, it's still available! Great choice. The buying price is $${MOCK_VEHICLE.price.toLocaleString()}. Would you like to make an offer?`,
       sender: 'dealer',
       timestamp: new Date(Date.now() - 3400000),
     },
@@ -146,14 +146,11 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
 
   // Modal states
   const [showOfferModal, setShowOfferModal] = useState(false);
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showTransportModal, setShowTransportModal] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
 
   // Form states
   const [offerAmount, setOfferAmount] = useState('');
-  const [invoiceAmount, setInvoiceAmount] = useState('');
-  const [invoiceDescription, setInvoiceDescription] = useState('');
 
   // Deal state
   const [dealLocked, setDealLocked] = useState(false);
@@ -224,26 +221,6 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       });
     }, 1000);
   }, [offerAmount, addMessage]);
-
-  const handleSendInvoice = useCallback(() => {
-    const amount = parseInt(invoiceAmount.replace(/,/g, ''), 10);
-    if (isNaN(amount) || amount <= 0) return;
-
-    addMessage({
-      type: 'invoice',
-      content: invoiceDescription || `Invoice for ${MOCK_VEHICLE.year} ${MOCK_VEHICLE.make} ${MOCK_VEHICLE.model}`,
-      sender: 'dealer',
-      data: {
-        amount,
-        status: 'pending',
-        invoiceId: `INV-${Date.now().toString().slice(-6)}`,
-      },
-    });
-
-    setShowInvoiceModal(false);
-    setInvoiceAmount('');
-    setInvoiceDescription('');
-  }, [invoiceAmount, invoiceDescription, addMessage]);
 
   const handleSelectTransport = useCallback((type: 'pickup' | 'delivery') => {
     addMessage({
@@ -325,22 +302,6 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
     }, 1500);
   }, [addMessage]);
 
-  const handlePayInvoice = useCallback((messageId: string) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId && msg.data
-          ? { ...msg, data: { ...msg.data, status: 'paid' as const } }
-          : msg
-      )
-    );
-
-    addMessage({
-      type: 'system',
-      content: 'Payment successful! Transaction has been recorded.',
-      sender: 'system',
-    });
-  }, [addMessage]);
-
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
   };
@@ -350,48 +311,84 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
     const isSystem = message.sender === 'system';
 
     if (isSystem) {
-      // Vehicle Card Message
+      // Vehicle Card Message - Modern Full-Width Image Design
       if (message.type === 'vehicle_card' && message.data) {
         return (
           <View key={message.id} style={styles.vehicleCardContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.vehicleCard}
-              activeOpacity={0.8}
+              activeOpacity={0.95}
               onPress={() => navigation.navigate('VehicleDetails', { vehicleId: message.data!.vehicleId! })}
             >
-              {/* Vehicle Image */}
-              <Image 
-                source={getVehicleImage(message.data.vehicleImageKey as any)}
-                style={styles.vehicleCardImage}
-                resizeMode="cover"
-              />
-              
-              {/* Vehicle Details */}
+              {/* Full-Width Hero Image */}
+              <View style={styles.vehicleCardImageContainer}>
+                <Image
+                  source={getVehicleImage(message.data.vehicleImageKey as any)}
+                  style={styles.vehicleCardImage}
+                  resizeMode="cover"
+                />
+                {/* Gradient Overlay for better text readability */}
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.4)']}
+                  style={styles.vehicleCardImageOverlay}
+                />
+              </View>
+
+              {/* Vehicle Details Section */}
               <View style={styles.vehicleCardContent}>
-                <Text variant="body" weight="semibold" numberOfLines={1}>
-                  {message.data.vehicleYear} {message.data.vehicleMake} {message.data.vehicleModel}
-                </Text>
-                {message.data.vehicleVariant && (
-                  <Text variant="caption" color="textTertiary" numberOfLines={1}>
-                    {message.data.vehicleVariant}
+                {/* Title Row */}
+                <View style={styles.vehicleCardTitleRow}>
+                  <View style={styles.vehicleCardTitleContainer}>
+                    <Text variant="h4" weight="bold" numberOfLines={1}>
+                      {message.data.vehicleYear} {message.data.vehicleMake}
+                    </Text>
+                    <Text variant="body" weight="medium" numberOfLines={1} color="textMuted">
+                      {message.data.vehicleModel}
+                    </Text>
+                  </View>
+
+                  {message.data.vehicleVariant && (
+                    <View style={styles.vehicleCardBadge}>
+                      <Text variant="label" weight="medium" style={styles.vehicleCardBadgeText}>
+                        {message.data.vehicleVariant}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Meta Info Row */}
+                <View style={styles.vehicleCardMetaContainer}>
+                  <View style={styles.vehicleCardMetaRow}>
+                    <Ionicons name="location" size={14} color={Colors.primary} />
+                    <Text variant="caption" color="textMuted" numberOfLines={1} style={styles.vehicleCardMetaText}>
+                      {message.data.vehicleLocation}
+                    </Text>
+                  </View>
+
+                  <View style={styles.vehicleCardMetaDivider} />
+
+                  <View style={styles.vehicleCardMetaRow}>
+                    <Ionicons name="business" size={14} color={Colors.secondary} />
+                    <Text variant="caption" color="textMuted" numberOfLines={1} style={styles.vehicleCardMetaText}>
+                      {message.data.vehicleDealer}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Price Footer Bar */}
+              <View style={styles.vehicleCardPriceBar}>
+                <View style={styles.vehicleCardPriceContainer}>
+                  <Text variant="caption" weight="medium" style={styles.vehicleCardPriceLabel}>
+                    Buying Price
                   </Text>
-                )}
-                <Spacer size="xs" />
-                <View style={styles.vehicleCardMeta}>
-                  <Ionicons name="location-outline" size={12} color={Colors.textTertiary} />
-                  <Text variant="caption" color="textTertiary" numberOfLines={1}>
-                    {message.data.vehicleLocation} • {message.data.vehicleDealer}
+                  <Text variant="h3" weight="bold" style={styles.vehicleCardPriceText}>
+                    ${message.data.vehiclePrice?.toLocaleString()}
                   </Text>
                 </View>
-                <Spacer size="xs" />
-                <Text variant="h4" weight="bold" color="secondary">
-                  ${message.data.vehiclePrice?.toLocaleString()}
-                </Text>
-              </View>
-              
-              {/* Chevron */}
-              <View style={styles.vehicleCardChevron}>
-                <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                <View style={styles.vehicleCardArrowContainer}>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+                </View>
               </View>
             </TouchableOpacity>
           </View>
@@ -452,51 +449,11 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                 message.data.status === 'pending' && styles.status_pending,
                 message.data.status === 'accepted' && styles.status_accepted,
                 message.data.status === 'rejected' && styles.status_rejected,
-                message.data.status === 'paid' && styles.status_paid,
               ]}>
                 <Text variant="label" weight="medium" style={styles.statusText}>
                   {message.data.status?.toUpperCase()}
                 </Text>
               </View>
-            </View>
-          )}
-
-          {/* Invoice Message */}
-          {message.type === 'invoice' && message.data && (
-            <View style={styles.specialMessageContent}>
-              <View style={styles.invoiceHeader}>
-                <Ionicons name="document-text" size={16} color={Colors.secondary} />
-                <Text variant="caption" weight="semibold" color="secondary">
-                  Invoice #{message.data.invoiceId}
-                </Text>
-              </View>
-              <Text variant="bodySmall" color={isUser ? 'white' : 'text'}>
-                {message.content}
-              </Text>
-              <Spacer size="xs" />
-              <Text variant="h4" weight="bold" color={isUser ? 'white' : 'secondary'}>
-                ${message.data.amount?.toLocaleString()}
-              </Text>
-              {message.data.status === 'pending' && !isUser && (
-                <TouchableOpacity
-                  style={styles.payButton}
-                  onPress={() => handlePayInvoice(message.id)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="card" size={16} color={Colors.white} />
-                  <Text variant="caption" weight="semibold" style={styles.payButtonText}>
-                    Pay Now
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {message.data.status === 'paid' && (
-                <View style={[styles.statusBadge, styles.status_paid]}>
-                  <Ionicons name="checkmark-circle" size={12} color={Colors.white} />
-                  <Text variant="label" weight="medium" style={styles.statusText}>
-                    PAID
-                  </Text>
-                </View>
-              )}
             </View>
           )}
 
@@ -611,20 +568,6 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                 <Ionicons name="pricetag" size={20} color={Colors.accent} />
               </View>
               <Text variant="caption" weight="medium">Make Offer</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionItem}
-              onPress={() => {
-                setShowActionsMenu(false);
-                setShowInvoiceModal(true);
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: Colors.secondary + '15' }]}>
-                <Ionicons name="document-text" size={20} color={Colors.secondary} />
-              </View>
-              <Text variant="caption" weight="medium">Send Invoice</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -749,68 +692,6 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                 <Ionicons name="pricetag" size={18} color={Colors.white} />
                 <Text variant="bodySmall" weight="semibold" style={styles.modalButtonText}>
                   Send Offer
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Invoice Modal */}
-        <Modal
-          visible={showInvoiceModal}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowInvoiceModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text variant="h4" weight="semibold">Create Invoice</Text>
-                <TouchableOpacity onPress={() => setShowInvoiceModal(false)}>
-                  <Ionicons name="close" size={24} color={Colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              <Spacer size="md" />
-
-              <Text variant="caption" weight="medium" color="textMuted">Description</Text>
-              <Spacer size="xs" />
-              <TextInput
-                style={styles.descriptionInput}
-                placeholder="Invoice description..."
-                placeholderTextColor={Colors.textMuted}
-                value={invoiceDescription}
-                onChangeText={setInvoiceDescription}
-                multiline
-              />
-
-              <Spacer size="md" />
-
-              <Text variant="caption" weight="medium" color="textMuted">Amount</Text>
-              <Spacer size="xs" />
-              <View style={styles.priceInputContainer}>
-                <Text variant="h4" weight="bold" color="textMuted">$</Text>
-                <TextInput
-                  style={styles.priceInput}
-                  placeholder="0"
-                  placeholderTextColor={Colors.textMuted}
-                  value={invoiceAmount}
-                  onChangeText={setInvoiceAmount}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <Spacer size="lg" />
-
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonSecondary, !invoiceAmount && styles.modalButtonDisabled]}
-                onPress={handleSendInvoice}
-                disabled={!invoiceAmount}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="send" size={18} color={Colors.white} />
-                <Text variant="bodySmall" weight="semibold" style={styles.modalButtonText}>
-                  Send Invoice
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1027,41 +908,108 @@ const styles = StyleSheet.create({
     marginRight: Spacing.xs,
   },
 
-  // Vehicle Card
+  // Vehicle Card - Modern Full-Width Image Design
   vehicleCardContainer: {
     alignItems: 'center',
     marginVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
   vehicleCard: {
     width: '100%',
-    maxWidth: 340,
-    flexDirection: 'row',
+    maxWidth: 320,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius['2xl'],
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    ...Shadows.md,
+    ...Shadows.lg,
+  },
+  vehicleCardImageContainer: {
+    width: '100%',
+    height: 160,
+    backgroundColor: Colors.surface,
+    position: 'relative',
   },
   vehicleCardImage: {
-    width: 100,
-    height: 100,
-    backgroundColor: Colors.surface,
+    width: '100%',
+    height: '100%',
+  },
+  vehicleCardImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
   },
   vehicleCardContent: {
-    flex: 1,
-    padding: Spacing.sm,
-    justifyContent: 'center',
+    padding: Spacing.md,
   },
-  vehicleCardMeta: {
+  vehicleCardTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
+  },
+  vehicleCardTitleContainer: {
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  vehicleCardBadge: {
+    backgroundColor: Colors.primary + '15',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  vehicleCardBadgeText: {
+    color: Colors.primary,
+    fontSize: responsive.getFontSize('xs'),
+  },
+  vehicleCardMetaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  vehicleCardMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  vehicleCardChevron: {
+  vehicleCardMetaDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: Colors.borderLight,
+    marginHorizontal: Spacing.sm,
+  },
+  vehicleCardMetaText: {
+    marginLeft: 2,
+  },
+  vehicleCardPriceBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  vehicleCardPriceContainer: {
+    flex: 1,
+  },
+  vehicleCardPriceLabel: {
+    color: Colors.textTertiary,
+    fontSize: responsive.getFontSize('xs'),
+    marginBottom: 2,
+  },
+  vehicleCardPriceText: {
+    color: Colors.primary,
+    fontSize: responsive.getFontSize('xl'),
+  },
+  vehicleCardArrowContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.sm,
   },
 
   // Special Message Content
@@ -1069,11 +1017,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   offerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  invoiceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
@@ -1102,26 +1045,9 @@ const styles = StyleSheet.create({
   status_rejected: {
     backgroundColor: Colors.error,
   },
-  status_paid: {
-    backgroundColor: Colors.success,
-  },
   statusText: {
     color: Colors.white,
     fontSize: responsive.getFontSize('sm'),
-  },
-  payButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    backgroundColor: Colors.secondary,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.sm,
-  },
-  payButtonText: {
-    color: Colors.white,
   },
 
   // Quick Actions
