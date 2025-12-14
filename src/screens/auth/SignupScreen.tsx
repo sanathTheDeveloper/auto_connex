@@ -29,7 +29,7 @@ import {
   EmailInput,
   ABNInput,
 } from '../../design-system/molecules/auth';
-import { Colors, Spacing, BorderRadius } from '../../design-system/primitives';
+import { Colors, Spacing, BorderRadius, responsive } from '../../design-system/primitives';
 import { useAuth, SignupData } from '../../contexts/AuthContext';
 import { lookupABN } from '../../services/mockAPI';
 import { AUSTRALIAN_STATES, LICENSE_TYPES } from '../../data/australia';
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   verificationIcon: {
-    fontSize: 16,
+    fontSize: responsive.getFontSize('lg'),
     color: Colors.white,
     fontWeight: 'bold',
     lineHeight: 16,
@@ -960,7 +960,7 @@ const styles = StyleSheet.create({
   detailsHeaderText: {
     color: Colors.text,
     letterSpacing: -0.3,
-    fontSize: 18,
+    // fontSize handled by Text variant h4
   },
   detailsDivider: {
     height: 0,
@@ -991,13 +991,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     opacity: 0.5,
-    fontSize: 10,
+    // fontSize handled by Text variant caption
     color: Colors.greyscale700,
   },
   detailValue: {
     color: Colors.text,
     lineHeight: 18,
-    fontSize: 14,
+    // fontSize handled by Text variant bodySmall
   },
   // License Step Styles
   helperText: {
@@ -1008,7 +1008,7 @@ const styles = StyleSheet.create({
   helperTextSmall: {
     color: Colors.textTertiary,
     opacity: 0.7,
-    fontSize: 11,
+    fontSize: responsive.getFontSize('sm'),
     fontStyle: 'italic',
   },
   inputLabel: {
@@ -1040,7 +1040,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdownIcon: {
-    fontSize: 12,
+    fontSize: responsive.getFontSize('sm'),
     color: Colors.textTertiary,
     marginLeft: 8,
   },
@@ -1082,14 +1082,14 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     color: Colors.text,
     flex: 1,
-    fontSize: 13,
+    fontSize: responsive.getFontSize('base'),
   },
   dropdownItemTextSelected: {
     color: Colors.primary,
     fontWeight: '600',
   },
   dropdownCheckmark: {
-    fontSize: 12,
+    fontSize: responsive.getFontSize('sm'),
     color: Colors.primary,
     fontWeight: 'bold',
     marginLeft: 6,
@@ -1140,7 +1140,7 @@ const styles = StyleSheet.create({
   },
   checkboxTick: {
     color: Colors.white,
-    fontSize: 12,
+    fontSize: responsive.getFontSize('sm'),
     fontWeight: 'bold',
   },
   termsCheckboxText: {

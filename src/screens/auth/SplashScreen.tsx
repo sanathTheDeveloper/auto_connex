@@ -14,7 +14,7 @@ import { StyleSheet, Image, Animated, Platform } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Spacer } from '../../design-system';
-import { Colors, Spacing } from '../../design-system/primitives';
+import { Colors, Spacing, responsive } from '../../design-system/primitives';
 
 // Navigation types (will be defined in navigation/index.tsx)
 type RootStackParamList = {
@@ -85,22 +85,24 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: responsive.getSpacing('xl'),
+    maxWidth: Platform.OS === 'web' ? 480 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
-    maxWidth: Platform.OS === 'web' ? 500 : '100%',
     width: '100%',
   },
   appIcon: {
-    width: Platform.OS === 'web' ? 120 : 100,
-    height: Platform.OS === 'web' ? 120 : 100,
+    width: responsive.isMobileViewport() ? 100 : 120,
+    height: responsive.isMobileViewport() ? 100 : 120,
   },
   logoLockup: {
-    width: Platform.OS === 'web' ? '80%' : '90%',
-    maxWidth: 350,
-    height: Platform.OS === 'web' ? 70 : 60,
+    width: '85%',
+    maxWidth: 340,
+    height: responsive.isMobileViewport() ? 60 : 70,
   },
 });
 

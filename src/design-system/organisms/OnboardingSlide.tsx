@@ -77,15 +77,17 @@ export const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
 
       {/* Text Area - Bottom portion */}
       <View style={styles.textContainer}>
+        <Spacer size="lg" />
+        
         {/* Heading - Volkhov font for titles/headings */}
-        <Text variant="h3" align="center" weight="bold" style={styles.heading}>
+        <Text variant="h2" align="center" weight="bold" style={styles.heading}>
           {heading}
         </Text>
 
-        <Spacer size="sm" />
+        <Spacer size="md" />
 
         {/* Body - Vesper Libre font for body/subtitles with darker grey */}
-        <Text variant="bodySmall" align="center" style={styles.body}>
+        <Text variant="body" align="center" style={styles.body}>
           {body}
         </Text>
       </View>
@@ -99,7 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   illustrationContainer: {
-    height: '55%',
+    height: '60%',
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
@@ -132,19 +134,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   textContainer: {
-    height: '45%',
-    justifyContent: 'center',
+    height: '40%',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
+    paddingTop: Spacing['2xl'], // Increased from Spacing.xl for more breathing room
+    paddingBottom: Spacing.lg,
     backgroundColor: Colors.white,
   },
   heading: {
-    maxWidth: 320,
+    maxWidth: 380,
     color: Colors.text,
+    lineHeight: 32,
   },
   body: {
-    maxWidth: 340,
+    maxWidth: 380,
     color: Colors.greyscale700, // Darker grey for better visibility on white background
+    lineHeight: 24,
+    opacity: 0.9,
   },
 });

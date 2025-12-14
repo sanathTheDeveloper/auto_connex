@@ -142,23 +142,14 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
     setConfirmModalVisible(false);
   }, []);
 
-  // Confirm purchase or send offer
+  // Confirm purchase or send offer - navigate to messages
   const handleConfirmAction = useCallback(() => {
     if (!vehicle) return;
     setConfirmModalVisible(false);
 
-    if (hasCustomOffer) {
-      Alert.alert(
-        'Offer Sent',
-        `Your offer of $${displayPrice.toLocaleString()} has been sent to ${vehicle.dealer} via messages.`
-      );
-    } else {
-      Alert.alert(
-        'Purchase Initiated',
-        `Your purchase request for ${vehicle.year} ${vehicle.make} ${vehicle.model} has been sent to ${vehicle.dealer}.`
-      );
-    }
-  }, [vehicle, hasCustomOffer, displayPrice]);
+    // Navigate to messages screen for negotiation
+    navigation.navigate('Messages', { vehicleId: vehicle.id });
+  }, [vehicle, navigation]);
 
   const formatPPSRDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
@@ -274,7 +265,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
         <View style={styles.content}>
           {/* Title Section */}
           <View style={styles.titleSection}>
-            <Text variant="h4" weight="semibold">
+            <Text variant="h3" weight="bold">
               {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.variant}
               {vehicle.verified && (
                 <>
@@ -320,8 +311,8 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
           {/* Price Card - Modern Design */}
           <View style={styles.priceCard}>
             <View style={styles.priceHeader}>
-              <Text variant="caption" color="textMuted">Asking Price</Text>
-              <Text variant="h4" weight="bold" color="secondary">
+              <Text variant="caption" color="textTertiary">Asking Price</Text>
+              <Text variant="h3" weight="bold" color="secondary">
                 ${totalPrice.toLocaleString()}
               </Text>
             </View>
@@ -330,18 +321,18 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
 
             <View style={styles.priceDetails}>
               <View style={styles.priceItem}>
-                <Text variant="label" color="textMuted">Trade</Text>
-                <Text variant="bodySmall" weight="medium">${vehicle.tradePrice.toLocaleString()}</Text>
+                <Text variant="caption" color="textTertiary">Trade</Text>
+                <Text variant="body" weight="semibold">${vehicle.tradePrice.toLocaleString()}</Text>
               </View>
               {extrasTotal > 0 && (
                 <View style={styles.priceItem}>
-                  <Text variant="label" color="textMuted">Extras</Text>
-                  <Text variant="bodySmall" weight="medium" color="secondary">+${extrasTotal.toLocaleString()}</Text>
+                  <Text variant="caption" color="textTertiary">Extras</Text>
+                  <Text variant="body" weight="semibold" color="secondary">+${extrasTotal.toLocaleString()}</Text>
                 </View>
               )}
               <View style={styles.priceItem}>
-                <Text variant="label" color="textMuted">Retail Est.</Text>
-                <Text variant="bodySmall" weight="medium">${vehicle.retailPrice.toLocaleString()}</Text>
+                <Text variant="caption" color="textTertiary">Retail Est.</Text>
+                <Text variant="body" weight="semibold">${vehicle.retailPrice.toLocaleString()}</Text>
               </View>
             </View>
           </View>
@@ -374,10 +365,10 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     <View style={styles.ppsrStatus}>
                       <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
                       <View style={styles.ppsrStatusText}>
-                        <Text variant="body" weight="semibold" style={{ color: Colors.success }}>
+                        <Text variant="body" weight="bold" style={{ color: Colors.success }}>
                           Clear Title
                         </Text>
-                        <Text variant="label" color="textMuted">
+                        <Text variant="caption" color="textTertiary">
                           Checked {formatPPSRDate(vehicle.ppsr.checkDate)}
                         </Text>
                       </View>
@@ -443,21 +434,21 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     {vehicle.afterMarketExtrasDetailed.map((extra, idx) => (
                       <View key={`extra-${idx}`} style={styles.extraItem}>
                         <View style={styles.extraInfo}>
-                          <Text variant="bodySmall" weight="medium">{extra.name}</Text>
+                          <Text variant="body" weight="medium">{extra.name}</Text>
                           {extra.category && (
-                            <Text variant="label" color="textMuted">
+                            <Text variant="caption" color="textTertiary">
                               {extra.category}
                             </Text>
                           )}
                         </View>
-                        <Text variant="bodySmall" weight="semibold" color="primary">
+                        <Text variant="body" weight="semibold" color="primary">
                           ${extra.cost.toLocaleString()}
                         </Text>
                       </View>
                     ))}
                     <View style={styles.extrasTotalRow}>
-                      <Text variant="bodySmall" weight="semibold">Total</Text>
-                      <Text variant="body" weight="bold" color="primary">
+                      <Text variant="body" weight="semibold">Total</Text>
+                      <Text variant="h4" weight="bold" color="primary">
                         ${extrasTotal.toLocaleString()}
                       </Text>
                     </View>
@@ -475,13 +466,13 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     <Ionicons name="business" size={20} color={Colors.primary} />
                   </View>
                   <View style={styles.sellerInfo}>
-                    <Text variant="bodySmall" weight="medium">{vehicle.dealer}</Text>
-                    <Text variant="label" color="textMuted">{vehicle.sellerType}</Text>
+                    <Text variant="body" weight="semibold">{vehicle.dealer}</Text>
+                    <Text variant="caption" color="textTertiary">{vehicle.sellerType}</Text>
                   </View>
                   {vehicle.sellerDetails?.rating && (
                     <View style={styles.sellerRating}>
                       <Ionicons name="star" size={14} color={Colors.warning} />
-                      <Text variant="bodySmall" weight="medium">{vehicle.sellerDetails.rating.toFixed(1)}</Text>
+                      <Text variant="body" weight="medium">{vehicle.sellerDetails.rating.toFixed(1)}</Text>
                     </View>
                   )}
                 </View>
@@ -512,10 +503,10 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             </TouchableOpacity>
 
             <View style={styles.priceDisplay}>
-              <Text variant="label" color="textMuted">
+              <Text variant="caption" color="textTertiary">
                 {hasCustomOffer ? 'Your Offer' : 'Total Price'}
               </Text>
-              <Text variant="body" weight="semibold" color={hasCustomOffer ? 'accent' : 'secondary'}>
+              <Text variant="h4" weight="bold" color={hasCustomOffer ? 'accent' : 'secondary'}>
                 ${displayPrice.toLocaleString()}
               </Text>
             </View>
@@ -568,7 +559,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                   color={Colors.white}
                 />
               </View>
-              <Text variant="h4" weight="semibold" align="center">
+              <Text variant="h3" weight="bold" align="center">
                 {hasCustomOffer ? 'Send Offer' : 'Confirm Purchase'}
               </Text>
             </View>
@@ -577,17 +568,17 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
 
             {/* Vehicle Summary */}
             <View style={styles.confirmVehicleSummary}>
-              <Text variant="bodySmall" weight="medium" align="center">
+              <Text variant="body" weight="medium" align="center">
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </Text>
               <Spacer size="xs" />
-              <Text variant="h4" weight="bold" color={hasCustomOffer ? 'accent' : 'secondary'} align="center">
+              <Text variant="h3" weight="bold" color={hasCustomOffer ? 'accent' : 'secondary'} align="center">
                 ${displayPrice.toLocaleString()}
               </Text>
               {hasCustomOffer && (
                 <>
                   <Spacer size="xs" />
-                  <Text variant="caption" color="textMuted" align="center">
+                  <Text variant="caption" color="textTertiary" align="center">
                     Original price: ${totalPrice.toLocaleString()}
                   </Text>
                 </>
@@ -598,13 +589,13 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
 
             {/* Dealer Info */}
             <View style={styles.confirmDealerInfo}>
-              <Ionicons name="storefront-outline" size={16} color={Colors.textMuted} />
-              <Text variant="bodySmall" color="textMuted">
+              <Ionicons name="storefront-outline" size={16} color={Colors.textTertiary} />
+              <Text variant="caption" color="textTertiary">
                 {hasCustomOffer ? 'Your offer will be sent to' : 'Seller'}
               </Text>
             </View>
             <Spacer size="xs" />
-            <Text variant="body" weight="medium" align="center">
+            <Text variant="body" weight="semibold" align="center">
               {vehicle.dealer}
             </Text>
 
@@ -629,7 +620,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                 onPress={handleCloseConfirmModal}
                 activeOpacity={0.7}
               >
-                <Text variant="bodySmall" weight="medium" color="textSecondary">
+                <Text variant="body" weight="medium" color="textSecondary">
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -647,7 +638,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                   size={18}
                   color={Colors.white}
                 />
-                <Text variant="bodySmall" weight="semibold" style={styles.confirmActionButtonText}>
+                <Text variant="body" weight="semibold" style={styles.confirmActionButtonText}>
                   {hasCustomOffer ? 'Send Offer' : 'Confirm'}
                 </Text>
               </TouchableOpacity>
@@ -693,8 +684,8 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
 interface SpecItemProps { label: string; value: string; }
 const SpecItem: React.FC<SpecItemProps> = React.memo(({ label, value }) => (
   <View style={styles.specItem}>
-    <Text variant="label" color="textMuted">{label}</Text>
-    <Text variant="bodySmall" weight="medium">{value}</Text>
+    <Text variant="caption" color="textTertiary">{label}</Text>
+    <Text variant="body" weight="medium">{value}</Text>
   </View>
 ));
 
@@ -706,7 +697,7 @@ const PPSRItem: React.FC<PPSRItemProps> = React.memo(({ label, passed }) => (
       size={16}
       color={passed ? Colors.success : Colors.error}
     />
-    <Text variant="bodySmall">{label}</Text>
+    <Text variant="body" weight="medium">{label}</Text>
   </View>
 ));
 

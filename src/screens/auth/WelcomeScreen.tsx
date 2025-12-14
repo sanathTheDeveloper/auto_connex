@@ -34,7 +34,7 @@ import { Text } from '../../design-system/atoms/Text';
 import { Spacer } from '../../design-system/atoms/Spacer';
 import { PillButton } from '../../design-system/atoms/PillButton';
 import { Card } from '../../design-system/molecules/Card';
-import { Colors, Spacing, BorderRadius, Shadows } from '../../design-system/primitives';
+import { Colors, Spacing, BorderRadius, Shadows, responsive } from '../../design-system/primitives';
 
 // Navigation types
 type RootStackParamList = {
@@ -102,11 +102,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text variant="h4" weight="bold" align="center">
+            <Text variant="h2" weight="bold" align="center">
               What brings you here?
             </Text>
-            <Spacer size="xs" />
-            <Text variant="bodySmall" align="center" style={styles.subtitle}>
+            <Spacer size="sm" />
+            <Text variant="body" align="center" style={styles.subtitle}>
               Select your role to get started
             </Text>
           </View>
@@ -250,7 +250,7 @@ const UserTypeCard: React.FC<UserTypeCardProps> = ({
             </LinearGradient>
 
             {/* Title - Volkhov Font */}
-            <Text variant="body" weight="semibold" style={styles.cardTitle}>
+            <Text variant="h4" weight="semibold" style={styles.cardTitle}>
               {title}
             </Text>
           </View>
@@ -258,7 +258,7 @@ const UserTypeCard: React.FC<UserTypeCardProps> = ({
           <Spacer size="md" />
 
           {/* Description - Vesper Libre Font */}
-          <Text variant="caption" weight="medium" style={styles.description}>
+          <Text variant="body" style={styles.description}>
             {description}
           </Text>
 
@@ -268,9 +268,9 @@ const UserTypeCard: React.FC<UserTypeCardProps> = ({
           {features.map((feature, index) => (
             <View key={index} style={styles.featureRow}>
               <View style={styles.checkmarkIcon}>
-                <Ionicons name="checkmark" size={11} color={Colors.primary} />
+                <Ionicons name="checkmark" size={12} color={Colors.primary} />
               </View>
-              <Text variant="caption" style={styles.featureText}>
+              <Text variant="bodySmall" style={styles.featureText}>
                 {feature}
               </Text>
             </View>
@@ -293,27 +293,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: responsive.getSpacing('lg'),
+    paddingTop: responsive.getSpacing('xl'),
+    paddingBottom: responsive.getSpacing('md'),
     maxWidth: Platform.OS === 'web' ? 480 : undefined,
     alignSelf: Platform.OS === 'web' ? 'center' : undefined,
     width: '100%',
   },
   header: {
-    paddingHorizontal: Spacing.sm,
-    marginBottom: Spacing.xs,
+    paddingHorizontal: responsive.getSpacing('sm'),
+    marginBottom: responsive.getSpacing('md'),
   },
   subtitle: {
     color: Colors.greyscale700,
-    lineHeight: 20,
-    opacity: 0.85,
+    opacity: 0.9,
   },
   cardsContainer: {
     width: '100%',
   },
   card: {
-    padding: Spacing['2xl'],
+    padding: responsive.getSpacing('xl'),
     position: 'relative',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
@@ -327,8 +326,8 @@ const styles = StyleSheet.create({
   },
   checkmarkCircle: {
     position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
+    top: responsive.getSpacing('md'),
+    right: responsive.getSpacing('md'),
     zIndex: 10,
   },
   headerRow: {
@@ -336,46 +335,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconContainer: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
     ...Shadows.sm,
   },
   cardTitle: {
-    marginLeft: Spacing.md,
+    marginLeft: responsive.getSpacing('md'),
     flex: 1,
   },
   description: {
     color: Colors.greyscale700,
-    lineHeight: 20,
+    lineHeight: 24,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
-    paddingRight: Spacing.xs,
+    marginBottom: responsive.getSpacing('sm'),
+    paddingRight: responsive.getSpacing('xs'),
   },
   checkmarkIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: `${Colors.primary}15`,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
   },
   featureText: {
-    marginLeft: Spacing.sm,
+    marginLeft: responsive.getSpacing('sm'),
     flex: 1,
-    lineHeight: 19,
     color: Colors.greyscale700,
   },
   footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    paddingBottom: Spacing.lg,
+    paddingHorizontal: responsive.getSpacing('lg'),
+    paddingVertical: responsive.getSpacing('md'),
+    paddingBottom: responsive.getSpacing('lg'),
     backgroundColor: 'transparent',
     alignItems: 'center',
   },

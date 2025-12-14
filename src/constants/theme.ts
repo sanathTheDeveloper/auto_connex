@@ -21,7 +21,7 @@ export const Colors = {
   text: '#000000',           // Primary text (pure black for maximum readability)
   textSecondary: '#374151',  // Secondary text (darker gray - better contrast)
   textMuted: '#6B7280',      // Muted text (medium gray for subtle info)
-  textTertiary: '#9CA3AF',   // Tertiary/light text (light gray for hints)
+  textTertiary: '#334155',   // Tertiary text (greyscale700 - better readability on white backgrounds)
   
   // Border colors
   border: '#E7E7E7',         // Default border
@@ -232,38 +232,45 @@ export const Layout = {
 
 /**
  * Responsive utilities for web and mobile
+ * CRITICAL: Uses viewport width (not Platform.OS) for web mobile responsiveness
  */
 export const responsive = {
   // Check if running on web
   isWeb: Platform.OS === 'web',
   
-  // Check if small mobile device (iPhone SE, iPhone 12 Mini, etc.)
-  isSmallMobile: Platform.OS !== 'web' && Dimensions.get('window').width < 375,
+  // Check if mobile viewport (works on web AND native mobile)
+  // This ensures mobile styles apply in browser mobile viewports too
+  isMobileViewport: () => Dimensions.get('window').width <= 480,
   
-  // Check if standard mobile device
-  isMobile: Platform.OS !== 'web' && Dimensions.get('window').width < 768,
+  // Check if small mobile device (iPhone SE, iPhone 12 Mini, etc.)
+  isSmallMobile: Dimensions.get('window').width < 375,
+  
+  // Check if standard mobile device (based on viewport, not Platform)
+  isMobile: Dimensions.get('window').width < 768,
 
-  // Get responsive padding based on platform
+  // Get responsive padding based on viewport width
   getContentPadding: () => {
     const width = Dimensions.get('window').width;
-    if (Platform.OS === 'web') return Spacing.md;
+    if (width <= 480) return SpacingMobile.lg; // Mobile viewport (web or native)
     if (width < 375) return SpacingMobile.md; // Small mobile
-    return SpacingMobile.lg; // Standard mobile
+    return Spacing.md; // Desktop
   },
   
-  // Get responsive spacing
+  // Get responsive spacing based on viewport width
   getSpacing: (size: keyof typeof Spacing) => {
     const width = Dimensions.get('window').width;
-    if (Platform.OS !== 'web' && width < 768) {
+    // Use mobile spacing for all viewports <= 480px (web mobile + native)
+    if (width <= 480) {
       return SpacingMobile[size];
     }
     return Spacing[size];
   },
   
-  // Get responsive font size
+  // Get responsive font size based on viewport width
   getFontSize: (size: keyof typeof Typography.fontSize) => {
     const width = Dimensions.get('window').width;
-    if (Platform.OS !== 'web' && width < 768) {
+    // Use mobile fonts for all viewports <= 480px (web mobile + native)
+    if (width <= 480) {
       return Typography.fontSizeMobile[size];
     }
     return Typography.fontSize[size];
@@ -271,7 +278,12 @@ export const responsive = {
 
   // Get responsive maxWidth for containers
   getMaxWidth: (defaultWidth: number | string = 400) => {
-    return Platform.OS === 'web' ? '100%' : defaultWidth;
+    const width = Dimensions.get('window').width;
+    // Constrain to 480px on web for mobile viewport simulation
+    if (Platform.OS === 'web' && width > 480) {
+      return 480;
+    }
+    return '100%';
   },
 
   // Get screen dimensions
