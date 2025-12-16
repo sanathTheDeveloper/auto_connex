@@ -128,7 +128,7 @@ export const Button: React.FC<ButtonProps> = ({
             <Text
               variant={getTextVariant(size)}
               color={textColorKey as any}
-              weight="semibold"
+              weight="medium"
               style={styles.text}
             >
               {children}

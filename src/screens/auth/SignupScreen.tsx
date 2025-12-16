@@ -14,11 +14,12 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../design-system/atoms/Text';
 import { Button } from '../../design-system/atoms/Button';
 import { Spacer } from '../../design-system/atoms/Spacer';
@@ -32,8 +33,9 @@ import {
 import { Colors, Spacing, BorderRadius, responsive } from '../../design-system/primitives';
 import { useAuth, SignupData } from '../../contexts/AuthContext';
 import { lookupABN } from '../../services/mockAPI';
-import { AUSTRALIAN_STATES, LICENSE_TYPES } from '../../data/australia';
+import { AUSTRALIAN_STATES } from '../../data/australia';
 import { WelcomeModal } from './WelcomeModal';
+import { LicenseVerificationModal } from './LicenseVerificationModal';
 
 // Navigation types
 type RootStackParamList = {
@@ -74,12 +76,6 @@ interface FormData {
   licenseState: string;
   licenseType: string;
   
-  // Step 4: Payment Details
-  cardholderName: string;
-  cardNumber: string;
-  expiryDate: string;
-  cvv: string;
-  termsAccepted: boolean;
 }
 
 /**
@@ -91,10 +87,6 @@ interface FormErrors {
   phone?: string;
   abn?: string;
   licenseNumber?: string;
-  cardholderName?: string;
-  cardNumber?: string;
-  expiryDate?: string;
-  cvv?: string;
 }
 
 /**
@@ -117,6 +109,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
   const [isVerifying, setIsVerifying] = useState(false);
   const [isABNVerified, setIsABNVerified] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -176,11 +169,6 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
     licenseNumber: '',
     licenseState: '',
     licenseType: '',
-    cardholderName: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    termsAccepted: false,
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
@@ -223,13 +211,6 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
     return true;
   };
 
-  /**
-   * Validate Step 4: Payment Details
-   */
-  const validateStep4 = (): boolean => {
-    // Validation removed - allow any input
-    return true;
-  };
 
   /**
    * Handle ABN lookup and auto-fill business details
@@ -279,14 +260,11 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
         break;
       case 3:
         isValid = validateStep3();
-        break;
-      case 4:
-        // Final step - validate payment and complete signup
-        isValid = validateStep4();
         if (isValid) {
-          await handleSignup();
+          // Show license verification modal - this is the final step
+          setShowLicenseModal(true);
         }
-        return;
+        return; // Don't auto-proceed, modal will handle registration
     }
 
     if (isValid) {
@@ -343,8 +321,6 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
           return renderStep2();
         case 3:
           return renderStep3();
-        case 4:
-          return renderStep4();
         default:
           return null;
       }
@@ -533,187 +509,134 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
   );
 
   /**
-   * Step 3: License Verification
+   * Get license placeholder and label based on state
    */
-  const renderStep3 = () => (
-    <View>
-      <Text variant="h4" weight="bold" style={styles.stepTitle}>
-        License Details
-      </Text>
-      <Spacer size="xs" />
-      <Text variant="caption" weight="medium" style={styles.stepSubtitle}>
-        Verify your dealer or wholesaler license
-      </Text>
-      
-      <Spacer size="xl" />
-      
-      {/* License Number Input */}
-      <Input
-        label={"Dealer License Number"}
-        value={formData.licenseNumber}
-        onChange={(text) => updateField('licenseNumber', text.toUpperCase())}
-        placeholder="LMCT12345"
-        autoCapitalize="characters"
-        autoCorrect={false}
-        leftIcon="description"
-        error={formErrors.licenseNumber}
-      />
-      
-      <Spacer size="md" />
-      
-      {/* State and Type - Two columns */}
-      <View style={styles.licenseRow}>
-        <View style={styles.licenseHalf}>
-          <Select
-            label="State"
-            value={formData.licenseState}
-            onChange={(value) => updateField('licenseState', value)}
-            options={AUSTRALIAN_STATES}
-            placeholder="Select"
-          />
-        </View>
-
-        <View style={styles.licenseHalf}>
-          <Select
-            label="Type"
-            value={formData.licenseType}
-            onChange={(value) => updateField('licenseType', value)}
-            options={LICENSE_TYPES}
-            placeholder="Select"
-          />
-        </View>
-      </View>
-      
-      <Spacer size="lg" />
-    </View>
-  );
+  const getLicenseInfo = (state: string) => {
+    switch (state) {
+      case 'VIC':
+        return {
+          label: 'LMCT Number',
+          placeholder: 'e.g. LMCT 12345',
+          authority: 'Consumer Affairs Victoria',
+        };
+      case 'NSW':
+        return {
+          label: 'Motor Dealer Licence Number',
+          placeholder: 'e.g. MD 123456',
+          authority: 'NSW Fair Trading',
+        };
+      case 'QLD':
+        return {
+          label: 'Motor Dealer Licence Number',
+          placeholder: 'e.g. 1234567',
+          authority: 'Office of Fair Trading QLD',
+        };
+      case 'WA':
+        return {
+          label: 'Motor Vehicle Dealer Licence',
+          placeholder: 'e.g. MVD 12345',
+          authority: 'DMIRS Western Australia',
+        };
+      case 'SA':
+        return {
+          label: 'Dealer Licence Number',
+          placeholder: 'e.g. D 123456',
+          authority: 'Consumer and Business Services SA',
+        };
+      case 'TAS':
+        return {
+          label: 'Motor Vehicle Trader Licence',
+          placeholder: 'e.g. MVT 1234',
+          authority: 'Consumer Building and Occupational Services',
+        };
+      case 'ACT':
+        return {
+          label: 'Motor Vehicle Dealer Licence',
+          placeholder: 'e.g. 12345678',
+          authority: 'Access Canberra',
+        };
+      case 'NT':
+        return {
+          label: 'Motor Vehicle Dealer Licence',
+          placeholder: 'e.g. MVD 1234',
+          authority: 'Licensing NT',
+        };
+      default:
+        return {
+          label: 'Dealer Licence Number',
+          placeholder: 'Enter your licence number',
+          authority: 'your state licensing authority',
+        };
+    }
+  };
 
   /**
-   * Step 4: Payment Setup (Card Details)
+   * Step 3: License Verification
    */
-  const renderStep4 = () => (
-    <View>
-      <Text variant="h4" weight="bold" style={styles.stepTitle}>
-        Payment Setup
-      </Text>
-      <Spacer size="xs" />
-      <Text variant="caption" weight="medium" style={styles.stepSubtitle}>
-        Securely set up your billing details
-      </Text>
+  const renderStep3 = () => {
+    const licenseInfo = getLicenseInfo(formData.licenseState);
 
-      <Spacer size="md" />
-
-      {/* Escrow Info Banner */}
-      <View style={styles.escrowBanner}>
-        <Text variant="caption" weight="semibold" style={styles.escrowTitle}>
-          Payment Protection
+    return (
+      <View>
+        <Text variant="h4" weight="bold" style={styles.stepTitle}>
+          License Details
         </Text>
-        <Text variant="caption" style={styles.escrowText}>
-          No charge will be made until your license is fully verified. Payments are held in escrow for 7 days before release.
+        <Spacer size="xs" />
+        <Text variant="caption" weight="medium" style={styles.stepSubtitle}>
+          Verify your {userType === 'dealer' ? 'dealer' : 'wholesaler'} license
         </Text>
-      </View>
 
-      <Spacer size="md" />
+        <Spacer size="lg" />
 
-      {/* Cardholder Name */}
-      <Input
-        label="Cardholder Name"
-        value={formData.cardholderName}
-        onChange={(text) => updateField('cardholderName', text)}
-        placeholder="Name on card"
-        autoCapitalize="words"
-        error={formErrors.cardholderName}
-      />
+        {/* State Selection */}
+        <Select
+          label="State"
+          value={formData.licenseState}
+          onChange={(value) => {
+            updateField('licenseState', value);
+            // Clear license number when state changes
+            if (formData.licenseNumber) {
+              updateField('licenseNumber', '');
+            }
+          }}
+          options={AUSTRALIAN_STATES}
+          placeholder="Select your state"
+        />
 
-      <Spacer size="sm" />
+        <Spacer size="md" />
 
-      {/* Card Number */}
-      <Input
-        label="Card Number"
-        value={formData.cardNumber}
-        onChange={(text) => {
-          const formatted = text
-            .replace(/\D/g, '')
-            .slice(0, 16)
-            .replace(/(\d{4})/g, '$1 ')
-            .trim();
-          updateField('cardNumber', formatted);
-        }}
-        placeholder="0000 0000 0000 0000"
-        keyboardType="number-pad"
-        leftIcon="credit-card"
-        maxLength={19}
-        error={formErrors.cardNumber}
-      />
+        {/* License Number Input */}
+        <Input
+          label={licenseInfo.label}
+          value={formData.licenseNumber}
+          onChange={(text) => updateField('licenseNumber', text.toUpperCase())}
+          placeholder={licenseInfo.placeholder}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          leftIcon="description"
+          error={formErrors.licenseNumber}
+        />
 
-      <Spacer size="sm" />
+        <Spacer size="md" />
 
-      {/* Expiry and CVV - Two Columns */}
-      <View style={styles.cardDetailsRow}>
-        <View style={styles.cardDetailHalf}>
-          <Input
-            label="Expiry"
-            value={formData.expiryDate}
-            onChange={(text) => {
-              const formatted = text
-                .replace(/\D/g, '')
-                .slice(0, 4)
-                .replace(/(\d{2})(\d{0,2})/, (_, p1, p2) =>
-                  p2 ? `${p1}/${p2}` : p1
-                );
-              updateField('expiryDate', formatted);
-            }}
-            placeholder="MM/YY"
-            keyboardType="number-pad"
-            maxLength={5}
-            error={formErrors.expiryDate}
-          />
-        </View>
-
-        <View style={styles.cardDetailHalf}>
-          <Input
-            label="CVV"
-            value={formData.cvv}
-            onChange={(text) => {
-              const formatted = text.replace(/\D/g, '').slice(0, 3);
-              updateField('cvv', formatted);
-            }}
-            placeholder="123"
-            keyboardType="number-pad"
-            maxLength={3}
-            secureTextEntry
-            error={formErrors.cvv}
-          />
+        {/* Info Banner */}
+        <View style={styles.licenseInfoBanner}>
+          <Ionicons name="shield-checkmark-outline" size={18} color={Colors.primary} />
+          <Text variant="caption" style={styles.licenseInfoText}>
+            Your licence will be verified against {licenseInfo.authority}. Verification typically takes 1-2 business days.
+          </Text>
         </View>
       </View>
+    );
+  };
 
-      <Spacer size="md" />
-
-      {/* Terms Checkbox */}
-      <TouchableOpacity
-        style={styles.termsCheckboxRow}
-        onPress={() => setFormData(prev => ({ ...prev, termsAccepted: !prev.termsAccepted }))}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.checkbox, formData.termsAccepted && styles.checkboxChecked]}>
-          {formData.termsAccepted && <Text style={styles.checkboxTick}>✓</Text>}
-        </View>
-        <Text variant="caption" style={styles.termsCheckboxText}>
-          I agree to the{' '}
-          <Text variant="caption" style={styles.termsLink}>Terms of Service</Text>
-          {' '}and{' '}
-          <Text variant="caption" style={styles.termsLink}>Privacy Policy</Text>
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
 
   /**
    * Progress indicator
    */
   const renderProgress = () => (
     <View style={styles.progressContainer}>
-      {[1, 2, 3, 4].map((step) => (
+      {[1, 2, 3].map((step) => (
         <View
           key={step}
           style={[
@@ -782,9 +705,9 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                       onPress={handleNext}
                       loading={isLoading}
                       style={styles.nextButton}
-                      disabled={(currentStep === 2 && !isABNVerified) || (currentStep === 4 && !formData.termsAccepted)}
+                      disabled={currentStep === 2 && !isABNVerified}
                     >
-                      {currentStep === 3 ? 'Verify License' : currentStep === 4 ? 'Register' : 'Continue'}
+                      {currentStep === 3 ? 'Verify License' : 'Continue'}
                     </Button>
                   </>
                 ) : (
@@ -810,6 +733,14 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
             setShowSuccessModal(false);
             navigation.replace('Home');
           }}
+        />
+
+        {/* License Verification Modal */}
+        <LicenseVerificationModal
+          visible={showLicenseModal}
+          licenseState={formData.licenseState}
+          isLoading={isLoading}
+          onRegister={handleSignup}
         />
       </SafeAreaView>
     </View>
@@ -1094,63 +1025,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 6,
   },
-  // Payment Step Styles
-  cardDetailsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  cardDetailHalf: {
-    flex: 1,
-  },
-  escrowBanner: {
-    backgroundColor: Colors.success + '10',
-    borderRadius: 10,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.success + '20',
-  },
-  escrowTitle: {
-    color: Colors.success,
-    marginBottom: 4,
-  },
-  escrowText: {
-    color: Colors.text,
-    lineHeight: 18,
-    opacity: 0.8,
-  },
-  termsCheckboxRow: {
+  // License Info Banner
+  licenseInfoBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
+    backgroundColor: Colors.primary + '10',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary + '20',
   },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  checkboxTick: {
-    color: Colors.white,
-    fontSize: responsive.getFontSize('sm'),
-    fontWeight: 'bold',
-  },
-  termsCheckboxText: {
+  licenseInfoText: {
     flex: 1,
-    color: Colors.greyscale700,
+    color: Colors.text,
     lineHeight: 18,
-  },
-  termsLink: {
-    color: Colors.primary,
-    fontWeight: '600',
+    opacity: 0.85,
   },
 });
 
