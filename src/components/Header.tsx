@@ -1,8 +1,8 @@
 /**
  * Header Component
  *
- * Reusable header with gradient background, app branding, and navigation icons.
- * Uses Auto Connex brand colors for gradient (teal to cyan).
+ * Reusable header with solid Primary brand color background, app branding, and navigation icons.
+ * Uses Auto Connex Primary brand color (#0ABAB5).
  * Supports collapsible mode that shrinks to just logo and icons when scrolled.
  *
  * @example
@@ -15,7 +15,6 @@
 
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Platform, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
 
@@ -32,10 +31,6 @@ export interface HeaderProps {
   onMenuPress?: () => void;
   /** Callback when notification icon is pressed */
   onNotificationPress?: () => void;
-  /** Show gradient background */
-  withGradient?: boolean;
-  /** Custom gradient colors (defaults to brand teal gradient) */
-  gradientColors?: readonly [string, string, ...string[]];
   /** Scroll position for animated collapse (Animated.Value) */
   scrollY?: Animated.Value;
 }
@@ -52,8 +47,6 @@ const COLLAPSED_HEIGHT = Platform.OS === 'ios' ? 80 : 72;
 export const Header: React.FC<HeaderProps> = ({
   onMenuPress,
   onNotificationPress,
-  withGradient = true,
-  gradientColors = [Colors.primary, Colors.secondary],
   scrollY,
 }) => {
   // Animated values based on scroll position
@@ -137,20 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
     </Animated.View>
   );
 
-  if (withGradient) {
-    return (
-      <LinearGradient
-        colors={gradientColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.gradientContainer}
-      >
-        {headerContent}
-      </LinearGradient>
-    );
-  }
-
-  return <View style={styles.plainContainer}>{headerContent}</View>;
+  return <View style={styles.container}>{headerContent}</View>;
 };
 
 // ============================================================================
@@ -158,15 +138,11 @@ export const Header: React.FC<HeaderProps> = ({
 // ============================================================================
 
 const styles = StyleSheet.create({
-  gradientContainer: {
+  container: {
     paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.primary,
     borderBottomLeftRadius: BorderRadius['2xl'],
     borderBottomRightRadius: BorderRadius['2xl'],
-    overflow: 'hidden',
-  },
-  plainContainer: {
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.white,
     overflow: 'hidden',
   },
   header: {

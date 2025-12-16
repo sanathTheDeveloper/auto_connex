@@ -14,7 +14,7 @@ export const Colors = {
   
   // Neutral palette
   background: '#FFFFFF',     // Main background
-  backgroundAlt: '#F5F1E3',  // Alternative background (beige/cream from Figma)
+  backgroundAlt: '#EBEEF2',  // Alternative background (light grey)
   surface: '#F2F2F7',        // Card/surface background
   
   // Text colors
