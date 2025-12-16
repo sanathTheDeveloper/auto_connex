@@ -14,12 +14,13 @@ export const Colors = {
   
   // Neutral palette
   background: '#FFFFFF',     // Main background
-  backgroundAlt: '#EBEEF2',  // Alternative background (light grey)
+  backgroundAlt: '#F5F1E3',  // Alternative background (light grey)
   surface: '#F2F2F7',        // Card/surface background
   
   // Text colors
   text: '#000000',           // Primary text (pure black for maximum readability)
   textSecondary: '#374151',  // Secondary text (darker gray - better contrast)
+  textBrand: '#008985',      // Brand secondary color for text (dark teal - matches secondary)
   textMuted: '#6B7280',      // Muted text (medium gray for subtle info)
   textTertiary: '#334155',   // Tertiary text (greyscale700 - better readability on white backgrounds)
   

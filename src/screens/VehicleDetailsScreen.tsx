@@ -5,7 +5,7 @@
  * streamlined price breakdown. Optimized for mobile web devices.
  */
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -19,6 +19,10 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -37,7 +41,7 @@ const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_WIDTH = Platform.OS === 'web' ? Math.min(480, SCREEN_WIDTH) : SCREEN_WIDTH;
-const IMAGE_HEIGHT = IMAGE_WIDTH * 0.75;
+const IMAGE_HEIGHT = IMAGE_WIDTH * 0.85;
 const THUMBNAIL_SIZE = 64;
 
 type VehicleDetailsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'VehicleDetails'>;
@@ -53,10 +57,14 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fullscreenVisible, setFullscreenVisible] = useState(false);
+  const [offerModalVisible, setOfferModalVisible] = useState(false);
   const [offerPrice, setOfferPrice] = useState<number | null>(null);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [offerMessage, setOfferMessage] = useState('');
+  const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
+  const [purchaseMessage, setPurchaseMessage] = useState('');
   const mainScrollRef = useRef<ScrollView>(null);
   const fullscreenScrollRef = useRef<ScrollView>(null);
+  const thumbnailScrollRef = useRef<ScrollView>(null);
 
   const vehicle = useMemo(() => VEHICLES.find((v) => v.id === vehicleId), [vehicleId]);
 
@@ -68,36 +76,30 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
     return [getVehicleImage(vehicle.imageKey)];
   }, [vehicle]);
 
-  // Calculate total price with extras
-  const totalPrice = useMemo(() => {
+  // Use askingPrice from vehicle data (already includes extras calculation)
+  const askingPrice = useMemo(() => {
     if (!vehicle) return 0;
-    const extrasTotal = vehicle.afterMarketExtrasDetailed?.reduce((sum, extra) => sum + extra.cost, 0) || 0;
-    return vehicle.tradePrice + extrasTotal;
+    return vehicle.askingPrice || vehicle.price;
   }, [vehicle]);
 
-  const extrasTotal = useMemo(() => {
-    return vehicle?.afterMarketExtrasDetailed?.reduce((sum, extra) => sum + extra.cost, 0) || 0;
-  }, [vehicle]);
-
-  // Current display price (offer price or total price)
-  const displayPrice = offerPrice !== null ? offerPrice : totalPrice;
-  const hasCustomOffer = offerPrice !== null && offerPrice !== totalPrice;
+  // Current display price (offer price or asking price)
+  const displayPrice = offerPrice !== null ? offerPrice : askingPrice;
 
   // Price adjustment increment (1000)
   const PRICE_INCREMENT = 1000;
 
   const handleIncreasePrice = useCallback(() => {
-    const currentPrice = offerPrice !== null ? offerPrice : totalPrice;
+    const currentPrice = offerPrice !== null ? offerPrice : askingPrice;
     setOfferPrice(currentPrice + PRICE_INCREMENT);
-  }, [offerPrice, totalPrice]);
+  }, [offerPrice, askingPrice]);
 
   const handleDecreasePrice = useCallback(() => {
-    const currentPrice = offerPrice !== null ? offerPrice : totalPrice;
+    const currentPrice = offerPrice !== null ? offerPrice : askingPrice;
     const newPrice = currentPrice - PRICE_INCREMENT;
     if (newPrice >= 1000) {
       setOfferPrice(newPrice);
     }
-  }, [offerPrice, totalPrice]);
+  }, [offerPrice, askingPrice]);
 
   const handleImageScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -116,6 +118,62 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
     mainScrollRef.current?.scrollTo({ x: index * IMAGE_WIDTH, animated: true });
   }, []);
 
+  // Thumbnail animation values - scale and opacity for blur effect
+  const thumbnailScales = useRef<Animated.Value[]>([]).current;
+  const thumbnailOpacities = useRef<Animated.Value[]>([]).current;
+
+  // Initialize animation values when vehicleImages changes
+  useEffect(() => {
+    // Ensure we have the right number of animation values
+    while (thumbnailScales.length < vehicleImages.length) {
+      thumbnailScales.push(new Animated.Value(thumbnailScales.length === currentImageIndex ? 1.1 : 0.9));
+      thumbnailOpacities.push(new Animated.Value(thumbnailScales.length - 1 === currentImageIndex ? 1 : 0.5));
+    }
+  }, [vehicleImages.length]);
+
+  // Animate thumbnails when current image changes
+  useEffect(() => {
+    if (thumbnailScales.length === 0) return;
+
+    // Animate all thumbnails
+    const animations = vehicleImages.map((_, index) => {
+      const isActive = index === currentImageIndex;
+      return Animated.parallel([
+        Animated.spring(thumbnailScales[index] || new Animated.Value(1), {
+          toValue: isActive ? 1.1 : 0.9,
+          friction: 8,
+          tension: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(thumbnailOpacities[index] || new Animated.Value(1), {
+          toValue: isActive ? 1 : 0.5,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]);
+    });
+
+    Animated.parallel(animations).start();
+  }, [currentImageIndex, vehicleImages.length]);
+
+  // Auto-scroll thumbnail strip to center active thumbnail
+  useEffect(() => {
+    if (thumbnailScrollRef.current && vehicleImages.length > 1) {
+      // Calculate scroll position to center the active thumbnail
+      const thumbnailTotalWidth = THUMBNAIL_SIZE + Spacing.sm; // thumbnail + gap
+      const containerPadding = Spacing.md; // thumbnailStrip paddingHorizontal
+      const viewportWidth = IMAGE_WIDTH;
+
+      // Position of active thumbnail's center
+      const thumbnailCenterX = containerPadding + (currentImageIndex * thumbnailTotalWidth) + (THUMBNAIL_SIZE / 2);
+
+      // Scroll to center the active thumbnail in viewport
+      const scrollX = Math.max(0, thumbnailCenterX - (viewportWidth / 2));
+
+      thumbnailScrollRef.current.scrollTo({ x: scrollX, animated: true });
+    }
+  }, [currentImageIndex, vehicleImages.length]);
+
   const handleImagePress = useCallback(() => {
     setFullscreenVisible(true);
     setTimeout(() => {
@@ -132,22 +190,24 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
     Alert.alert('Contact Seller', `Contact ${vehicle.dealer}`);
   }, [vehicle]);
 
-  // Open confirmation modal
-  const handleActionPress = useCallback(() => {
-    setConfirmModalVisible(true);
-  }, []);
-
-  // Close confirmation modal
-  const handleCloseConfirmModal = useCallback(() => {
-    setConfirmModalVisible(false);
-  }, []);
-
-  // Confirm purchase or send offer - navigate to messages
-  const handleConfirmAction = useCallback(() => {
+  // Send offer - navigate to messages
+  const handleSendOffer = useCallback(() => {
     if (!vehicle) return;
-    setConfirmModalVisible(false);
-
+    setOfferModalVisible(false);
     // Navigate to messages screen for negotiation
+    navigation.navigate('Messages', { vehicleId: vehicle.id });
+  }, [vehicle, navigation]);
+
+  // Open purchase modal
+  const handlePurchasePress = useCallback(() => {
+    setPurchaseModalVisible(true);
+  }, []);
+
+  // Send purchase request - navigate to messages
+  const handleSendPurchase = useCallback(() => {
+    if (!vehicle) return;
+    setPurchaseModalVisible(false);
+    // Navigate to messages screen for purchase
     navigation.navigate('Messages', { vehicleId: vehicle.id });
   }, [vehicle, navigation]);
 
@@ -189,19 +249,19 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             <Ionicons name="chevron-back" size={22} color={Colors.text} />
           </TouchableOpacity>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerButton} onPress={handleShare} activeOpacity={0.7}>
-              <Ionicons name="share-outline" size={20} color={Colors.text} />
-            </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.headerButton, isFavorite && styles.headerButtonActive]}
+              style={[styles.actionButton, isFavorite && styles.actionButtonActive]}
               onPress={handleFavorite}
               activeOpacity={0.7}
             >
               <Ionicons
                 name={isFavorite ? 'heart' : 'heart-outline'}
-                size={20}
-                color={isFavorite ? Colors.accent : Colors.text}
+                size={18}
+                color={isFavorite ? Colors.white : Colors.accent}
               />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={handleShare} activeOpacity={0.7}>
+              <Ionicons name="share-social-outline" size={18} color={Colors.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -241,23 +301,44 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
           </TouchableOpacity>
         </View>
 
-        {/* Thumbnail Strip */}
+        {/* Thumbnail Strip with Animations */}
         {vehicleImages.length > 1 && (
           <ScrollView
+            ref={thumbnailScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.thumbnailStrip}
           >
-            {vehicleImages.map((image, index) => (
-              <TouchableOpacity
-                key={`thumb-${index}`}
-                style={[styles.thumbnail, index === currentImageIndex && styles.thumbnailActive]}
-                onPress={() => handleThumbnailPress(index)}
-                activeOpacity={0.8}
-              >
-                <Image source={image} style={styles.thumbnailImage} resizeMode="cover" />
-              </TouchableOpacity>
-            ))}
+            {vehicleImages.map((image, index) => {
+              const isActive = index === currentImageIndex;
+              const scale = thumbnailScales[index] || new Animated.Value(1);
+              const opacity = thumbnailOpacities[index] || new Animated.Value(1);
+
+              return (
+                <TouchableOpacity
+                  key={`thumb-${index}`}
+                  onPress={() => handleThumbnailPress(index)}
+                  activeOpacity={0.9}
+                >
+                  <Animated.View
+                    style={[
+                      styles.thumbnail,
+                      isActive && styles.thumbnailActive,
+                      {
+                        transform: [{ scale }],
+                        opacity,
+                      },
+                    ]}
+                  >
+                    <Image source={image} style={styles.thumbnailImage} resizeMode="cover" />
+                    {/* Overlay for non-active thumbnails */}
+                    {!isActive && (
+                      <View style={styles.thumbnailOverlay} />
+                    )}
+                  </Animated.View>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         )}
 
@@ -278,62 +359,61 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
 
           <Spacer size="xs" />
 
-          {/* Location & Dealer */}
+          {/* Location - Suburb, State for pickup */}
           <View style={styles.metaRow}>
             <Ionicons name="location-outline" size={14} color={Colors.textMuted} />
-            <Text variant="caption" color="textMuted">{vehicle.location}</Text>
-            <Text variant="caption" color="textMuted"> • </Text>
-            <Text variant="caption" color="textMuted">{vehicle.dealer}</Text>
+            <Text variant="caption" color="textTertiary">
+              {vehicle.suburb}, {vehicle.state}
+            </Text>
           </View>
 
           <Spacer size="md" />
 
-          {/* Quick Stats */}
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Ionicons name="speedometer-outline" size={18} color={Colors.primary} />
-              <Text variant="caption" weight="medium">{formatMileage(vehicle.mileage)}</Text>
+          {/* Specs Row - Matching HomeScreen style */}
+          <View style={styles.specsRow}>
+            <View style={styles.specBadge}>
+              <Ionicons name="speedometer-outline" size={14} color={Colors.textTertiary} />
+              <Text variant="caption" style={styles.specBadgeText}>{formatMileage(vehicle.mileage)}</Text>
             </View>
-            {vehicle.registration && (
-              <View style={styles.statItem}>
-                <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
-                <Text variant="caption" weight="medium">{vehicle.registration}</Text>
+            <View style={styles.specBadge}>
+              <Ionicons name="cog-outline" size={14} color={Colors.textTertiary} />
+              <Text variant="caption" style={styles.specBadgeText}>
+                {vehicle.transmission === 'automatic' ? 'Auto' : 'Manual'}
+              </Text>
+            </View>
+            <View style={styles.specBadge}>
+              <Ionicons name="flash-outline" size={14} color={Colors.textTertiary} />
+              <Text variant="caption" style={styles.specBadgeText}>
+                {vehicle.fuelType.charAt(0).toUpperCase() + vehicle.fuelType.slice(1)}
+              </Text>
+            </View>
+            <View style={styles.specBadge}>
+              <Ionicons name="color-palette-outline" size={14} color={Colors.textTertiary} />
+              <Text variant="caption" style={styles.specBadgeText}>{vehicle.color}</Text>
+            </View>
+            {vehicle.hasLogbook && (
+              <View style={styles.logbookBadge}>
+                <Ionicons name="book" size={12} color={Colors.success} />
+                <Text variant="caption" style={styles.logbookBadgeText}>Logbook</Text>
               </View>
             )}
-            <View style={styles.statItem}>
-              <Ionicons name="color-palette-outline" size={18} color={Colors.primary} />
-              <Text variant="caption" weight="medium">{vehicle.color}</Text>
-            </View>
+            {vehicle.registration && (
+              <View style={styles.specBadge}>
+                <Ionicons name="document-text-outline" size={14} color={Colors.textTertiary} />
+                <Text variant="caption" style={styles.specBadgeText}>{vehicle.registration}</Text>
+              </View>
+            )}
           </View>
 
           <Spacer size="lg" />
 
-          {/* Price Card - Modern Design */}
+          {/* Price Card - Clean Single Price Display */}
           <View style={styles.priceCard}>
             <View style={styles.priceHeader}>
               <Text variant="caption" color="textTertiary">Asking Price</Text>
-              <Text variant="h3" weight="bold" color="secondary">
-                ${totalPrice.toLocaleString()}
+              <Text variant="h2" weight="bold" color="secondary">
+                ${askingPrice.toLocaleString()}
               </Text>
-            </View>
-
-            <View style={styles.priceDivider} />
-
-            <View style={styles.priceDetails}>
-              <View style={styles.priceItem}>
-                <Text variant="caption" color="textTertiary">Trade</Text>
-                <Text variant="body" weight="semibold">${vehicle.tradePrice.toLocaleString()}</Text>
-              </View>
-              {extrasTotal > 0 && (
-                <View style={styles.priceItem}>
-                  <Text variant="caption" color="textTertiary">Extras</Text>
-                  <Text variant="body" weight="semibold" color="secondary">+${extrasTotal.toLocaleString()}</Text>
-                </View>
-              )}
-              <View style={styles.priceItem}>
-                <Text variant="caption" color="textTertiary">Retail Est.</Text>
-                <Text variant="body" weight="semibold">${vehicle.retailPrice.toLocaleString()}</Text>
-              </View>
             </View>
           </View>
 
@@ -341,18 +421,33 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
 
           {/* Accordions Section */}
           <View style={styles.accordionSection}>
-            {/* Vehicle Details */}
+            {/* Vehicle Details - Comprehensive Australian Standards */}
             <Accordion title="Vehicle Details" icon="car-sport-outline" defaultExpanded={false}>
               <View style={styles.specGrid}>
+                {/* Basic Vehicle Information */}
                 <SpecItem label="Year" value={vehicle.year.toString()} />
                 <SpecItem label="Make" value={vehicle.make} />
                 <SpecItem label="Model" value={vehicle.model} />
-                <SpecItem label="Transmission" value={vehicle.transmission} />
-                <SpecItem label="Fuel" value={vehicle.fuelType} />
-                <SpecItem label="Body" value={vehicle.bodyType} />
-                <SpecItem label="Condition" value={vehicle.condition} />
-                {vehicle.state && <SpecItem label="State" value={vehicle.state} />}
+                {vehicle.variant && <SpecItem label="Variant" value={vehicle.variant} />}
+                <SpecItem label="Body Type" value={vehicle.bodyType} />
+                <SpecItem label="Colour" value={vehicle.color} />
+
+                {/* Mechanical Details */}
+                <SpecItem label="Transmission" value={vehicle.transmission === 'automatic' ? 'Automatic' : 'Manual'} />
+                <SpecItem label="Fuel Type" value={vehicle.fuelType.charAt(0).toUpperCase() + vehicle.fuelType.slice(1)} />
+                <SpecItem label="Odometer" value={formatMileage(vehicle.mileage)} />
+
+                {/* Registration & Compliance */}
+                {vehicle.registration && <SpecItem label="Registration" value={vehicle.registration} />}
+                <SpecItem label="State" value={vehicle.state} />
+                <SpecItem label="Condition" value={vehicle.condition.charAt(0).toUpperCase() + vehicle.condition.slice(1)} />
+                <SpecItem label="Vehicle Age" value={`${vehicle.age} ${vehicle.age === 1 ? 'year' : 'years'}`} />
+
+                {/* Seller Information */}
+                <SpecItem label="Seller Type" value={vehicle.sellerType} />
+                <SpecItem label="Location" value={`${vehicle.suburb}, ${vehicle.state}`} />
               </View>
+
             </Accordion>
 
             <Spacer size="sm" />
@@ -425,31 +520,24 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             {vehicle.afterMarketExtrasDetailed && vehicle.afterMarketExtrasDetailed.length > 0 && (
               <>
                 <Accordion
-                  title="Aftermarket Extras"
+                  title={`Aftermarket Extras (+$${vehicle.afterMarketExtrasDetailed.reduce((sum, e) => sum + e.cost, 0).toLocaleString()})`}
                   icon="construct-outline"
-                  badgeVariant="info"
                   defaultExpanded={false}
                 >
                   <View style={styles.extrasContent}>
                     {vehicle.afterMarketExtrasDetailed.map((extra, idx) => (
                       <View key={`extra-${idx}`} style={styles.extraItem}>
-                        <View style={styles.extraInfo}>
-                          <Text variant="body" weight="medium">{extra.name}</Text>
-                          {extra.category && (
-                            <Text variant="caption" color="textTertiary">
-                              {extra.category}
-                            </Text>
-                          )}
-                        </View>
-                        <Text variant="body" weight="semibold" color="primary">
+                        <Text variant="body" weight="medium">{extra.name}</Text>
+                        <Text variant="body" weight="semibold" color="secondary">
                           ${extra.cost.toLocaleString()}
                         </Text>
                       </View>
                     ))}
+                    {/* Total Row */}
                     <View style={styles.extrasTotalRow}>
                       <Text variant="body" weight="semibold">Total</Text>
-                      <Text variant="h4" weight="bold" color="primary">
-                        ${extrasTotal.toLocaleString()}
+                      <Text variant="body" weight="bold" color="secondary">
+                        ${vehicle.afterMarketExtrasDetailed.reduce((sum, e) => sum + e.cost, 0).toLocaleString()}
                       </Text>
                     </View>
                   </View>
@@ -457,194 +545,294 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                 <Spacer size="sm" />
               </>
             )}
-
-            {/* Seller Info */}
-            <Accordion title="Seller Information" icon="storefront-outline" defaultExpanded={false}>
-              <View style={styles.sellerContent}>
-                <View style={styles.sellerHeader}>
-                  <View style={styles.sellerAvatar}>
-                    <Ionicons name="business" size={20} color={Colors.primary} />
-                  </View>
-                  <View style={styles.sellerInfo}>
-                    <Text variant="body" weight="semibold">{vehicle.dealer}</Text>
-                    <Text variant="caption" color="textTertiary">{vehicle.sellerType}</Text>
-                  </View>
-                  {vehicle.sellerDetails?.rating && (
-                    <View style={styles.sellerRating}>
-                      <Ionicons name="star" size={14} color={Colors.warning} />
-                      <Text variant="body" weight="medium">{vehicle.sellerDetails.rating.toFixed(1)}</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.sellerDetails}>
-                  <SpecItem label="Location" value={`${vehicle.location}, ${vehicle.state}`} />
-                  {vehicle.sellerDetails?.abn && <SpecItem label="ABN" value={vehicle.sellerDetails.abn} />}
-                  {vehicle.sellerDetails?.memberSince && <SpecItem label="Member Since" value={vehicle.sellerDetails.memberSince} />}
-                </View>
-              </View>
-            </Accordion>
           </View>
 
           <Spacer size="xl" />
         </View>
       </ScrollView>
 
-      {/* Bottom Action Bar */}
+      {/* Bottom Action Bar - Modern Design */}
       <View style={styles.bottomBar}>
-        {/* Price Adjuster Section */}
-        <View style={styles.priceAdjusterCard}>
-          <View style={styles.priceAdjusterRow}>
-            <TouchableOpacity
-              style={styles.priceAdjustButton}
-              onPress={handleDecreasePrice}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="remove" size={20} color={Colors.secondary} />
-            </TouchableOpacity>
-
-            <View style={styles.priceDisplay}>
-              <Text variant="caption" color="textTertiary">
-                {hasCustomOffer ? 'Your Offer' : 'Total Price'}
-              </Text>
-              <Text variant="h4" weight="bold" color={hasCustomOffer ? 'accent' : 'secondary'}>
-                ${displayPrice.toLocaleString()}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.priceAdjustButton}
-              onPress={handleIncreasePrice}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="add" size={20} color={Colors.secondary} />
-            </TouchableOpacity>
-          </View>
+        {/* Price Section */}
+        <View style={styles.bottomPriceSection}>
+          <Text variant="caption" color="textMuted">Asking Price</Text>
+          <Text variant="h4" weight="bold" color="secondary">
+            ${askingPrice.toLocaleString()}
+          </Text>
         </View>
 
-        {/* Buy Button */}
-        <TouchableOpacity
-          style={[styles.buyButton, hasCustomOffer && styles.buyButtonOffer]}
-          onPress={handleActionPress}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name={hasCustomOffer ? 'pricetag' : 'cart'}
-            size={20}
-            color={Colors.white}
-          />
-          <Text variant="body" weight="regular" style={styles.buyButtonText}>
-            {hasCustomOffer ? 'Send Offer' : 'Buy Now'}
-          </Text>
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        <View style={styles.bottomActions}>
+          {/* Request Offer Button */}
+          <TouchableOpacity
+            style={styles.makeOfferButton}
+            onPress={() => setOfferModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="pricetag-outline" size={18} color={Colors.secondary} />
+            <Text variant="caption" weight="semibold" color="secondary">
+              Request Offer
+            </Text>
+          </TouchableOpacity>
+
+          {/* Purchase Button */}
+          <TouchableOpacity
+            style={styles.buyNowButton}
+            onPress={handlePurchasePress}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="cart-outline" size={18} color={Colors.white} />
+            <Text variant="body" weight="semibold" style={styles.buyNowButtonText}>
+              Purchase
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Confirmation Modal */}
+      {/* Offer Modal - Modern Design */}
       <Modal
-        visible={confirmModalVisible}
+        visible={offerModalVisible}
         transparent
-        animationType="fade"
-        onRequestClose={handleCloseConfirmModal}
+        animationType="slide"
+        onRequestClose={() => setOfferModalVisible(false)}
       >
-        <View style={styles.confirmModalOverlay}>
-          <View style={styles.confirmModalContent}>
-            {/* Modal Header */}
-            <View style={styles.confirmModalHeader}>
-              <View style={[
-                styles.confirmModalIcon,
-                hasCustomOffer ? styles.confirmModalIconOffer : styles.confirmModalIconBuy
-              ]}>
-                <Ionicons
-                  name={hasCustomOffer ? 'pricetag' : 'cart'}
-                  size={28}
-                  color={Colors.white}
-                />
-              </View>
-              <Text variant="h3" weight="bold" align="center">
-                {hasCustomOffer ? 'Send Offer' : 'Confirm Purchase'}
-              </Text>
-            </View>
+        <TouchableWithoutFeedback onPress={() => setOfferModalVisible(false)}>
+          <View style={styles.offerModalOverlay}>
+            <TouchableWithoutFeedback>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              >
+                <View style={styles.offerModalContent}>
+                  {/* Header with Icon */}
+                  <View style={styles.offerModalHeader}>
+                    <View style={styles.offerModalIconBadge}>
+                      <Ionicons name="pricetag" size={24} color={Colors.white} />
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setOfferModalVisible(false)}
+                      style={styles.offerModalCloseButton}
+                    >
+                      <Ionicons name="close" size={24} color={Colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
 
-            <Spacer size="md" />
+                  <Text variant="h4" weight="bold" align="center">Request Offer</Text>
 
-            {/* Vehicle Summary */}
-            <View style={styles.confirmVehicleSummary}>
-              <Text variant="body" weight="medium" align="center">
-                {vehicle.year} {vehicle.make} {vehicle.model}
-              </Text>
-              <Spacer size="xs" />
-              <Text variant="h3" weight="bold" color={hasCustomOffer ? 'accent' : 'secondary'} align="center">
-                ${displayPrice.toLocaleString()}
-              </Text>
-              {hasCustomOffer && (
-                <>
-                  <Spacer size="xs" />
-                  <Text variant="caption" color="textTertiary" align="center">
-                    Original price: ${totalPrice.toLocaleString()}
-                  </Text>
-                </>
-              )}
-            </View>
+                  <Spacer size="md" />
 
-            <Spacer size="md" />
+                  {/* Vehicle Info Card */}
+                  <View style={styles.offerVehicleInfo}>
+                    <Text variant="bodySmall" weight="medium" color="textBrand" align="center">
+                      {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.variant}
+                    </Text>
+                    {vehicle.registration && (
+                      <View style={styles.offerLicensePlate}>
+                        <Ionicons name="card-outline" size={14} color={Colors.textMuted} />
+                        <Text variant="caption" color="textMuted">
+                          {vehicle.registration}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
 
-            {/* Dealer Info */}
-            <View style={styles.confirmDealerInfo}>
-              <Ionicons name="storefront-outline" size={16} color={Colors.textTertiary} />
-              <Text variant="caption" color="textTertiary">
-                {hasCustomOffer ? 'Your offer will be sent to' : 'Seller'}
-              </Text>
-            </View>
-            <Spacer size="xs" />
-            <Text variant="body" weight="semibold" align="center">
-              {vehicle.dealer}
-            </Text>
+                  <Spacer size="sm" />
 
-            {hasCustomOffer && (
-              <>
-                <Spacer size="sm" />
-                <View style={styles.confirmMessageNote}>
-                  <Ionicons name="chatbubble-outline" size={14} color={Colors.primary} />
-                  <Text variant="caption" color="textSecondary">
-                    The dealer will receive your offer via messages
-                  </Text>
+                  {/* Info Message */}
+                  <View style={styles.offerInfoMessage}>
+                    <Ionicons name="information-circle-outline" size={16} color={Colors.textBrand} />
+                    <Text variant="caption" color="textSecondary" style={styles.offerInfoText}>
+                      The dealer will receive your offer and negotiate with you via messages
+                    </Text>
+                  </View>
+
+                  <Spacer size="md" />
+
+                  {/* Original Price */}
+                  <View style={styles.offerOriginalPrice}>
+                    <Text variant="bodySmall" color="textMuted">Asking Price: </Text>
+                    <Text variant="bodySmall" weight="bold" color="text">
+                      ${askingPrice.toLocaleString()}
+                    </Text>
+                  </View>
+
+                  <Spacer size="sm" />
+
+                  {/* Price Input */}
+                  <View style={styles.offerPriceRow}>
+                    <TouchableOpacity
+                      style={styles.offerPriceButton}
+                      onPress={handleDecreasePrice}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="remove" size={22} color={Colors.textBrand} />
+                    </TouchableOpacity>
+                    <View style={styles.offerPriceDisplay}>
+                      <Text variant="label" color="textMuted">Your Offer</Text>
+                      <Text variant="h2" weight="bold" color="textBrand">
+                        ${displayPrice.toLocaleString()}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.offerPriceButton}
+                      onPress={handleIncreasePrice}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="add" size={22} color={Colors.textBrand} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Spacer size="md" />
+
+                  {/* Message Input */}
+                  <TextInput
+                    style={styles.offerMessageInput}
+                    placeholder="Add a message (optional)"
+                    placeholderTextColor={Colors.textMuted}
+                    value={offerMessage}
+                    onChangeText={setOfferMessage}
+                    multiline
+                    numberOfLines={2}
+                    textAlignVertical="top"
+                  />
+
+                  <Spacer size="lg" />
+
+                  {/* Submit Button */}
+                  <TouchableOpacity
+                    style={styles.offerSubmitButton}
+                    onPress={handleSendOffer}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="send" size={18} color={Colors.white} />
+                    <Text variant="bodySmall" weight="semibold" style={styles.offerSubmitButtonText}>
+                      Send My Offer
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.offerCancelButton}
+                    onPress={() => setOfferModalVisible(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text variant="bodySmall" weight="medium" color="textMuted">
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </>
-            )}
-
-            <Spacer size="lg" />
-
-            {/* Action Buttons */}
-            <View style={styles.confirmModalActions}>
-              <TouchableOpacity
-                style={styles.confirmCancelButton}
-                onPress={handleCloseConfirmModal}
-                activeOpacity={0.7}
-              >
-                <Text variant="body" weight="medium" color="textSecondary">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.confirmActionButton,
-                  hasCustomOffer ? styles.confirmActionButtonOffer : styles.confirmActionButtonBuy
-                ]}
-                onPress={handleConfirmAction}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={hasCustomOffer ? 'send' : 'checkmark'}
-                  size={18}
-                  color={Colors.white}
-                />
-                <Text variant="body" weight="semibold" style={styles.confirmActionButtonText}>
-                  {hasCustomOffer ? 'Send Offer' : 'Confirm'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+              </KeyboardAvoidingView>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Purchase Modal */}
+      <Modal
+        visible={purchaseModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPurchaseModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setPurchaseModalVisible(false)}>
+          <View style={styles.offerModalOverlay}>
+            <TouchableWithoutFeedback>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              >
+                <View style={styles.offerModalContent}>
+                  {/* Header with Icon */}
+                  <View style={styles.offerModalHeader}>
+                    <View style={styles.purchaseModalIconBadge}>
+                      <Ionicons name="cart" size={24} color={Colors.white} />
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setPurchaseModalVisible(false)}
+                      style={styles.offerModalCloseButton}
+                    >
+                      <Ionicons name="close" size={24} color={Colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text variant="h4" weight="bold" align="center">Purchase Vehicle</Text>
+
+                  <Spacer size="md" />
+
+                  {/* Vehicle Info Card */}
+                  <View style={styles.offerVehicleInfo}>
+                    <Text variant="bodySmall" weight="medium" color="textBrand" align="center">
+                      {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.variant}
+                    </Text>
+                    {vehicle.registration && (
+                      <View style={styles.offerLicensePlate}>
+                        <Ionicons name="card-outline" size={14} color={Colors.textMuted} />
+                        <Text variant="caption" color="textMuted">
+                          {vehicle.registration}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Spacer size="md" />
+
+                  {/* Price Display */}
+                  <View style={styles.purchasePriceDisplay}>
+                    <Text variant="label" color="textMuted">Total Price</Text>
+                    <Text variant="h2" weight="bold" color="textBrand">
+                      ${askingPrice.toLocaleString()}
+                    </Text>
+                  </View>
+
+                  <Spacer size="md" />
+
+                  {/* Info Message */}
+                  <View style={styles.offerInfoMessage}>
+                    <Ionicons name="information-circle-outline" size={16} color={Colors.textBrand} />
+                    <Text variant="caption" color="textSecondary" style={styles.offerInfoText}>
+                      The dealer will receive your purchase request and contact you to finalize the sale
+                    </Text>
+                  </View>
+
+                  <Spacer size="md" />
+
+                  {/* Message Input */}
+                  <TextInput
+                    style={styles.offerMessageInput}
+                    placeholder="Add a message to the dealer (optional)"
+                    placeholderTextColor={Colors.textMuted}
+                    value={purchaseMessage}
+                    onChangeText={setPurchaseMessage}
+                    multiline
+                    numberOfLines={2}
+                    textAlignVertical="top"
+                  />
+
+                  <Spacer size="lg" />
+
+                  {/* Submit Button */}
+                  <TouchableOpacity
+                    style={styles.purchaseSubmitButton}
+                    onPress={handleSendPurchase}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
+                    <Text variant="bodySmall" weight="semibold" style={styles.offerSubmitButtonText}>
+                      Confirm Purchase
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.offerCancelButton}
+                    onPress={() => setPurchaseModalVisible(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text variant="bodySmall" weight="medium" color="textMuted">
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </KeyboardAvoidingView>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Fullscreen Modal */}
@@ -743,7 +931,23 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: 6,
+  },
+  actionButton: {
+    width: 34,
+    height: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  actionButtonActive: {
+    backgroundColor: Colors.accent,
   },
 
   // Image Section
@@ -792,15 +996,20 @@ const styles = StyleSheet.create({
     height: THUMBNAIL_SIZE,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 3,
+    borderColor: Colors.border,
   },
   thumbnailActive: {
     borderColor: Colors.primary,
+    borderWidth: 3,
   },
   thumbnailImage: {
     width: '100%',
     height: '100%',
+  },
+  thumbnailOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
 
   // Content
@@ -833,7 +1042,39 @@ const styles = StyleSheet.create({
     gap: 4,
   },
 
-  // Stats Row
+  // Specs Row - Matching HomeScreen style
+  specsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  specBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: BorderRadius.sm,
+  },
+  specBadgeText: {
+    color: '#555',
+  },
+  logbookBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.success + '15',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: BorderRadius.sm,
+  },
+  logbookBadgeText: {
+    color: Colors.success,
+    fontWeight: '600',
+  },
+
+  // Stats Row (legacy - keeping for compatibility)
   statsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -879,6 +1120,19 @@ const styles = StyleSheet.create({
   // Accordion Section
   accordionSection: {
     gap: 0,
+  },
+
+  // Pricing Details List
+  pricingDetailsList: {
+    gap: Spacing.sm,
+  },
+  pricingDetailItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
   },
 
   // Spec Grid
@@ -995,7 +1249,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
 
-  // Bottom Bar
+  // Bottom Bar - Modern Design
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -1003,7 +1257,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
     paddingBottom: Platform.OS === 'ios' ? Spacing.xl : Spacing.md,
@@ -1012,44 +1266,38 @@ const styles = StyleSheet.create({
     borderTopRightRadius: BorderRadius['2xl'],
     ...Shadows.lg,
   },
-  priceAdjusterCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
+  bottomPriceSection: {
+    gap: 2,
+  },
+  bottomActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  makeOfferButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.secondary + '12',
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.secondary + '30',
   },
-  priceAdjusterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-evenly',
-  },
-  priceDisplay: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  priceAdjustButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buyButton: {
+  buyNowButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
+    gap: 6,
     backgroundColor: Colors.secondary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    ...Shadows.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.sm,
   },
-  buyButtonOffer: {
-    backgroundColor: Colors.accent,
-  },
-  buyButtonText: {
+  buyNowButtonText: {
     color: Colors.white,
   },
 
@@ -1111,90 +1359,156 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT * 0.7,
   },
 
-  // Confirmation Modal
-  confirmModalOverlay: {
+  // Offer Modal - Modern Design
+  offerModalOverlay: {
     flex: 1,
-    backgroundColor: Colors.black + 'CC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.black + 'AA',
+    justifyContent: 'flex-end',
   },
-  confirmModalContent: {
+  offerModalContent: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius['2xl'],
-    padding: Spacing.xl,
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] : Spacing.lg,
     width: '100%',
-    maxWidth: 360,
+    maxWidth: Platform.OS === 'web' ? 480 : undefined,
+    alignSelf: 'center',
     ...Shadows.lg,
   },
-  confirmModalHeader: {
+  offerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.md,
+    marginBottom: Spacing.sm,
   },
-  confirmModalIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  offerModalIconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.textBrand,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  confirmModalIconBuy: {
-    backgroundColor: Colors.secondary,
-  },
-  confirmModalIconOffer: {
-    backgroundColor: Colors.accent,
-  },
-  confirmVehicleSummary: {
+  offerModalCloseButton: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.full,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-  },
-  confirmDealerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
-  },
-  confirmMessageNote: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    backgroundColor: Colors.primary + '10',
+  },
+  offerInfoMessage: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    backgroundColor: Colors.textBrand + '10',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.lg,
   },
-  confirmModalActions: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  confirmCancelButton: {
+  offerInfoText: {
     flex: 1,
+    lineHeight: 18,
+  },
+  offerVehicleInfo: {
+    backgroundColor: Colors.surface,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  offerLicensePlate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  offerOriginalPrice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offerPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+  },
+  offerPriceButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.textBrand + '30',
+  },
+  offerPriceDisplay: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  offerMessageInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: 14,
+    color: Colors.text,
+    minHeight: 72,
+  },
+  offerSubmitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.textBrand,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    ...Shadows.sm,
+  },
+  offerSubmitButtonText: {
+    color: Colors.white,
+  },
+  offerCancelButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+
+  // Purchase Modal Styles
+  purchaseModalIconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  purchasePriceDisplay: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.md,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
   },
-  confirmActionButton: {
-    flex: 1,
+  purchaseSubmitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
+    backgroundColor: Colors.secondary,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.xl,
-  },
-  confirmActionButtonBuy: {
-    backgroundColor: Colors.secondary,
-  },
-  confirmActionButtonOffer: {
-    backgroundColor: Colors.accent,
-  },
-  confirmActionButtonText: {
-    color: Colors.white,
+    ...Shadows.sm,
   },
 });
 
