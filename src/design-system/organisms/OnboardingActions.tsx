@@ -2,8 +2,8 @@
  * OnboardingActions Organism Component
  *
  * Action buttons for onboarding carousel navigation.
- * Shows Skip (left) and Next (right) buttons.
- * Shows Get Started button on last slide.
+ * Shows Skip (ghost button, left) and Next (primary button, right).
+ * Shows Get Started (full-width primary button) on last slide.
  *
  * @example
  * <OnboardingActions
@@ -17,7 +17,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Button } from '../atoms/Button';
-import { PillButton } from '../atoms/PillButton';
 import { Spacing } from '../primitives';
 
 export interface OnboardingActionsProps {
@@ -67,17 +66,28 @@ export const OnboardingActions: React.FC<OnboardingActionsProps> = ({
     );
   }
 
-  // Slides 1-2: Show Next button only (Skip moved to top-right of image)
+  // Slides 1-2: Show Skip (left) + Next (right) buttons
   return (
     <View style={[styles.container, styles.navigationContainer, style]}>
-      {/* Next Button - Centered */}
-      <PillButton
-        variant="next"
+      {/* Skip Button - Left */}
+      <Button
+        variant="ghost"
+        size="md"
+        onPress={onSkip}
+        style={styles.skipButton}
+      >
+        Skip
+      </Button>
+
+      {/* Next Button - Right */}
+      <Button
+        variant="primary"
+        size="md"
         onPress={onNext}
         style={styles.nextButton}
       >
-        Swipe
-      </PillButton>
+        Next
+      </Button>
     </View>
   );
 };
@@ -94,14 +104,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Slides 1-2 layout (Next button centered)
+  // Slides 1-2 layout (Skip left, Next right)
   navigationContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: Spacing.md,
+  },
+
+  skipButton: {
+    flex: 1,
   },
 
   nextButton: {
-    minWidth: 180,
+    flex: 1,
   },
 });

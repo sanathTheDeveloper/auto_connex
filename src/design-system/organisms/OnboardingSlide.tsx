@@ -16,10 +16,10 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Text } from '../atoms/Text';
 import { Spacer } from '../atoms/Spacer';
-import { Colors, Spacing, BorderRadius } from '../primitives';
+import { Colors, Spacing } from '../primitives';
 
 export interface OnboardingSlideProps {
   /** Category label - DEPRECATED */
@@ -32,9 +32,9 @@ export interface OnboardingSlideProps {
   heading: string;
   /** Slide body text */
   body: string;
-  /** Show skip button (only for non-last slides) */
+  /** Show skip button (only for non-last slides) - DEPRECATED, now handled by OnboardingActions */
   showSkip?: boolean;
-  /** Skip button handler */
+  /** Skip button handler - DEPRECATED, now handled by OnboardingActions */
   onSkip?: () => void;
   /** Custom style override */
   style?: ViewStyle;
@@ -45,40 +45,23 @@ export interface OnboardingSlideProps {
  *
  * Clean, centered design with large illustration as primary focus.
  * Text content is secondary, positioned below the image.
- * Optional skip button in top-right corner of image.
+ * Navigation buttons handled separately by OnboardingActions component.
  */
 export const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
   illustration,
   heading,
   body,
-  showSkip = false,
-  onSkip,
   style,
 }) => {
   return (
     <View style={[styles.container, style]}>
-      {/* Image Area - Top portion with Skip button overlay */}
+      {/* Image Area - Top portion */}
       <View style={styles.illustrationContainer}>
         {illustration}
-        
-        {/* Skip Button - Top Right Corner */}
-        {showSkip && onSkip && (
-          <TouchableOpacity 
-            style={styles.skipButton}
-            onPress={onSkip}
-            activeOpacity={0.7}
-          >
-            <Text variant="caption" style={styles.skipText}>
-              Skip
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Text Area - Bottom portion */}
       <View style={styles.textContainer}>
-        <Spacer size="lg" />
-        
         {/* Heading - Volkhov font for titles/headings */}
         <Text variant="h2" align="center" weight="bold" style={styles.heading}>
           {heading}
@@ -101,44 +84,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   illustrationContainer: {
-    height: '60%',
+    height: '70%',
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    overflow: 'visible', // Allow skip button to be visible
-    position: 'relative',
-  },
-  skipButton: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: 'transparent',
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.greyscale500,
-    minWidth: 90,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Shadow for depth
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  skipText: {
-    color: Colors.greyscale700,
-    fontSize: 14,
-    fontWeight: '600',
   },
   textContainer: {
     height: '40%',
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing['2xl'], // Increased from Spacing.xl for more breathing room
+    paddingTop: Spacing['2xl'], // Minimal spacing between image and heading
     paddingBottom: Spacing.lg,
     backgroundColor: Colors.white,
   },

@@ -24,7 +24,8 @@ import {
   UIManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, Badge } from '../';
+import { Text } from '../atoms/Text';
+import { Badge } from './Badge';
 import { Colors, Spacing, BorderRadius, Shadows } from '../primitives';
 
 // Enable LayoutAnimation on Android

@@ -58,37 +58,37 @@ const SLIDES = [
     id: 1,
     illustration: (
       <Image
-        source={require('../../../assets/images/onboarding-image-1.webp')}
+        source={require('../../../assets/images/onboarding-1.jpg')}
         style={slideImageStyle}
       />
     ),
     gradientColors: [Colors.primary, Colors.tealLight] as [string, string],
-    heading: 'Browse Nationwide Inventory',
-    body: 'Access thousands of verified vehicles from dealers and wholesalers across Australia.',
+    heading: 'Reach Dealers Nationwide',
+    body: 'Connect with thousands of verified dealers across Australia instantly. Your inventory, seen by the right buyers.',
   },
   {
     id: 2,
     illustration: (
       <Image
-        source={require('../../../assets/images/onboarding-image-2.jpg')}
+        source={require('../../../assets/images/onboarding-2.jpg')}
         style={slideImageStyle}
       />
     ),
     gradientColors: [Colors.accent, '#FF6B8A'] as [string, string],
-    heading: 'Built-In Verification',
-    body: 'PPSR checks, nationwide search, and instant quotes. Every dealer is verified with ABN and license validation.',
+    heading: 'You Stay in Control',
+    body: 'Review offers, negotiate prices, and approve sales on your terms. Your business, your decisions.',
   },
   {
     id: 3,
     illustration: (
       <Image
-        source={require('../../../assets/images/onboarding-image-3.png')}
+        source={require('../../../assets/images/onboarding-3.jpg')}
         style={slideImageStyle}
       />
     ),
     gradientColors: [Colors.success, Colors.tealMedium] as [string, string],
-    heading: 'Lower Fees, Faster Deals',
-    body: 'Save with competitive marketplace fees and close deals 3x faster. Direct communication with verified sellers.',
+    heading: 'Sell Faster, Earn Better',
+    body: 'Turn inventory into cash quicker with nationwide reach. More buyers viewing your stock means better offers.',
   },
 ];
 
