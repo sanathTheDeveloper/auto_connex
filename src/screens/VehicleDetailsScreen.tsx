@@ -36,6 +36,9 @@ import { Colors, Spacing, BorderRadius, Shadows } from '../design-system/primiti
 // Data
 import { VEHICLES, getVehicleImage, formatMileage } from '../data/vehicles';
 
+// Context
+import { useFavorites } from '../contexts/FavoritesContext';
+
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
 
@@ -54,7 +57,7 @@ interface VehicleDetailsScreenProps {
 
 export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navigation, route }) => {
   const { vehicleId } = route.params;
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fullscreenVisible, setFullscreenVisible] = useState(false);
   const [offerModalVisible, setOfferModalVisible] = useState(false);
@@ -184,7 +187,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
   const handleCloseFullscreen = useCallback(() => setFullscreenVisible(false), []);
   const handleBack = useCallback(() => navigation.goBack(), [navigation]);
   const handleShare = useCallback(() => Alert.alert('Share', 'Share functionality coming soon!'), []);
-  const handleFavorite = useCallback(() => setIsFavorite((prev) => !prev), []);
+  const handleFavorite = useCallback(() => toggleFavorite(vehicleId), [toggleFavorite, vehicleId]);
   const handleContactSeller = useCallback(() => {
     if (!vehicle) return;
     Alert.alert('Contact Seller', `Contact ${vehicle.dealer}`);
@@ -250,14 +253,14 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
           </TouchableOpacity>
           <View style={styles.headerActions}>
             <TouchableOpacity
-              style={[styles.actionButton, isFavorite && styles.actionButtonActive]}
+              style={[styles.actionButton, isFavorite(vehicleId) && styles.actionButtonActive]}
               onPress={handleFavorite}
               activeOpacity={0.7}
             >
               <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
+                name={isFavorite(vehicleId) ? 'heart' : 'heart-outline'}
                 size={18}
-                color={isFavorite ? Colors.white : Colors.accent}
+                color={isFavorite(vehicleId) ? Colors.white : Colors.accent}
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButton} onPress={handleShare} activeOpacity={0.7}>

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import DesignSystemScreen from '../screens/DesignSystemScreen';
 import VehicleDetailsScreen from '../screens/VehicleDetailsScreen';
+import SavedVehiclesScreen from '../screens/SavedVehiclesScreen';
 import ConversationListScreen from '../screens/ConversationListScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import { SplashScreen, OnboardingScreen, WelcomeScreen, SignupScreen } from '../screens/auth';
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   Home: undefined;
   DesignSystem: undefined;
   VehicleDetails: { vehicleId: string };
+  SavedVehicles: undefined;
   ConversationList: undefined;
   Messages: { vehicleId?: string; dealerId?: string };
 }; 
@@ -100,6 +102,17 @@ export default function Navigation() {
             headerShown: false,
             animation: 'slide_from_right',
             animationDuration: 300,
+          }}
+        />
+
+        {/* Favorites Screen */}
+        <Stack.Screen
+          name="SavedVehicles"
+          component={SavedVehiclesScreen}
+          options={{
+            title: 'Favorites',
+            headerShown: false,
+            animation: 'slide_from_right',
           }}
         />
 

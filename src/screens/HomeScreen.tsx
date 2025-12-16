@@ -47,6 +47,9 @@ import {
   formatMileage,
 } from '../data/vehicles';
 
+// Context
+import { useFavorites } from '../contexts/FavoritesContext';
+
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
 
@@ -262,20 +265,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     daysRemaining: 4,
   };
 
-  // Track favorite vehicles
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-
-  const toggleFavorite = (vehicleId: string) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(vehicleId)) {
-        newFavorites.delete(vehicleId);
-      } else {
-        newFavorites.add(vehicleId);
-      }
-      return newFavorites;
-    });
-  };
+  // Favorites from shared context (persisted)
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   // Scroll tracking for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -368,6 +359,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         onNavigate={(screen) => {
           if (screen === 'Messages') {
             navigation.navigate('ConversationList');
+          } else if (screen === 'SavedVehicles') {
+            navigation.navigate('SavedVehicles');
           } else if (screen === 'Home') {
             // Already on Home
           } else {
@@ -470,7 +463,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               key={vehicle.id}
               vehicle={vehicle}
               onPress={() => navigation.navigate('VehicleDetails', { vehicleId: vehicle.id })}
-              isFavorite={favorites.has(vehicle.id)}
+              isFavorite={isFavorite(vehicle.id)}
               onFavoritePress={() => toggleFavorite(vehicle.id)}
               onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
               onSharePress={() => console.log('Share vehicle:', vehicle.id)}

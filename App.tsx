@@ -15,6 +15,7 @@ import {
 } from '@expo-google-fonts/vesper-libre';
 import Navigation from './src/navigation';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { FavoritesProvider } from './src/contexts/FavoritesContext';
 import { Colors, Spacing } from './src/constants/theme';
 import { Text } from './src/design-system';
 
@@ -71,10 +72,12 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <View style={styles.appContainer}>
-        <Navigation />
-        <StatusBar style="auto" />
-      </View>
+      <FavoritesProvider>
+        <View style={styles.appContainer}>
+          <Navigation />
+          <StatusBar style="auto" />
+        </View>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }
