@@ -1,18 +1,18 @@
 /**
  * Button Atomic Component
- * 
+ *
  * Touchable button with Auto Connex brand variants.
  * Supports icons, loading states, and multiple sizes.
- * 
+ *
  * @example
  * <Button variant="primary" onPress={handleSubmit}>
  *   Submit Deal
  * </Button>
- * 
+ *
  * <Button variant="outline" size="sm" iconLeft="car">
  *   View Inventory
  * </Button>
- * 
+ *
  * <Button variant="accent" loading disabled>
  *   Processing...
  * </Button>
@@ -29,7 +29,7 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
-import { Colors, Spacing, BorderRadius, responsive } from '../primitives';
+import { Colors, Spacing, BorderRadius } from '../primitives';
 import { Text } from './Text';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -39,10 +39,10 @@ const isMobileViewport = () => {
   return width < 768; // True for both native mobile and mobile web
 };
 
-type ButtonVariant = 
-  | 'primary'    // #0ABAB5 teal (main actions)
-  | 'secondary'  // #008985 dark teal (secondary actions)
-  | 'accent'     // #FF3864 pink (CTAs, destructive)
+type ButtonVariant =
+  | 'primary'    // Teal solid (main actions)
+  | 'secondary'  // Dark teal solid (secondary actions)
+  | 'accent'     // Pink/coral solid (CTAs)
   | 'outline'    // Bordered transparent
   | 'ghost';     // Transparent no border
 
@@ -71,10 +71,10 @@ export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
 
 /**
  * Button component with brand-compliant styling
- * 
- * Primary: Teal #0ABAB5 for main actions
- * Secondary: Dark teal #008985 for secondary actions
- * Accent: Pink #FF3864 for CTAs and destructive actions
+ *
+ * Primary: Teal solid for main actions
+ * Secondary: Dark teal solid for secondary actions
+ * Accent: Pink/coral solid for CTAs
  * Outline: Bordered for low emphasis
  * Ghost: Text-only for minimal emphasis
  */
@@ -95,6 +95,7 @@ export const Button: React.FC<ButtonProps> = ({
   const variantStyle = variantStyles[variant];
   const sizeStyle = sizeStyles[size];
   const textColor = getTextColor(variant);
+  const textColorKey = getTextColorKey(variant);
 
   return (
     <TouchableOpacity
@@ -108,46 +109,48 @@ export const Button: React.FC<ButtonProps> = ({
       ]}
       disabled={isDisabled}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
       {...rest}
     >
-      {loading ? (
-        <ActivityIndicator color={textColor} size="small" />
-      ) : (
-        <View style={styles.content}>
-          {iconLeft && (
-            <Ionicons
-              name={iconLeft}
-              size={getIconSize(size)}
-              color={textColor}
-              style={styles.iconLeft}
-            />
-          )}
-          <Text
-            variant={getTextVariant(size)}
-            color={textColor as any}
-            weight="regular"
-            style={styles.text}
-          >
-            {children}
-          </Text>
-          {iconRight && (
-            <Ionicons
-              name={iconRight}
-              size={getIconSize(size)}
-              color={textColor}
-              style={styles.iconRight}
-            />
-          )}
-        </View>
-      )}
+      <View style={styles.content}>
+        {loading ? (
+          <ActivityIndicator color={textColor} size="small" />
+        ) : (
+          <>
+            {iconLeft && (
+              <Ionicons
+                name={iconLeft}
+                size={getIconSize(size)}
+                color={textColor}
+                style={styles.iconLeft}
+              />
+            )}
+            <Text
+              variant={getTextVariant(size)}
+              color={textColorKey as any}
+              weight="semibold"
+              style={styles.text}
+            >
+              {children}
+            </Text>
+            {iconRight && (
+              <Ionicons
+                name={iconRight}
+                size={getIconSize(size)}
+                color={textColor}
+                style={styles.iconRight}
+              />
+            )}
+          </>
+        )}
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Platform.OS === 'android' ? BorderRadius.md : BorderRadius.lg,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -177,7 +180,7 @@ const styles = StyleSheet.create({
 });
 
 /**
- * Variant-specific styles (iOS/Web optimized)
+ * Variant-specific styles
  */
 const variantStyles: Record<ButtonVariant, ViewStyle> = {
   primary: {
@@ -225,28 +228,41 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
 
 /**
  * Size-specific styles (Mobile-optimized for comfortable tap targets - min 44px)
- * Heights match Input component for visual consistency (44px on mobile/iOS, 48px on desktop/Android)
  */
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
   sm: {
     paddingHorizontal: isMobileViewport() ? Spacing.md : Spacing.lg,
     paddingVertical: isMobileViewport() ? 6 : Spacing.sm,
-    minHeight: isMobileViewport() ? 36 : 40, // Compact for mobile
+    minHeight: isMobileViewport() ? 36 : 40,
   },
   md: {
     paddingHorizontal: isMobileViewport() ? Spacing.lg : Spacing.xl,
-    paddingVertical: isMobileViewport() ? 8 : Spacing.md,
-    minHeight: isMobileViewport() ? 44 : 48, // Matches Input component height
+    paddingVertical: isMobileViewport() ? 10 : Spacing.md,
+    minHeight: isMobileViewport() ? 48 : 52,
   },
   lg: {
     paddingHorizontal: isMobileViewport() ? Spacing.xl : Spacing['2xl'],
-    paddingVertical: isMobileViewport() ? 10 : Spacing.lg,
-    minHeight: isMobileViewport() ? 48 : 52, // Comfortable for mobile
+    paddingVertical: isMobileViewport() ? 12 : Spacing.lg,
+    minHeight: isMobileViewport() ? 52 : 56,
   },
 };
 
 /**
- * Get text color based on variant
+ * Get text color key based on variant (returns key for Text component)
+ */
+function getTextColorKey(variant: ButtonVariant): string {
+  switch (variant) {
+    case 'outline':
+      return 'text';
+    case 'ghost':
+      return 'textTertiary';
+    default:
+      return 'white';
+  }
+}
+
+/**
+ * Get text color value based on variant (returns hex value for icons)
  */
 function getTextColor(variant: ButtonVariant): string {
   switch (variant) {
@@ -277,19 +293,19 @@ function getIconSize(size: ButtonSize): number {
 }
 
 /**
- * Get text variant based on button size (smaller text for modern UI)
+ * Get text variant based on button size
  */
 function getTextVariant(size: ButtonSize): 'caption' | 'label' | 'bodySmall' | 'body' {
   const mobile = isMobileViewport();
   switch (size) {
     case 'sm':
-      return 'label';     // 12-14px
+      return 'label';
     case 'md':
-      return 'caption';   // 13-16px - smaller, more consistent
+      return 'bodySmall';
     case 'lg':
-      return mobile ? 'caption' : 'bodySmall';  // 13-20px
+      return mobile ? 'bodySmall' : 'body';
     default:
-      return 'caption';
+      return 'bodySmall';
   }
 }
 
