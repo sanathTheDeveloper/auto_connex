@@ -14,3 +14,6 @@ export type { DrawerMenuProps } from './DrawerMenu';
 export { default as FilterModal } from './FilterModal';
 export type { FilterModalProps, FilterOptions } from './FilterModal';
 export { DEFAULT_FILTERS } from './FilterModal';
+
+export { default as PaymentModal } from './PaymentModal';
+export type { PaymentModalProps, PaymentData, VehicleInfo } from './PaymentModal';

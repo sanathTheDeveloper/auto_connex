@@ -193,26 +193,34 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
     Alert.alert('Contact Seller', `Contact ${vehicle.dealer}`);
   }, [vehicle]);
 
-  // Send offer - navigate to messages
+  // Send offer - navigate to messages with offer data
   const handleSendOffer = useCallback(() => {
     if (!vehicle) return;
     setOfferModalVisible(false);
-    // Navigate to messages screen for negotiation
-    navigation.navigate('Messages', { vehicleId: vehicle.id });
-  }, [vehicle, navigation]);
+    // Navigate to messages screen with offer amount
+    navigation.navigate('Messages', {
+      vehicleId: vehicle.id,
+      offerAmount: displayPrice,
+      offerMessage: offerMessage || undefined,
+    });
+  }, [vehicle, navigation, displayPrice, offerMessage]);
 
   // Open purchase modal
   const handlePurchasePress = useCallback(() => {
     setPurchaseModalVisible(true);
   }, []);
 
-  // Send purchase request - navigate to messages
+  // Send purchase request - navigate to messages with purchase intent
   const handleSendPurchase = useCallback(() => {
     if (!vehicle) return;
     setPurchaseModalVisible(false);
-    // Navigate to messages screen for purchase
-    navigation.navigate('Messages', { vehicleId: vehicle.id });
-  }, [vehicle, navigation]);
+    // Navigate to messages screen with purchase intent
+    navigation.navigate('Messages', {
+      vehicleId: vehicle.id,
+      isPurchase: true,
+      purchaseMessage: purchaseMessage || undefined,
+    });
+  }, [vehicle, navigation, purchaseMessage]);
 
   const formatPPSRDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
@@ -816,7 +824,6 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     onPress={handleSendPurchase}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
                     <Text variant="bodySmall" weight="semibold" style={styles.offerSubmitButtonText}>
                       Confirm Purchase
                     </Text>
@@ -827,7 +834,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     onPress={() => setPurchaseModalVisible(false)}
                     activeOpacity={0.7}
                   >
-                    <Text variant="bodySmall" weight="medium" color="textMuted">
+                    <Text variant="bodySmall" weight="medium" color="textTertiary">
                       Cancel
                     </Text>
                   </TouchableOpacity>

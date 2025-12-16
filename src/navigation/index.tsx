@@ -30,7 +30,14 @@ export type RootStackParamList = {
   VehicleDetails: { vehicleId: string };
   SavedVehicles: undefined;
   ConversationList: undefined;
-  Messages: { vehicleId?: string; dealerId?: string };
+  Messages: {
+    vehicleId?: string;
+    dealerId?: string;
+    offerAmount?: number;
+    offerMessage?: string;
+    isPurchase?: boolean;
+    purchaseMessage?: string;
+  };
 }; 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

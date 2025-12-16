@@ -71,7 +71,7 @@ export const OnboardingActions: React.FC<OnboardingActionsProps> = ({
     <View style={[styles.container, styles.navigationContainer, style]}>
       {/* Skip Button - Left */}
       <Button
-        variant="ghost"
+        variant="outline"
         size="md"
         onPress={onSkip}
         style={styles.skipButton}
