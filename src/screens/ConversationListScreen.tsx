@@ -1,8 +1,8 @@
 /**
  * ConversationListScreen Component
  *
- * Ultra-clean, modern conversation list with minimalist design.
- * Focus on readability and breathing room.
+ * Modern conversation list following Auto Connex brand guidelines.
+ * Consistent with HomeScreen and MessagesScreen design patterns.
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -26,6 +26,9 @@ import { RootStackParamList } from '../navigation';
 import { Text, Spacer } from '../design-system';
 import { Colors, Spacing, BorderRadius, Shadows, Typography, responsive } from '../design-system/primitives';
 
+// Data
+import { DEALER_NAMES } from '../data/vehicles';
+
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
 
@@ -35,11 +38,22 @@ interface ConversationListScreenProps {
   navigation: ConversationListNavigationProp;
 }
 
+// Status types matching MessagesScreen flow
+type ConversationStatus =
+  | 'offer_pending'      // Buyer sent offer, waiting for response
+  | 'offer_accepted'     // Offer accepted, awaiting payment
+  | 'offer_declined'     // Offer declined
+  | 'counter_pending'    // Counter offer sent, waiting for response
+  | 'purchase_pending'   // Purchase request sent, waiting for confirmation
+  | 'purchase_confirmed' // Purchase confirmed, awaiting payment
+  | 'payment_pending'    // Payment requested, waiting for payment
+  | 'payment_complete'   // Payment done, deal complete
+  | 'deal_locked';       // Deal finalized
+
 // Conversation type
 interface Conversation {
   id: string;
   dealerName: string;
-  dealerAvatar: string;
   dealerType: 'dealer' | 'wholesaler';
   isVerified: boolean;
   isOnline: boolean;
@@ -50,103 +64,153 @@ interface Conversation {
     year: number;
     make: string;
     model: string;
+    registration?: string;
   };
+  status?: ConversationStatus;
+  // Legacy fields (kept for backwards compatibility)
   hasOffer?: boolean;
   hasInvoice?: boolean;
   dealLocked?: boolean;
 }
 
-// Mock conversations data
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Generate initials from a dealer name
+ * Handles gaming-style usernames (e.g., AutoKing_99 -> AK)
+ * For underscored names, takes first letter of each part
+ * For camelCase/PascalCase, extracts capital letters
+ */
+const getInitials = (name: string): string => {
+  if (!name || name.trim().length === 0) return '??';
+
+  // Remove numbers and clean up
+  const cleanName = name.replace(/[0-9]/g, '').trim();
+
+  // Split by underscore first (for names like AutoKing_99)
+  const parts = cleanName.split('_').filter(Boolean);
+
+  if (parts.length >= 2) {
+    // Take first letter of first two parts (e.g., AutoKing_X -> AX)
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  // For single part names, try to extract from camelCase/PascalCase
+  const singlePart = parts[0] || cleanName;
+  const capitals = singlePart.match(/[A-Z]/g);
+
+  if (capitals && capitals.length >= 2) {
+    return (capitals[0] + capitals[1]).toUpperCase();
+  }
+
+  // Fallback: first two characters
+  return singlePart.substring(0, 2).toUpperCase();
+};
+
+/**
+ * Generate gradient colors for avatar based on dealer type
+ */
+const getAvatarGradient = (dealerType: 'dealer' | 'wholesaler'): [string, string] => {
+  if (dealerType === 'wholesaler') {
+    return [Colors.secondary, '#006663'];
+  }
+  return [Colors.primary, Colors.secondary];
+};
+
+// Mock conversations data - using DEALER_NAMES from vehicles.ts for consistency
+// Status values match MessagesScreen flow for consistency
 const MOCK_CONVERSATIONS: Conversation[] = [
   {
     id: '1',
-    dealerName: 'Sydney Auto Group',
-    dealerAvatar: 'SA',
+    dealerName: DEALER_NAMES[0], // AutoKing_99
     dealerType: 'dealer',
     isVerified: true,
     isOnline: true,
-    lastMessage: "Thanks for your message! I'll get back to you shortly.",
+    lastMessage: "I've sent you a counter offer of $36,000.",
     lastMessageTime: new Date(Date.now() - 300000),
     unreadCount: 2,
-    vehicleInfo: { year: 2022, make: 'Toyota', model: 'Camry' },
-    hasOffer: true,
+    vehicleInfo: { year: 2022, make: 'Toyota', model: 'Camry', registration: 'ABC-123' },
+    status: 'counter_pending',
   },
   {
     id: '2',
-    dealerName: 'Melbourne Motors',
-    dealerAvatar: 'MM',
+    dealerName: DEALER_NAMES[1], // WheelDealer_X
     dealerType: 'dealer',
     isVerified: true,
     isOnline: false,
-    lastMessage: 'The vehicle has been inspected and is ready for viewing.',
+    lastMessage: 'Payment received! Vehicle is ready for pickup.',
     lastMessageTime: new Date(Date.now() - 3600000),
     unreadCount: 0,
-    vehicleInfo: { year: 2021, make: 'Honda', model: 'Accord' },
-    dealLocked: true,
+    vehicleInfo: { year: 2021, make: 'Honda', model: 'Accord', registration: 'XYZ-789' },
+    status: 'payment_complete',
   },
   {
     id: '3',
-    dealerName: 'Brisbane Wholesale',
-    dealerAvatar: 'BW',
+    dealerName: DEALER_NAMES[2], // CarPro_Elite
     dealerType: 'wholesaler',
     isVerified: true,
     isOnline: true,
     lastMessage: 'I can offer $38,500 for the lot. Let me know.',
     lastMessageTime: new Date(Date.now() - 7200000),
     unreadCount: 5,
-    vehicleInfo: { year: 2020, make: 'Mazda', model: 'CX-5' },
-    hasInvoice: true,
+    vehicleInfo: { year: 2020, make: 'Mazda', model: 'CX-5', registration: 'DEF-456' },
+    status: 'offer_pending',
   },
   {
     id: '4',
-    dealerName: 'Perth Premium Cars',
-    dealerAvatar: 'PP',
+    dealerName: DEALER_NAMES[3], // MotorMaverick
     dealerType: 'dealer',
     isVerified: false,
     isOnline: false,
     lastMessage: 'Is the price negotiable?',
     lastMessageTime: new Date(Date.now() - 86400000),
     unreadCount: 0,
-    vehicleInfo: { year: 2023, make: 'BMW', model: '3 Series' },
+    vehicleInfo: { year: 2023, make: 'BMW', model: '3 Series', registration: 'BMW-001' },
+    // No status - just a regular conversation
   },
   {
     id: '5',
-    dealerName: 'Adelaide Auto Hub',
-    dealerAvatar: 'AA',
+    dealerName: DEALER_NAMES[4], // DriveMaster_AU
     dealerType: 'dealer',
     isVerified: true,
     isOnline: true,
-    lastMessage: 'Transport arranged. Pickup on Monday.',
+    lastMessage: 'Purchase confirmed! Please complete the payment.',
     lastMessageTime: new Date(Date.now() - 172800000),
     unreadCount: 0,
-    vehicleInfo: { year: 2022, make: 'Kia', model: 'Sportage' },
-    dealLocked: true,
+    vehicleInfo: { year: 2022, make: 'Kia', model: 'Sportage', registration: 'KIA-234' },
+    status: 'payment_pending',
   },
   {
     id: '6',
-    dealerName: 'Gold Coast Dealers',
-    dealerAvatar: 'GC',
+    dealerName: DEALER_NAMES[5], // SpeedTrader_77
     dealerType: 'wholesaler',
     isVerified: true,
     isOnline: false,
-    lastMessage: 'Can you send more photos of the interior?',
+    lastMessage: 'Great! I accept your offer of $42,000.',
     lastMessageTime: new Date(Date.now() - 259200000),
     unreadCount: 1,
-    vehicleInfo: { year: 2021, make: 'Hyundai', model: 'Tucson' },
+    vehicleInfo: { year: 2021, make: 'Hyundai', model: 'Tucson', registration: 'HYU-567' },
+    status: 'offer_accepted',
   },
   {
     id: '7',
-    dealerName: 'Darwin Motors',
-    dealerAvatar: 'DM',
+    dealerName: DEALER_NAMES[6], // VehicleVault
     dealerType: 'dealer',
     isVerified: false,
     isOnline: false,
-    lastMessage: 'Invoice #INV-342891 has been paid. Thank you!',
+    lastMessage: 'Deal complete! Thank you for your business.',
     lastMessageTime: new Date(Date.now() - 604800000),
     unreadCount: 0,
-    vehicleInfo: { year: 2019, make: 'Ford', model: 'Ranger' },
+    vehicleInfo: { year: 2019, make: 'Ford', model: 'Ranger', registration: 'FRD-890' },
+    status: 'deal_locked',
   },
 ];
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -210,10 +274,32 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
     MOCK_CONVERSATIONS.reduce((sum, conv) => sum + conv.unreadCount, 0),
   []);
 
-  // Get status badge info
+  // Get status badge info based on conversation status (matching MessagesScreen flow)
   const getStatusBadge = (conversation: Conversation) => {
+    // Check new status field first
+    if (conversation.status) {
+      switch (conversation.status) {
+        case 'payment_complete':
+        case 'deal_locked':
+          return { icon: 'checkmark-circle' as const, color: Colors.success, label: 'Complete' };
+        case 'payment_pending':
+          return { icon: 'card' as const, color: Colors.primary, label: 'Payment' };
+        case 'purchase_confirmed':
+        case 'offer_accepted':
+          return { icon: 'thumbs-up' as const, color: Colors.success, label: 'Accepted' };
+        case 'offer_declined':
+          return { icon: 'close-circle' as const, color: Colors.error, label: 'Declined' };
+        case 'counter_pending':
+          return { icon: 'swap-horizontal' as const, color: Colors.secondary, label: 'Counter' };
+        case 'offer_pending':
+        case 'purchase_pending':
+          return { icon: 'time' as const, color: Colors.warning, label: 'Pending' };
+      }
+    }
+
+    // Fallback to legacy fields for backwards compatibility
     if (conversation.dealLocked) {
-      return { icon: 'lock-closed' as const, color: Colors.success, label: 'Deal Locked' };
+      return { icon: 'lock-closed' as const, color: Colors.success, label: 'Locked' };
     }
     if (conversation.hasInvoice) {
       return { icon: 'document-text' as const, color: Colors.secondary, label: 'Invoice' };
@@ -226,29 +312,25 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Minimalist Header */}
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
-            <Ionicons name="chevron-back" size={26} color={Colors.text} />
-          </TouchableOpacity>
+        <TouchableOpacity style={styles.headerButton} onPress={handleBack} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+        </TouchableOpacity>
 
-          <View style={styles.headerTitleContainer}>
-            <Text variant="h2" weight="bold" style={styles.headerTitle}>
-              Messages
-            </Text>
-          </View>
+        <Text variant="h3" weight="bold" style={styles.headerTitle}>
+          Messages
+        </Text>
 
-          <TouchableOpacity style={styles.composeButton} activeOpacity={0.7}>
-            <Ionicons name="create-outline" size={24} color={Colors.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+          <Ionicons name="create-outline" size={22} color={Colors.primary} />
+        </TouchableOpacity>
       </View>
 
-      {/* Clean Search Bar */}
-      <View style={styles.searchSection}>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={Colors.textMuted} style={styles.searchIcon} />
+          <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search conversations..."
@@ -258,14 +340,14 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close-circle" size={20} color={Colors.textMuted} />
+              <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Simplified Filter Tabs */}
-      <View style={styles.filterSection}>
+      {/* Filter Tabs */}
+      <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterTab, activeFilter === 'all' && styles.filterTabActive]}
           onPress={() => setActiveFilter('all')}
@@ -273,7 +355,6 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
         >
           <Text
             variant="bodySmall"
-            weight={activeFilter === 'all' ? 'semibold' : 'regular'}
             style={activeFilter === 'all' ? styles.filterTabTextActive : styles.filterTabText}
           >
             All
@@ -287,14 +368,15 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
         >
           <Text
             variant="bodySmall"
-            weight={activeFilter === 'unread' ? 'semibold' : 'regular'}
             style={activeFilter === 'unread' ? styles.filterTabTextActive : styles.filterTabText}
           >
             Unread
           </Text>
           {totalUnread > 0 && activeFilter !== 'unread' && (
-            <View style={styles.filterTabBadge}>
-              <Text style={styles.filterTabBadgeText}>{totalUnread}</Text>
+            <View style={styles.filterBadge}>
+              <Text variant="label" weight="bold" style={styles.filterBadgeText}>
+                {totalUnread}
+              </Text>
             </View>
           )}
         </TouchableOpacity>
@@ -306,7 +388,6 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
         >
           <Text
             variant="bodySmall"
-            weight={activeFilter === 'deals' ? 'semibold' : 'regular'}
             style={activeFilter === 'deals' ? styles.filterTabTextActive : styles.filterTabText}
           >
             Deals
@@ -316,8 +397,8 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
 
       {/* Conversation List */}
       <ScrollView
-        style={styles.conversationList}
-        contentContainerStyle={styles.conversationListContent}
+        style={styles.listContainer}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -346,6 +427,8 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
           filteredConversations.map((conversation, index) => {
             const statusBadge = getStatusBadge(conversation);
             const isUnread = conversation.unreadCount > 0;
+            const initials = getInitials(conversation.dealerName);
+            const gradientColors = getAvatarGradient(conversation.dealerType);
 
             return (
               <TouchableOpacity
@@ -353,37 +436,33 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
                 style={[
                   styles.conversationCard,
                   isUnread && styles.conversationCardUnread,
-                  index === filteredConversations.length - 1 && styles.conversationCardLast,
                 ]}
                 onPress={() => handleOpenConversation(conversation)}
                 activeOpacity={0.7}
               >
                 {/* Avatar with online indicator */}
-                <View style={styles.avatarWrapper}>
+                <View style={styles.avatarContainer}>
                   <LinearGradient
-                    colors={conversation.dealerType === 'wholesaler'
-                      ? [Colors.secondary, '#006663']
-                      : [Colors.primary, Colors.secondary]
-                    }
+                    colors={gradientColors}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.avatar}
                   >
-                    <Text variant="h4" weight="bold" style={styles.avatarText}>
-                      {conversation.dealerAvatar}
+                    <Text variant="body" weight="bold" style={styles.avatarText}>
+                      {initials}
                     </Text>
                   </LinearGradient>
 
                   {conversation.isOnline && (
-                    <View style={styles.onlineDot} />
+                    <View style={styles.onlineIndicator} />
                   )}
                 </View>
 
                 {/* Content */}
-                <View style={styles.conversationInfo}>
-                  {/* Name & Time Row */}
+                <View style={styles.conversationContent}>
+                  {/* Top Row: Name + Time */}
                   <View style={styles.topRow}>
-                    <View style={styles.nameRow}>
+                    <View style={styles.nameContainer}>
                       <Text
                         variant="body"
                         weight={isUnread ? 'bold' : 'semibold'}
@@ -399,57 +478,49 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
                         />
                       )}
                     </View>
-                    <Text
-                      variant="caption"
-                      color="textMuted"
-                      weight="regular"
-                    >
+                    <Text variant="caption" color="textMuted">
                       {formatTime(conversation.lastMessageTime)}
                     </Text>
                   </View>
 
-                  {/* Message Row */}
-                  <View style={styles.messageRow}>
-                    <Text
-                      variant="bodySmall"
-                      color={isUnread ? 'text' : 'textMuted'}
-                      weight="regular"
-                      numberOfLines={2}
-                      style={styles.lastMessageText}
-                    >
-                      {conversation.lastMessage}
-                    </Text>
-                  </View>
+                  {/* Message Preview */}
+                  <Text
+                    variant="bodySmall"
+                    color={isUnread ? 'text' : 'textMuted'}
+                    numberOfLines={2}
+                    style={styles.messagePreview}
+                  >
+                    {conversation.lastMessage}
+                  </Text>
 
-                  {/* Bottom Row: Vehicle + Status */}
-                  {(conversation.vehicleInfo || statusBadge || isUnread) && (
-                    <View style={styles.bottomRow}>
-                      {conversation.vehicleInfo && (
-                        <View style={styles.vehicleTag}>
-                          <Ionicons name="car-sport-outline" size={12} color={Colors.textMuted} />
-                          <Text variant="label" color="textMuted">
-                            {conversation.vehicleInfo.year} {conversation.vehicleInfo.make}
+                  {/* Bottom Row: Vehicle Info + Status/Unread */}
+                  <View style={styles.bottomRow}>
+                    {conversation.vehicleInfo && (
+                      <View style={styles.vehicleTag}>
+                        <Ionicons name="car-sport-outline" size={12} color={Colors.textMuted} />
+                        <Text variant="caption" color="textMuted">
+                          {conversation.vehicleInfo.year} {conversation.vehicleInfo.make}
+                          {conversation.vehicleInfo.registration && ` • ${conversation.vehicleInfo.registration}`}
+                        </Text>
+                      </View>
+                    )}
+
+                    <View style={styles.statusContainer}>
+                      {statusBadge && (
+                        <View style={[styles.statusBadge, { backgroundColor: statusBadge.color + '20' }]}>
+                          <Ionicons name={statusBadge.icon} size={12} color={statusBadge.color} />
+                        </View>
+                      )}
+
+                      {isUnread && (
+                        <View style={styles.unreadBadge}>
+                          <Text variant="label" weight="bold" style={styles.unreadText}>
+                            {conversation.unreadCount}
                           </Text>
                         </View>
                       )}
-                      
-                      <View style={styles.rightIcons}>
-                        {statusBadge && (
-                          <View style={[styles.statusBadge, { backgroundColor: statusBadge.color + '20' }]}>
-                            <Ionicons name={statusBadge.icon} size={10} color={statusBadge.color} />
-                          </View>
-                        )}
-                        
-                        {isUnread && (
-                          <View style={styles.unreadBadge}>
-                            <Text style={styles.unreadText}>
-                              {conversation.unreadCount}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
                     </View>
-                  )}
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -462,103 +533,95 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
   );
 };
 
+// ============================================================================
+// STYLES
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#EBEEF2',
     maxWidth: Platform.OS === 'web' ? 480 : undefined,
     alignSelf: Platform.OS === 'web' ? 'center' : undefined,
     width: '100%',
   },
 
-  // Minimalist Header
+  // Header
   header: {
-    backgroundColor: Colors.white,
-    paddingTop: Platform.OS === 'ios' ? Spacing.sm : Spacing.lg,
-    paddingBottom: responsive.getSpacing('lg'),
-    paddingHorizontal: responsive.getSpacing('xl'),
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
   },
-  backButton: {
-    width: 36,
-    height: 36,
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
   },
   headerTitle: {
     color: Colors.text,
   },
-  composeButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
-  // Clean Search Section
-  searchSection: {
+  // Search
+  searchContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     backgroundColor: Colors.white,
-    paddingVertical: responsive.getSpacing('md'),
-    paddingHorizontal: responsive.getSpacing('xl'),
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: responsive.getSpacing('lg'),
-    paddingVertical: responsive.getSpacing('md'),
-    gap: responsive.getSpacing('sm'),
-  },
-  searchIcon: {
-    marginRight: -4,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+    ...Shadows.sm,
   },
   searchInput: {
     flex: 1,
-    fontFamily: Typography.fontFamily.vesperLibre,
     fontSize: responsive.getFontSize('base'),
     color: Colors.text,
-    padding: 0,
+    paddingVertical: 2,
+    fontFamily: Typography.fontFamily.vesperLibre,
   },
 
-  // Simplified Filter Tabs
-  filterSection: {
+  // Filter Tabs
+  filterContainer: {
     flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     backgroundColor: Colors.white,
-    paddingHorizontal: responsive.getSpacing('xl'),
-    paddingBottom: responsive.getSpacing('md'),
-    gap: responsive.getSpacing('sm'),
+    gap: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
   },
   filterTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: responsive.getSpacing('md'),
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
     backgroundColor: Colors.surface,
     gap: 6,
   },
   filterTabActive: {
-    backgroundColor: Colors.primary + '15',
+    backgroundColor: Colors.primary,
   },
   filterTabText: {
-    color: Colors.textMuted,
+    color: Colors.text,
   },
   filterTabTextActive: {
-    color: Colors.primary,
+    color: Colors.white,
   },
-  filterTabBadge: {
+  filterBadge: {
     backgroundColor: Colors.accent,
     minWidth: 20,
     height: 20,
@@ -566,62 +629,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 5,
-    marginLeft: -2,
   },
-  filterTabBadgeText: {
+  filterBadgeText: {
     color: Colors.white,
-    fontSize: responsive.getFontSize('sm'),
-    fontWeight: '700',
-    fontFamily: Typography.fontFamily.vesperLibre,
+    fontSize: 11,
   },
 
-  // Conversation List
-  conversationList: {
+  // List
+  listContainer: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
-  conversationListContent: {
-    paddingTop: responsive.getSpacing('md'),
-    paddingHorizontal: responsive.getSpacing('lg'),
+  listContent: {
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
   },
 
-  // Modern Conversation Card
+  // Conversation Card
   conversationCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     backgroundColor: Colors.white,
-    padding: responsive.getSpacing('lg'),
-    borderRadius: BorderRadius.xl,
-    marginBottom: responsive.getSpacing('md'),
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
     ...Shadows.sm,
   },
   conversationCardUnread: {
-    backgroundColor: Colors.primary + '08',  // Very subtle teal tint (8% opacity)
     borderLeftWidth: 3,
     borderLeftColor: Colors.primary,
-    paddingLeft: responsive.getSpacing('lg') - 3,  // Compensate for border width
-    ...Shadows.md,  // Slightly stronger shadow for emphasis
-  },
-  conversationCardLast: {
-    marginBottom: 0,
+    backgroundColor: Colors.tealLight + '15', // Light teal background for unread (15% opacity)
+    borderColor: Colors.primary + '30', // Subtle teal border
   },
 
   // Avatar
-  avatarWrapper: {
+  avatarContainer: {
     position: 'relative',
-    marginRight: responsive.getSpacing('md'),
+    width: 52,
+    height: 52,
+    marginRight: Spacing.md,
   },
   avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     color: Colors.white,
+    fontSize: 16,
   },
-  onlineDot: {
+  onlineIndicator: {
     position: 'absolute',
     bottom: 0,
     right: 0,
@@ -633,67 +692,60 @@ const styles = StyleSheet.create({
     borderColor: Colors.white,
   },
 
-  // Conversation Info - Clean Layout
-  conversationInfo: {
+  // Conversation Content
+  conversationContent: {
     flex: 1,
-    gap: responsive.getSpacing('sm'),
+    gap: 4,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
-  nameRow: {
+  nameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: responsive.getSpacing('sm'),
+    marginRight: Spacing.sm,
     gap: 4,
   },
   dealerName: {
+    color: Colors.text,
     flexShrink: 1,
   },
   verifiedBadge: {
     width: 16,
     height: 16,
+  },
+  messagePreview: {
+    lineHeight: 18,
     marginTop: 2,
   },
 
-  // Message Row
-  messageRow: {
-    marginTop: -2,
-  },
-  lastMessageText: {
-    lineHeight: responsive.getFontSize('lg') * 1.4,
-  },
-
-  // Bottom Row - Simplified
+  // Bottom Row
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 6,
   },
   vehicleTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    flex: 1,
+    gap: 4,
   },
-  rightIcons: {
+  statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: responsive.getSpacing('sm'),
+    gap: Spacing.sm,
   },
   statusBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // Unread Badge - Accent
   unreadBadge: {
     backgroundColor: Colors.accent,
     minWidth: 24,
@@ -701,13 +753,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 7,
+    paddingHorizontal: 6,
   },
   unreadText: {
     color: Colors.white,
-    fontSize: responsive.getFontSize('sm'),
-    fontWeight: '700',
-    fontFamily: Typography.fontFamily.vesperLibre,
+    fontSize: 11,
   },
 
   // Empty State
@@ -718,9 +768,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',

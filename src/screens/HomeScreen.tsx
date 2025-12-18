@@ -3,6 +3,7 @@
  *
  * Mobile-first automotive marketplace dashboard.
  * Displays vehicle listings with filtering and search capabilities.
+ * Features redesigned vehicle cards with background images and streamlined info.
  *
  * @example
  * <Stack.Screen name="Home" component={HomeScreen} />
@@ -17,28 +18,34 @@ import {
   TouchableOpacity,
   Image,
   Platform,
-  TextInput,
+  ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation';
 
 // Components
-import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS } from '../components';
+import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS, WeeklyPurchaseProgress, SearchBar } from '../components';
+import { LicenseVerificationBanner } from '../components/LicenseVerificationBanner';
 import type { FilterOptions } from '../components';
 
 // Design System
-import { responsive } from '../design-system/primitives';
 import { Text } from '../design-system/atoms/Text';
+import { Button } from '../design-system/atoms/Button';
 import { Spacer } from '../design-system/atoms/Spacer';
-import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../design-system/primitives';
+import { Colors, Spacing, BorderRadius } from '../design-system/primitives';
 
 // Data
 import {
   Vehicle,
   VEHICLES,
-  getVehicleImage,
+  getVehicleBackgroundImage,
+  formatFullPrice,
+  formatMileage,
 } from '../data/vehicles';
+
+// Context
+import { useFavorites } from '../contexts/FavoritesContext';
 
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
@@ -77,40 +84,36 @@ const CardActions: React.FC<CardActionsProps> = ({
     >
       <Ionicons
         name={isFavorite ? "heart" : "heart-outline"}
-        size={20}
-        color={isFavorite ? Colors.accent : Colors.text}
+        size={18}
+        color={isFavorite ? Colors.white : Colors.accent}
       />
     </TouchableOpacity>
     <TouchableOpacity style={styles.actionButton} onPress={onSharePress} activeOpacity={0.7}>
-      <Ionicons name="share-social-outline" size={20} color={Colors.text} />
+      <Ionicons name="share-social-outline" size={18} color={Colors.text} />
     </TouchableOpacity>
     <TouchableOpacity style={styles.actionButton} onPress={onMessagePress} activeOpacity={0.7}>
-      <Ionicons name="chatbubble-outline" size={20} color={Colors.text} />
+      <Ionicons name="chatbubble-outline" size={18} color={Colors.primary} />
     </TouchableOpacity>
   </View>
 );
 
 /**
- * Compact spec pill component with icon
+ * Compact spec item for vehicle details
  */
-interface SpecPillProps {
+interface SpecItemProps {
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
   value: string;
 }
 
-const SpecPill: React.FC<SpecPillProps> = ({ icon, label, value }) => (
-  <View style={styles.specPill}>
-    <View style={styles.specPillIconContainer}>
-      <Ionicons name={icon} size={18} color={Colors.primary} />
-    </View>
-    <Text variant="label" color="textTertiary" style={styles.specPillLabel}>{label}</Text>
-    <Text variant="bodySmall" weight="medium" color="text" style={styles.specPillValue}>{value}</Text>
+const SpecItem: React.FC<SpecItemProps> = ({ icon, value }) => (
+  <View style={styles.specItem}>
+    <Ionicons name={icon} size={14} color={Colors.textMuted} />
+    <Text variant="caption" style={styles.specItemText}>{value}</Text>
   </View>
 );
 
 /**
- * Individual vehicle card - Redesigned for better UX
+ * Individual vehicle card - Redesigned with background images
  */
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -121,94 +124,96 @@ interface VehicleCardProps {
   onSharePress: () => void;
 }
 
-const VehicleCard: React.FC<VehicleCardProps> = ({ 
-  vehicle, 
-  onPress, 
-  isFavorite, 
+const VehicleCard: React.FC<VehicleCardProps> = ({
+  vehicle,
+  onPress,
+  isFavorite,
   onFavoritePress,
   onMessagePress,
-  onSharePress 
+  onSharePress
 }) => (
-  <View style={styles.vehicleCardWrapper}>
-    <View style={styles.vehicleCard}>
-      {/* Vehicle Image - Not clickable */}
-      <View style={styles.vehicleImageContainer}>
-        <Image
-          source={getVehicleImage(vehicle.imageKey)}
-          style={styles.vehicleImage}
-          resizeMode="contain"
+  <TouchableOpacity
+    style={styles.vehicleCard}
+    onPress={onPress}
+    activeOpacity={0.98}
+  >
+    {/* Vehicle Image with Background */}
+    <ImageBackground
+      source={getVehicleBackgroundImage(vehicle.backgroundImageIndex)}
+      style={styles.vehicleImageBackground}
+      imageStyle={styles.vehicleImageStyle}
+    >
+      {/* Subtle gradient overlay */}
+      <View style={styles.imageOverlay} />
+
+      {/* Actions - Top right */}
+      <View style={styles.imageActionsContainer}>
+        <CardActions
+          isFavorite={isFavorite}
+          onFavoritePress={onFavoritePress}
+          onMessagePress={onMessagePress}
+          onSharePress={onSharePress}
         />
       </View>
+    </ImageBackground>
 
-      {/* Vehicle Details */}
-      <View style={styles.vehicleDetails}>
-        {/* Actions Row - Top right aligned - Not clickable for navigation */}
-        <View style={styles.actionsRow}>
-          <CardActions
-            isFavorite={isFavorite}
-            onFavoritePress={onFavoritePress}
-            onMessagePress={onMessagePress}
-            onSharePress={onSharePress}
-          />
-        </View>
-
-        <Spacer size="sm" />
-
-        {/* Clickable Content Area - Below actions */}
-        <TouchableOpacity activeOpacity={0.4} onPress={onPress}>
-          {/* Title Section - Below actions */}
-          <View style={styles.vehicleTitleSection}>
-            <Text variant="h4" weight="bold" color="text" style={styles.titleText}>
-              {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.variant}
-              {vehicle.verified && (
-                <Text>
-                  {'  '}
-                  <Image
-                    source={VERIFIED_BADGE}
-                    style={styles.verifiedBadgeIcon}
-                  />
-                </Text>
-              )}
+    {/* Vehicle Details */}
+    <View style={styles.vehicleDetails}>
+      {/* Title Row with Verified Badge - Inline */}
+      <View style={styles.titleContainer}>
+        <Text variant="body" weight="bold" style={styles.vehicleTitle}>
+          {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.variant}
+          {vehicle.verified && (
+            <Text style={styles.verifiedBadgeWrapper}>
+              {' '}<Image source={VERIFIED_BADGE} style={styles.verifiedBadgeInline} />
             </Text>
-            <View style={styles.subtitleRow}>
-              <Ionicons name="location-outline" size={12} color={Colors.textTertiary} />
-              <Text variant="caption" color="textTertiary"> {vehicle.location}</Text>
-              <Text variant="caption" color="textTertiary"> • </Text>
-              <Text variant="caption" color="textTertiary">{vehicle.dealer}</Text>
-            </View>
+          )}
+        </Text>
+      </View>
+
+      {/* Location & Dealer */}
+      <View style={styles.locationRow}>
+        <Ionicons name="location-outline" size={13} color={Colors.textMuted} />
+        <Text variant="caption" style={styles.locationText}>
+          {vehicle.suburb}, {vehicle.state}
+        </Text>
+        <View style={styles.dotSeparator} />
+        <Text variant="caption" style={styles.dealerName}>{vehicle.dealerName}</Text>
+      </View>
+
+      {/* Specs Row - includes all badges */}
+      <View style={styles.specsRow}>
+        <SpecItem icon="speedometer-outline" value={formatMileage(vehicle.mileage)} />
+        <SpecItem icon="cog-outline" value={vehicle.transmission === 'automatic' ? 'Auto' : 'Manual'} />
+        <SpecItem icon="flash-outline" value={vehicle.fuelType.charAt(0).toUpperCase() + vehicle.fuelType.slice(1)} />
+        <SpecItem icon="color-palette-outline" value={vehicle.color} />
+        {vehicle.hasLogbook && (
+          <View style={styles.logbookBadgeInline}>
+            <Ionicons name="book" size={12} color={Colors.success} />
+            <Text variant="caption" style={styles.logbookBadgeTextInline}>Logbook</Text>
           </View>
+        )}
+      </View>
 
-          <Spacer size="md" />
-
-          {/* Price Section - Two columns */}
-          <View style={styles.priceSection}>
-            <View style={styles.priceColumn}>
-              <Text variant="caption" color="textTertiary">Trade Price</Text>
-              <Text variant="body" weight="semibold" color="text">
-                ${vehicle.tradePrice.toLocaleString()}
-              </Text>
-            </View>
-            <View style={styles.priceDivider} />
-            <View style={styles.priceColumn}>
-              <Text variant="caption" color="textTertiary">Retail Price</Text>
-              <Text variant="body" weight="semibold" color="text">
-                ${vehicle.retailPrice.toLocaleString()}
-              </Text>
-            </View>
-          </View>
-
-          <Spacer size="md" />
-
-          {/* Specs Row with Icons - Bigger and more visible */}
-          <View style={styles.specsRow}>
-            <SpecPill icon="speedometer-outline" label="Odometer" value={`${vehicle.mileage.toLocaleString()} km`} />
-            <SpecPill icon="cog-outline" label="Transmission" value={vehicle.transmission === 'automatic' ? 'Auto' : 'Manual'} />
-            <SpecPill icon="flash-outline" label="Fuel Type" value={vehicle.fuelType.charAt(0).toUpperCase() + vehicle.fuelType.slice(1)} />
-          </View>
-        </TouchableOpacity>
+      {/* Footer with Price and View Details */}
+      <View style={styles.cardFooter}>
+        <View style={styles.priceContainer}>
+          <Text variant="caption" style={styles.priceLabel}>Asking Price</Text>
+          <Text variant="h4" weight="bold" style={styles.priceValue}>
+            {formatFullPrice(vehicle.askingPrice || vehicle.price)}
+          </Text>
+        </View>
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={onPress}
+          iconRight="chevron-forward"
+        >
+          View Details
+        </Button>
       </View>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 /**
@@ -216,13 +221,13 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
  */
 const EmptyState: React.FC = () => (
   <View style={styles.emptyState}>
-    <Text variant="h2">🔍</Text>
+    <Ionicons name="search-outline" size={48} color={Colors.textMuted} />
     <Spacer size="md" />
-    <Text variant="h3" weight="semibold" color="textTertiary" align="center">
+    <Text variant="h4" weight="semibold" color="textMuted" align="center">
       No vehicles found
     </Text>
     <Spacer size="sm" />
-    <Text variant="body" color="textTertiary" align="center">
+    <Text variant="body" color="textMuted" align="center">
       Try adjusting your search or filters
     </Text>
   </View>
@@ -245,20 +250,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  // Track favorite vehicles
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  // License verification banner state
+  const [showLicenseBanner, setShowLicenseBanner] = useState(true);
 
-  const toggleFavorite = (vehicleId: string) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(vehicleId)) {
-        newFavorites.delete(vehicleId);
-      } else {
-        newFavorites.add(vehicleId);
-      }
-      return newFavorites;
-    });
+  // Mock weekly purchase data
+  const weeklyPurchaseData = {
+    amountSpent: 125000,
+    currentDay: 4, // Day 4 of 7
   };
+
+  // Favorites from shared context (persisted)
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   // Scroll tracking for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -271,7 +273,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       const matchesSearch =
         vehicle.make.toLowerCase().includes(query) ||
         vehicle.model.toLowerCase().includes(query) ||
-        vehicle.location.toLowerCase().includes(query);
+        vehicle.location.toLowerCase().includes(query) ||
+        vehicle.suburb.toLowerCase().includes(query) ||
+        vehicle.dealerName.toLowerCase().includes(query);
       if (!matchesSearch) return false;
     }
 
@@ -328,11 +332,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Gradient - Collapses on scroll */}
+      {/* Header with solid Primary color - Collapses on scroll */}
       <Header
         onMenuPress={() => setIsMenuOpen(true)}
         onNotificationPress={() => console.log('Notifications pressed')}
-        scrollY={scrollY}
+      />
+
+      {/* License Verification Banner - Dismissible */}
+      <LicenseVerificationBanner
+        visible={showLicenseBanner}
+        onDismiss={() => setShowLicenseBanner(false)}
       />
 
       {/* Slide-out Menu */}
@@ -341,8 +350,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         onClose={() => setIsMenuOpen(false)}
         onOpen={() => setIsMenuOpen(true)}
         onNavigate={(screen) => {
-          if (screen === 'Messages') {
+          if (screen === 'Messages' || screen === 'ConversationList') {
             navigation.navigate('ConversationList');
+          } else if (screen === 'SavedVehicles') {
+            navigation.navigate('SavedVehicles');
+          } else if (screen === 'RegoLookup') {
+            navigation.navigate('RegoLookup');
+          } else if (screen === 'MyListings') {
+            navigation.navigate('MyListings');
           } else if (screen === 'Home') {
             // Already on Home
           } else {
@@ -363,6 +378,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
       />
+
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -372,50 +388,36 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         )}
         scrollEventThrottle={16}
       >
-        {/* Page Title - Centered */}
-        <View style={styles.titleSection}>
-          <Text variant="h2" weight="bold" align="center">
-            Marketplace
-          </Text>
-          <Text variant="caption" color="textTertiary" align="center">
-            Verified wholesale vehicles
-          </Text>
-        </View>
+        {/* Weekly Purchase Progress */}
+        <WeeklyPurchaseProgress
+          amountSpent={weeklyPurchaseData.amountSpent}
+          currentDay={weeklyPurchaseData.currentDay}
+        />
+
         <Spacer size="lg" />
 
         {/* Search Bar with Filter */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={18} color={Colors.textTertiary} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search vehicles..."
-              placeholderTextColor={Colors.textTertiary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.filterButton, activeFilterCount() > 0 && styles.filterButtonActive]}
-            onPress={() => setIsFilterOpen(true)}
-          >
-            <Ionicons name="options-outline" size={18} color={Colors.white} />
-            {activeFilterCount() > 0 && (
-              <View style={styles.filterBadge}>
-                <Text variant="label" style={styles.filterBadgeText}>
-                  {activeFilterCount()}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-        <Spacer size="lg" />
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search vehicles, dealers..."
+          activeFilterCount={activeFilterCount()}
+          onFilterPress={() => setIsFilterOpen(true)}
+        />
+
+        <Spacer size="md" />
 
         {/* Results Count */}
-        <Text variant="caption" color="textTertiary" style={{ marginBottom: Spacing.sm }}>
-          {filteredVehicles.length} vehicles available
-        </Text>
-        <Spacer size="xs" />
+        <View style={styles.resultsHeader}>
+          <Text variant="bodySmall" weight="semibold" color="text">
+            {filteredVehicles.length} vehicles
+          </Text>
+          <Text variant="caption" color="textMuted">
+            Available now
+          </Text>
+        </View>
+
+        <Spacer size="md" />
 
         {/* Vehicle Listings */}
         {filteredVehicles.length > 0 ? (
@@ -424,7 +426,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               key={vehicle.id}
               vehicle={vehicle}
               onPress={() => navigation.navigate('VehicleDetails', { vehicleId: vehicle.id })}
-              isFavorite={favorites.has(vehicle.id)}
+              isFavorite={isFavorite(vehicle.id)}
               onFavoritePress={() => toggleFavorite(vehicle.id)}
               onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
               onSharePress={() => console.log('Share vehicle:', vehicle.id)}
@@ -448,216 +450,170 @@ const styles = StyleSheet.create({
   // Container
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#EBEEF2',
     maxWidth: Platform.OS === 'web' ? 480 : undefined,
     alignSelf: Platform.OS === 'web' ? 'center' : undefined,
     width: '100%',
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
     paddingBottom: Spacing['3xl'],
   },
 
-  // Title Section - Enhanced for better hierarchy and centered for mobile
-  titleSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-  },
-
-  // Search Bar - Improved with brand colors
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: responsive.getFontSize('lg'),
-    color: Colors.text,
-    paddingVertical: 2,
-    fontFamily: Typography.fontFamily.vesperLibre,
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.sm,
-  },
-  filterButtonActive: {
-    backgroundColor: Colors.secondary,
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: Colors.accent,
-    minWidth: 16,
-    height: 16,
-    borderRadius: BorderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  filterBadgeText: {
-    color: Colors.white,
-    fontSize: responsive.getFontSize('sm'),
-    fontWeight: '600',
-  },
-
-  // Vehicle Card - Modern redesigned layout
-  vehicleCardWrapper: {
-    marginBottom: Spacing['2xl'],
-    paddingTop: 48,
-  },
-  vehicleCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius['2xl'],
-    overflow: 'visible',
-    ...Shadows.md,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  vehicleImageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: 180,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: -68,
-    zIndex: 2,
-  },
-  vehicleImage: {
-    width: '100%',
-    height: 240,
-    backgroundColor: 'transparent',
-  },
-  vehicleDetails: {
-    padding: Spacing.lg,
-    paddingTop: Spacing.sm,
-  },
-
-  // Actions Row - Top right aligned
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: Spacing.xs,
-  },
-
-  // Vehicle Title Section
-  vehicleTitleSection: {
-    gap: 4,
-  },
-  titleText: {
-    flex: 1,
-  },
-  verifiedBadgeIcon: {
-    width: 18,
-    height: 18,
-  },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-
-  // Price Section - Two columns
-  priceSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.backgroundAlt,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  priceColumn: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  priceDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: Colors.borderLight,
-    marginHorizontal: Spacing.md,
-  },
-
-  // Specs Row - Bigger icons for mobile visibility
-  specsRow: {
+  // Results Header
+  resultsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  specPill: {
-    flex: 1,
-    flexDirection: 'column',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.surface,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  specPillIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  specPillLabel: {
-    marginTop: 2,
-    textTransform: 'capitalize',
-    // fontSize handled by Text component variant
-  },
-  specPillValue: {
-    fontWeight: '500',
-    // fontSize handled by Text component variant
+    paddingHorizontal: Spacing.lg,
   },
 
-  // Card Actions - Compact modern style (top-right placement)
+  // Vehicle Card - Clean modern design
+  vehicleCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  vehicleImageBackground: {
+    width: '100%',
+    height: 240,
+    justifyContent: 'flex-start',
+  },
+  vehicleImageStyle: {
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+  imageActionsContainer: {
+    alignItems: 'flex-end',
+    padding: Spacing.sm,
+  },
+  // Logbook badge - inline with other specs
+  logbookBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.success + '15',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: BorderRadius.sm,
+  },
+  logbookBadgeTextInline: {
+    color: Colors.success,
+    fontWeight: '600',
+  },
+  // Card Footer
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  priceContainer: {
+    flex: 1,
+  },
+  priceLabel: {
+    color: Colors.textMuted,
+    marginBottom: 2,
+  },
+  priceValue: {
+    color: Colors.text,
+  },
+
+  // Vehicle Details Section
+  vehicleDetails: {
+    padding: Spacing.md,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  vehicleTitle: {
+    color: Colors.text,
+    flex: 1,
+    lineHeight: 22,
+  },
+  verifiedBadgeWrapper: {
+    lineHeight: 22,
+  },
+  verifiedBadgeInline: {
+    width: 16,
+    height: 16,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+    gap: 4,
+  },
+  locationText: {
+    color: Colors.textMuted,
+  },
+  dotSeparator: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: Colors.textMuted,
+    marginHorizontal: 4,
+  },
+  dealerName: {
+    color: Colors.secondary,
+    fontWeight: '600',
+  },
+  specsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: Spacing.sm,
+    gap: 6,
+  },
+  specItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: BorderRadius.sm,
+  },
+  specItemText: {
+    color: '#555',
+  },
+
+  // Card Actions
   cardActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 6,
   },
   actionButton: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 18,
-    backgroundColor: Colors.white,
-    shadowColor: Colors.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
   },
   actionButtonActive: {
-    backgroundColor: Colors.accent + '15',
+    backgroundColor: Colors.accent,
   },
 
   // Empty State
@@ -666,5 +622,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: Spacing['3xl'],
+    paddingHorizontal: Spacing.lg,
   },
 });

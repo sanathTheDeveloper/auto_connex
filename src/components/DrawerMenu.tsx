@@ -26,10 +26,10 @@ import {
   GestureResponderEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from '../design-system/atoms/Text';
 import { Spacer } from '../design-system/atoms/Spacer';
 import { Colors, Spacing, BorderRadius } from '../design-system/primitives';
+import { useFavorites } from '../contexts/FavoritesContext';
 
 // Assets
 const APP_ICON = require('../../assets/logos/app-icon-teal.png');
@@ -66,18 +66,12 @@ export interface DrawerMenuProps {
 
 const MENU_ITEMS: MenuItem[] = [
   { id: 'marketplace', label: 'Marketplace', icon: 'car-sport-outline', screen: 'Home' },
+  { id: 'sell-vehicle', label: 'Sell Vehicle', icon: 'pricetag-outline', screen: 'RegoLookup' },
   { id: 'my-listings', label: 'My Listings', icon: 'list-outline', screen: 'MyListings' },
-  { id: 'saved', label: 'Saved Vehicles', icon: 'heart-outline', screen: 'Saved', badge: 3 },
-  { id: 'messages', label: 'Messages', icon: 'chatbubbles-outline', screen: 'Messages', badge: 5, dividerAfter: true },
+  { id: 'saved', label: 'Favorites', icon: 'heart-outline', screen: 'SavedVehicles' },
+  { id: 'messages', label: 'Messages', icon: 'chatbubbles-outline', screen: 'ConversationList', badge: 5, dividerAfter: true },
 
-  { id: 'add-listing', label: 'Add New Listing', icon: 'add-circle-outline', screen: 'AddListing' },
-  { id: 'transport', label: 'Transport Quotes', icon: 'bus-outline', screen: 'Transport' },
-  { id: 'ppsr', label: 'PPSR Check', icon: 'shield-checkmark-outline', screen: 'PPSR', dividerAfter: true },
-
-  { id: 'profile', label: 'My Profile', icon: 'person-outline', screen: 'Profile' },
-  { id: 'business', label: 'Business Details', icon: 'business-outline', screen: 'Business' },
-  { id: 'settings', label: 'Settings', icon: 'settings-outline', screen: 'Settings' },
-  { id: 'help', label: 'Help & Support', icon: 'help-circle-outline', screen: 'Help', dividerAfter: true },
+  { id: 'profile', label: 'My Profile', icon: 'person-outline', dividerAfter: true },
 
   { id: 'logout', label: 'Sign Out', icon: 'log-out-outline' },
 ];
@@ -98,6 +92,10 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [isVisible, setIsVisible] = useState(false);
+
+  // Get favorites count from context
+  const { getFavoriteCount } = useFavorites();
+  const favoritesCount = getFavoriteCount();
 
   // PanResponder for swipe to close (on drawer)
   const panResponder = useRef(
@@ -246,15 +244,10 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
         style={[styles.drawer, { transform: [{ translateX: slideAnim }] }]}
         {...panResponder.panHandlers}
       >
-        {/* Header with gradient */}
-        <LinearGradient
-          colors={[Colors.primary, Colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
+        {/* Header */}
+        <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={20} color={Colors.white} />
+            <Ionicons name="close" size={20} color={Colors.black} />
           </TouchableOpacity>
 
           <View style={styles.userSection}>
@@ -268,12 +261,14 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
               </Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Menu Items */}
         <ScrollView style={styles.menuList} showsVerticalScrollIndicator={false}>
           {MENU_ITEMS.map((item) => {
             const isActive = item.screen === activeScreen;
+            // Use dynamic count for saved vehicles, static for others
+            const badgeCount = item.id === 'saved' ? favoritesCount : item.badge;
             return (
               <React.Fragment key={item.id}>
                 <TouchableOpacity
@@ -283,7 +278,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
                 >
                   <View style={styles.menuItemLeft}>
                     <Ionicons
-                      name={item.icon}
+                      name={item.id === 'saved' && favoritesCount > 0 ? 'heart' : item.icon}
                       size={20}
                       color={
                         item.id === 'logout'
@@ -305,10 +300,10 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
                       {item.label}
                     </Text>
                   </View>
-                  {item.badge && (
+                  {badgeCount !== undefined && badgeCount > 0 && (
                     <View style={styles.badge}>
                       <Text variant="caption" style={styles.badgeText}>
-                        {item.badge}
+                        {badgeCount}
                       </Text>
                     </View>
                   )}
@@ -365,6 +360,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 44 : 32,
     paddingBottom: Spacing.md,
     paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.primary,
   },
   closeButton: {
     position: 'absolute',
@@ -387,16 +383,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.black,
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    color: Colors.white,
+    color: Colors.black,
   },
   userTypeText: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.black,
     fontSize: 11,
   },
   menuList: {
