@@ -14,12 +14,10 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../design-system/atoms/Text';
 import { Button } from '../../design-system/atoms/Button';
 import { Spacer } from '../../design-system/atoms/Spacer';
@@ -35,7 +33,6 @@ import { useAuth, SignupData } from '../../contexts/AuthContext';
 import { lookupABN } from '../../services/mockAPI';
 import { AUSTRALIAN_STATES } from '../../data/australia';
 import { WelcomeModal } from './WelcomeModal';
-import { LicenseVerificationModal } from './LicenseVerificationModal';
 
 // Navigation types
 type RootStackParamList = {
@@ -109,7 +106,6 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
   const [isVerifying, setIsVerifying] = useState(false);
   const [isABNVerified, setIsABNVerified] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showLicenseModal, setShowLicenseModal] = useState(false);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -261,10 +257,10 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
       case 3:
         isValid = validateStep3();
         if (isValid) {
-          // Show license verification modal - this is the final step
-          setShowLicenseModal(true);
+          // Directly register - no modal needed
+          handleSignup();
         }
-        return; // Don't auto-proceed, modal will handle registration
+        return;
     }
 
     if (isValid) {
@@ -619,11 +615,14 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
 
         <Spacer size="md" />
 
-        {/* Info Banner */}
-        <View style={styles.licenseInfoBanner}>
-          <Ionicons name="shield-checkmark-outline" size={18} color={Colors.primary} />
-          <Text variant="caption" style={styles.licenseInfoText}>
-            Your licence will be verified against {licenseInfo.authority}. Verification typically takes 1-2 business days.
+        {/* Verification Info Banner */}
+        <View style={styles.verificationBannerContainer}>
+          <Image
+            source={require('../../../assets/icons/verified-badge.png')}
+            style={styles.verifiedBadgeImage}
+          />
+          <Text variant="caption" style={styles.verificationBannerText}>
+            Verification takes 1-2 business days. Once approved, you'll receive a verified badge. You can trade on the platform in the meantime.
           </Text>
         </View>
       </View>
@@ -651,18 +650,6 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
 
   return (
     <View style={styles.container}>
-      {/* Gradient Background - Enhanced with brand colors */}
-      <LinearGradient
-        colors={[
-          Colors.backgroundAlt,     // #F5F1E3 - Beige (top)
-          Colors.tealLight + '15',  // #51EAEA - Light teal (15% opacity)
-          Colors.primary + '20',    // #0ABAB5 - Primary teal (20% opacity)
-          Colors.backgroundAlt,     // #F5F1E3 - Beige (bottom)
-        ]}
-        locations={[0, 0.3, 0.7, 1]}
-        style={StyleSheet.absoluteFillObject}
-      />
-      
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -707,7 +694,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                       style={styles.nextButton}
                       disabled={currentStep === 2 && !isABNVerified}
                     >
-                      {currentStep === 3 ? 'Verify License' : 'Continue'}
+                      {currentStep === 3 ? 'Register' : 'Continue'}
                     </Button>
                   </>
                 ) : (
@@ -723,9 +710,17 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                 )}
               </View>
             </View>
+
+            {/* Background Image - positioned bottom left */}
+            <View style={styles.bottomImageContainer}>
+              <Image
+                source={require('../../../assets/images/singup-backgroundimage.png')}
+                style={styles.bottomImage}
+              />
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        
+
         {/* Welcome Modal - Full Screen Animated */}
         <WelcomeModal
           visible={showSuccessModal}
@@ -733,14 +728,6 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
             setShowSuccessModal(false);
             navigation.replace('Home');
           }}
-        />
-
-        {/* License Verification Modal */}
-        <LicenseVerificationModal
-          visible={showLicenseModal}
-          licenseState={formData.licenseState}
-          isLoading={isLoading}
-          onRegister={handleSignup}
         />
       </SafeAreaView>
     </View>
@@ -750,6 +737,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.black,
   },
   safeArea: {
     flex: 1,
@@ -922,13 +910,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     opacity: 0.5,
-    // fontSize handled by Text variant caption
-    color: Colors.greyscale700,
   },
   detailValue: {
     color: Colors.text,
     lineHeight: 18,
-    // fontSize handled by Text variant bodySmall
   },
   // License Step Styles
   helperText: {
@@ -1025,22 +1010,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 6,
   },
-  // License Info Banner
-  licenseInfoBanner: {
+  // Verification Banner
+  verificationBannerContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.primary + '10',
+    backgroundColor: Colors.backgroundAlt,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.primary + '20',
+    borderColor: Colors.border,
   },
-  licenseInfoText: {
+  verifiedBadgeImage: {
+    width: 24,
+    height: 24,
+  },
+  verificationBannerText: {
     flex: 1,
-    color: Colors.text,
+    color: Colors.textSecondary,
     lineHeight: 18,
-    opacity: 0.85,
+  },
+  // Bottom Background Image - positioned bottom left
+  bottomImageContainer: {
+    backgroundColor: Colors.black,
+    marginTop: -105,
+    marginHorizontal: -Spacing.md,
+    flex: 1,
+    minHeight: 300,
+    zIndex: -1,
+  },
+  bottomImage: {
+    width: '100%',
+    height: 300,
+    resizeMode: 'contain',
+    position: 'absolute',
+    left: -10,
+    bottom: 0,
   },
 });
 

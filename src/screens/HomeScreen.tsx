@@ -18,7 +18,6 @@ import {
   TouchableOpacity,
   Image,
   Platform,
-  TextInput,
   ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,17 +25,15 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation';
 
 // Components
-import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS } from '../components';
+import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS, WeeklyPurchaseProgress, SearchBar } from '../components';
 import { LicenseVerificationBanner } from '../components/LicenseVerificationBanner';
-import { WeeklyPurchaseProgress } from '../components/WeeklyPurchaseProgress';
-import { BudgetSettingsModal } from '../components/BudgetSettingsModal';
 import type { FilterOptions } from '../components';
 
 // Design System
-import { responsive } from '../design-system/primitives';
 import { Text } from '../design-system/atoms/Text';
+import { Button } from '../design-system/atoms/Button';
 import { Spacer } from '../design-system/atoms/Spacer';
-import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../design-system/primitives';
+import { Colors, Spacing, BorderRadius } from '../design-system/primitives';
 
 // Data
 import {
@@ -206,12 +203,14 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
             {formatFullPrice(vehicle.askingPrice || vehicle.price)}
           </Text>
         </View>
-        <TouchableOpacity style={styles.viewDetailsButton} onPress={onPress} activeOpacity={0.7}>
-          <Text variant="bodySmall" weight="semibold" style={styles.viewDetailsText}>
-            View Details
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.white} />
-        </TouchableOpacity>
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={onPress}
+          iconRight="chevron-forward"
+        >
+          View Details
+        </Button>
       </View>
     </View>
   </TouchableOpacity>
@@ -254,15 +253,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // License verification banner state
   const [showLicenseBanner, setShowLicenseBanner] = useState(true);
 
-  // Budget settings modal state
-  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
-  const [weeklyBudget, setWeeklyBudget] = useState(200000); // Default $200,000 budget
-
   // Mock weekly purchase data
   const weeklyPurchaseData = {
     amountSpent: 125000,
-    vehicleCount: 3,
-    daysRemaining: 4,
+    currentDay: 4, // Day 4 of 7
   };
 
   // Favorites from shared context (persisted)
@@ -342,7 +336,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       <Header
         onMenuPress={() => setIsMenuOpen(true)}
         onNotificationPress={() => console.log('Notifications pressed')}
-        scrollY={scrollY}
       />
 
       {/* License Verification Banner - Dismissible */}
@@ -357,10 +350,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         onClose={() => setIsMenuOpen(false)}
         onOpen={() => setIsMenuOpen(true)}
         onNavigate={(screen) => {
-          if (screen === 'Messages') {
+          if (screen === 'Messages' || screen === 'ConversationList') {
             navigation.navigate('ConversationList');
           } else if (screen === 'SavedVehicles') {
             navigation.navigate('SavedVehicles');
+          } else if (screen === 'RegoLookup') {
+            navigation.navigate('RegoLookup');
+          } else if (screen === 'MyListings') {
+            navigation.navigate('MyListings');
           } else if (screen === 'Home') {
             // Already on Home
           } else {
@@ -382,14 +379,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         onToggleNotifications={setNotificationsEnabled}
       />
 
-      {/* Budget Settings Modal */}
-      <BudgetSettingsModal
-        visible={isBudgetModalOpen}
-        onClose={() => setIsBudgetModalOpen(false)}
-        currentBudget={weeklyBudget}
-        onSaveBudget={setWeeklyBudget}
-      />
-
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -402,45 +391,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         {/* Weekly Purchase Progress */}
         <WeeklyPurchaseProgress
           amountSpent={weeklyPurchaseData.amountSpent}
-          vehicleCount={weeklyPurchaseData.vehicleCount}
-          daysRemaining={weeklyPurchaseData.daysRemaining}
-          budget={weeklyBudget}
-          onSettingsPress={() => setIsBudgetModalOpen(true)}
+          currentDay={weeklyPurchaseData.currentDay}
         />
 
         <Spacer size="lg" />
 
         {/* Search Bar with Filter */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search vehicles, dealers..."
-              placeholderTextColor={Colors.textMuted}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity
-            style={[styles.filterButton, activeFilterCount() > 0 && styles.filterButtonActive]}
-            onPress={() => setIsFilterOpen(true)}
-          >
-            <Ionicons name="options-outline" size={18} color={Colors.white} />
-            {activeFilterCount() > 0 && (
-              <View style={styles.filterBadge}>
-                <Text variant="label" style={styles.filterBadgeText}>
-                  {activeFilterCount()}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search vehicles, dealers..."
+          activeFilterCount={activeFilterCount()}
+          onFilterPress={() => setIsFilterOpen(true)}
+        />
 
         <Spacer size="md" />
 
@@ -494,61 +457,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: Spacing['3xl'],
-  },
-
-  // Search Bar
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.xs,
-    ...Shadows.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: responsive.getFontSize('base'),
-    color: Colors.text,
-    paddingVertical: 2,
-    fontFamily: Typography.fontFamily.vesperLibre,
-  },
-  filterButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.sm,
-  },
-  filterButtonActive: {
-    backgroundColor: Colors.secondary,
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: Colors.accent,
-    minWidth: 18,
-    height: 18,
-    borderRadius: BorderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  filterBadgeText: {
-    color: Colors.white,
-    fontSize: responsive.getFontSize('xs'),
-    fontWeight: '700',
   },
 
   // Results Header
@@ -624,18 +532,6 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     color: Colors.text,
-  },
-  viewDetailsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-  },
-  viewDetailsText: {
-    color: Colors.white,
   },
 
   // Vehicle Details Section

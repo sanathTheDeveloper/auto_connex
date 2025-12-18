@@ -33,8 +33,7 @@ import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation';
 
 // Components
-import { PaymentModal } from '../components';
-import type { PaymentData } from '../components';
+import { SubscriptionCard } from '../components/SubscriptionCard';
 
 // Design System
 import { Text, Spacer } from '../design-system';
@@ -74,7 +73,6 @@ type MessageType =
   | 'offer_accepted'
   | 'offer_declined'
   | 'purchase_confirmed'
-  | 'payment_request'
   | 'payment_complete'
   | 'system'
   | 'vehicle_card';
@@ -141,11 +139,13 @@ const MOCK_DEALER = {
   name: DEALER_NAMES[0], // AutoKing_99 - using gaming-style username
   rating: 4.8,
   verified: true,
+  email: 'autoking99@autoconnex.com.au',
 };
 
 const MOCK_BUYER = {
   name: DEALER_NAMES[7], // GearHead_Pro - using gaming-style username for buyer too
   verified: false,
+  email: 'gearhead.pro@email.com',
 };
 
 // ============================================================================
@@ -184,10 +184,12 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
   const [counterAmount, setCounterAmount] = useState('');
   const [counterMessage, setCounterMessage] = useState('');
   const [pendingOfferMessageId, setPendingOfferMessageId] = useState<string | null>(null);
+  const [pendingOfferAmount, setPendingOfferAmount] = useState<number>(0);
 
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentContext, setPaymentContext] = useState<'offer' | 'purchase' | null>(null);
 
   // Quick action menu state
   const [showQuickActionMenu, setShowQuickActionMenu] = useState(false);
@@ -291,7 +293,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
 
   // Dealer accepts an offer
   const handleAcceptOffer = useCallback((messageId: string, amount: number) => {
-    // Update the original offer status
+    // Update the original offer status to accepted
     setMessages((prev) =>
       prev.map((msg) =>
         msg.id === messageId
@@ -300,25 +302,11 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       )
     );
 
-    // Send acceptance message
-    addMessage({
-      type: 'offer_accepted',
-      content: `Offer of ${formatFullPrice(amount)} has been accepted!`,
-      sender: 'dealer',
-      data: { amount },
-    });
-
-    // Trigger payment request after a short delay
-    setTimeout(() => {
-      addMessage({
-        type: 'payment_request',
-        content: 'Please complete the payment to finalize your purchase.',
-        sender: 'system',
-        data: { amount },
-      });
-      setPaymentAmount(amount);
-    }, 1000);
-  }, [addMessage]);
+    // Show payment modal - acceptance message will be sent after payment
+    setPaymentAmount(amount);
+    setPaymentContext('offer');
+    setShowPaymentModal(true);
+  }, []);
 
   // Dealer declines an offer
   const handleDeclineOffer = useCallback((messageId: string) => {
@@ -338,7 +326,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
   }, [addMessage]);
 
   // Dealer sends a counter offer
-  const handleCounterOffer = useCallback((messageId: string) => {
+  const handleCounterOffer = useCallback((messageId: string, currentOfferAmount: number) => {
     if (negotiationRound >= MAX_NEGOTIATION_ROUNDS) {
       addMessage({
         type: 'system',
@@ -348,6 +336,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       return;
     }
     setPendingOfferMessageId(messageId);
+    setPendingOfferAmount(currentOfferAmount);
     setShowCounterModal(true);
   }, [negotiationRound, addMessage]);
 
@@ -398,10 +387,12 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
     setCounterAmount('');
     setCounterMessage('');
     setPendingOfferMessageId(null);
+    setPendingOfferAmount(0);
   }, [counterAmount, counterMessage, pendingOfferMessageId, negotiationRound, addMessage, currentRole, vehicle]);
 
   // Buyer accepts counter offer
   const handleAcceptCounterOffer = useCallback((messageId: string, amount: number) => {
+    // Update the counter offer status to accepted
     setMessages((prev) =>
       prev.map((msg) =>
         msg.id === messageId
@@ -410,6 +401,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       )
     );
 
+    // Send acceptance message (buyer already paid transaction fee with initial offer)
     addMessage({
       type: 'offer_accepted',
       content: `I accept your counter offer of ${formatFullPrice(amount)}!`,
@@ -417,16 +409,14 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       data: { amount },
     });
 
-    // Trigger payment request
+    // Show system message about next steps
     setTimeout(() => {
       addMessage({
-        type: 'payment_request',
-        content: 'Please complete the payment to finalize your purchase.',
+        type: 'system',
+        content: 'Counter offer accepted! The dealer will receive notification and arrange pickup details.',
         sender: 'system',
-        data: { amount },
       });
-      setPaymentAmount(amount);
-    }, 1000);
+    }, 500);
   }, [addMessage]);
 
   // Buyer declines counter offer
@@ -456,63 +446,80 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       )
     );
 
-    addMessage({
-      type: 'purchase_confirmed',
-      content: 'Purchase confirmed! The vehicle is reserved for you.',
-      sender: 'dealer',
-      data: { amount },
-    });
-
-    // Trigger payment request
-    setTimeout(() => {
-      addMessage({
-        type: 'payment_request',
-        content: 'Please complete the payment to finalize your purchase.',
-        sender: 'system',
-        data: { amount },
-      });
-      setPaymentAmount(amount);
-    }, 1000);
-  }, [addMessage]);
+    // Show payment modal - confirmation message will be sent after payment
+    setPaymentAmount(amount);
+    setPaymentContext('purchase');
+    setShowPaymentModal(true);
+  }, []);
 
   // Handle payment initiation
   const handleInitiatePayment = useCallback(() => {
     setShowPaymentModal(true);
   }, []);
 
-  // Handle sending a payment request (for dealers)
-  const handleSendPaymentRequest = useCallback(() => {
-    const amount = vehicle.askingPrice || vehicle.price;
-    addMessage({
-      type: 'payment_request',
-      content: 'Payment requested for this vehicle.',
-      sender: 'dealer',
-      data: { amount },
-    });
-    setPaymentAmount(amount);
-    setShowQuickActionMenu(false);
-  }, [addMessage, vehicle]);
-
   // Handle payment success
-  const handlePaymentSuccess = useCallback((paymentData: PaymentData) => {
+  const handlePaymentSuccess = useCallback((paymentData: any) => {
     setShowPaymentModal(false);
 
-    addMessage({
-      type: 'payment_complete',
-      content: `Payment of ${formatFullPrice(paymentAmount)} successful!`,
-      sender: 'system',
-      data: { amount: paymentAmount },
-    });
-
-    // Show email notification card
-    setTimeout(() => {
+    // Send the acceptance/confirmation message based on context
+    // Note: Only dealer pays when accepting offer, and when confirming purchase
+    if (paymentContext === 'offer') {
+      // Dealer accepting buyer's offer
       addMessage({
-        type: 'system',
-        content: 'Check your email for the invoice and pickup details. The dealer will contact you shortly to arrange collection.',
-        sender: 'system',
+        type: 'offer_accepted',
+        content: `Offer of ${formatFullPrice(paymentAmount)} has been accepted!`,
+        sender: 'dealer',
+        data: { amount: paymentAmount },
       });
-    }, 500);
-  }, [paymentAmount, addMessage]);
+
+      // Auto-generated message from buyer with email details
+      setTimeout(() => {
+        addMessage({
+          type: 'text',
+          content: `Thank you for accepting my offer! Please send the invoice and pickup details to my email:`,
+          sender: 'buyer',
+        });
+      }, 800);
+
+      // Send email as separate message for easy copying
+      setTimeout(() => {
+        addMessage({
+          type: 'text',
+          content: MOCK_BUYER.email,
+          sender: 'buyer',
+        });
+      }, 1200);
+    } else if (paymentContext === 'purchase') {
+      // Dealer confirming purchase request
+      addMessage({
+        type: 'purchase_confirmed',
+        content: 'Purchase confirmed! The vehicle is reserved for you.',
+        sender: 'dealer',
+        data: { amount: paymentAmount },
+      });
+
+      // Auto-generated message from buyer with email details
+      setTimeout(() => {
+        addMessage({
+          type: 'text',
+          content: `Thank you for confirming the purchase! Please send the invoice and transaction details to my email:`,
+          sender: 'buyer',
+        });
+      }, 800);
+
+      // Send email as separate message for easy copying
+      setTimeout(() => {
+        addMessage({
+          type: 'text',
+          content: MOCK_BUYER.email,
+          sender: 'buyer',
+        });
+      }, 1200);
+    }
+
+    // Reset payment context (removed all payment-related system messages)
+    setPaymentContext(null);
+  }, [paymentAmount, paymentContext, currentRole, addMessage]);
 
   // ============================================================================
   // RENDER VEHICLE CARD (HomeScreen style with ImageBackground)
@@ -619,113 +626,35 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       );
     }
 
-    // Payment Request Card (shown like offer cards)
-    // For dealer view: align right (dealer sends payment requests)
-    // For buyer view: align left (payment requests come from dealer/system)
-    if (message.type === 'payment_request' && message.data?.amount) {
-      // Payment requests are always from dealer's perspective (dealer sends them)
-      // So when viewing as dealer, they should be on the right
-      const isDealerMessage = message.sender === 'dealer' || message.sender === 'system';
-      const alignRight = currentRole === 'dealer' && isDealerMessage;
-
-      return (
-        <View
-          key={message.id}
-          style={[
-            styles.offerCardWrapper,
-            alignRight ? styles.offerCardWrapperUser : styles.offerCardWrapperOther,
-          ]}
-        >
-          {/* Avatar for other user's messages (buyer view) */}
-          {!alignRight && (
-            <View style={styles.avatarSmall}>
-              <Text variant="label" weight="semibold" style={styles.avatarText}>
-                {getInitials(MOCK_DEALER.name)}
-              </Text>
-            </View>
-          )}
-
-          {/* Payment Card */}
-          <View style={[
-            styles.offerCard,
-            styles.paymentCard,
-          ]}>
-            {/* Card Header - Payment indicator */}
-            <View style={styles.paymentCardHeader}>
-              <Ionicons name="card" size={14} color={Colors.white} />
-              <Text variant="caption" weight="semibold" style={styles.offerCardHeaderText}>
-                Payment Request
-              </Text>
-            </View>
-
-            {/* Card Body */}
-            <View style={styles.offerCardBody}>
-              {/* Amount */}
-              <Text variant="h3" weight="bold" style={styles.offerCardPrice}>
-                {formatFullPrice(message.data.amount)}
-              </Text>
-
-              {/* Vehicle Info */}
-              <Text variant="bodySmall" color="textMuted" style={styles.paymentVehicleInfo}>
-                {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.registration ? `• ${vehicle.registration}` : ''}
-              </Text>
-
-              {/* Time */}
-              <View style={styles.paymentCardTimeRow}>
-                <Ionicons name="time-outline" size={12} color={Colors.textMuted} />
-                <Text variant="label" color="textMuted">
-                  {formatTime(message.timestamp)}
-                </Text>
-              </View>
-
-              {/* Pay Button for Buyer */}
-              {currentRole === 'buyer' && (
-                <TouchableOpacity
-                  style={styles.paymentCardButton}
-                  onPress={handleInitiatePayment}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="card" size={16} color={Colors.white} />
-                  <Text variant="bodySmall" weight="semibold" style={styles.actionBtnText}>
-                    Pay Now
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
-      );
-    }
-
-    // Payment Complete Card
-    if (message.type === 'payment_complete' && message.data?.amount) {
-      return (
-        <View key={message.id} style={[styles.offerCardWrapper, styles.paymentCardCenter]}>
-          <View style={[styles.offerCard, styles.paymentCompleteCard]}>
-            {/* Card Header */}
-            <View style={styles.paymentCompleteHeader}>
-              <Ionicons name="checkmark-circle" size={14} color={Colors.white} />
-              <Text variant="caption" weight="semibold" style={styles.offerCardHeaderText}>
-                Payment Successful
-              </Text>
-            </View>
-
-            {/* Card Body */}
-            <View style={styles.offerCardBody}>
-              <Text variant="h3" weight="bold" style={styles.paymentCompletePrice}>
-                {formatFullPrice(message.data.amount)}
-              </Text>
-              <Text variant="bodySmall" color="success" style={styles.paymentCompleteMessage}>
-                Transaction complete
-              </Text>
-              <Text variant="label" color="textMuted" style={styles.paymentCompleteTime}>
-                {formatTime(message.timestamp)}
-              </Text>
-            </View>
-          </View>
-        </View>
-      );
-    }
+    // Payment Complete Card - DISABLED (don't show in chat)
+    // if (message.type === 'payment_complete' && message.data?.amount) {
+    //   return (
+    //     <View key={message.id} style={[styles.offerCardWrapper, styles.paymentCardCenter]}>
+    //       <View style={[styles.offerCard, styles.paymentCompleteCard]}>
+    //         {/* Card Header */}
+    //         <View style={styles.paymentCompleteHeader}>
+    //           <Ionicons name="checkmark-circle" size={14} color={Colors.white} />
+    //           <Text variant="caption" weight="semibold" style={styles.offerCardHeaderText}>
+    //             Payment Successful
+    //           </Text>
+    //         </View>
+    //
+    //         {/* Card Body */}
+    //         <View style={styles.offerCardBody}>
+    //           <Text variant="h3" weight="bold" style={styles.paymentCompletePrice}>
+    //             {formatFullPrice(message.data.amount)}
+    //           </Text>
+    //           <Text variant="bodySmall" color="success" style={styles.paymentCompleteMessage}>
+    //             Transaction complete
+    //           </Text>
+    //           <Text variant="label" color="textMuted" style={styles.paymentCompleteTime}>
+    //             {formatTime(message.timestamp)}
+    //           </Text>
+    //         </View>
+    //       </View>
+    //     </View>
+    //   );
+    // }
 
     // System Message (generic)
     if (isSystem) {
@@ -752,76 +681,83 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       message.type === 'counter_offer' &&
       message.data?.status === 'pending';
 
-    // Offer/Purchase Request - Messenger-style card with integrated actions
+    // Offer/Purchase Request - Full-width brand-compliant card
     if ((isOffer || isPurchaseReq) && message.data) {
-      return (
-        <View
-          key={message.id}
-          style={[
-            styles.offerCardWrapper,
-            isCurrentUser ? styles.offerCardWrapperUser : styles.offerCardWrapperOther,
-          ]}
-        >
-          {/* Avatar for other user's messages */}
-          {!isCurrentUser && (
-            <View style={styles.avatarSmall}>
-              <Text variant="label" weight="semibold" style={styles.avatarText}>
-                {getInitials(message.sender === 'dealer' ? MOCK_DEALER.name : MOCK_BUYER.name)}
-              </Text>
-            </View>
-          )}
+      const isSenderCurrentUser =
+        (currentRole === 'buyer' && message.sender === 'buyer') ||
+        (currentRole === 'dealer' && message.sender === 'dealer');
 
-          {/* Offer Card */}
-          <View style={[
-            styles.offerCard,
-            isCurrentUser ? styles.offerCardUser : styles.offerCardOther,
-          ]}>
-            {/* Card Header - Type indicator */}
+      return (
+        <View key={message.id} style={styles.offerCardWrapper}>
+          {/* Full-width Offer Card */}
+          <View style={styles.offerCard}>
+            {/* Card Header with gradient-like styling */}
             <View style={[
               styles.offerCardHeader,
               isPurchaseReq ? styles.offerCardHeaderPurchase : styles.offerCardHeaderOffer,
             ]}>
-              <Ionicons
-                name={isPurchaseReq ? 'cart' : 'pricetag'}
-                size={14}
-                color={Colors.white}
-              />
-              <Text variant="caption" weight="semibold" style={styles.offerCardHeaderText}>
-                {isPurchaseReq ? 'Purchase Request' : message.type === 'counter_offer' ? 'Counter Offer' : 'Price Offer'}
-              </Text>
+              <View style={styles.offerCardHeaderLeft}>
+                <View style={[
+                  styles.offerCardIconCircle,
+                  styles.offerCardIconCircleDark,
+                ]}>
+                  <Ionicons
+                    name={isPurchaseReq ? 'cart' : 'pricetag'}
+                    size={18}
+                    color={Colors.white}
+                  />
+                </View>
+                <View>
+                  <Text variant="bodySmall" weight="bold" style={styles.offerCardHeaderTextLight}>
+                    {isPurchaseReq ? 'Purchase Request' : message.type === 'counter_offer' ? 'Counter Offer' : 'Price Offer'}
+                  </Text>
+                  <Text variant="caption" style={styles.offerCardHeaderSubtextLight}>
+                    from {message.sender === 'buyer' ? MOCK_BUYER.name : MOCK_DEALER.name}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.offerCardHeaderRight}>
+                <Text variant="caption" style={styles.offerCardTimeTextLight}>
+                  {formatTime(message.timestamp)}
+                </Text>
+              </View>
             </View>
 
             {/* Card Body */}
             <View style={styles.offerCardBody}>
-              {/* Price */}
-              <Text variant="h3" weight="bold" style={styles.offerCardPrice}>
-                {formatFullPrice(message.data.amount || 0)}
-              </Text>
-
-              {/* Message */}
-              {message.content && (
-                <Text variant="bodySmall" color="textMuted" style={styles.offerCardMessage}>
-                  "{message.content}"
+              {/* Price Section */}
+              <View style={styles.offerPriceSection}>
+                <Text variant="caption" color="textTertiary" style={styles.offerPriceLabel}>
+                  Offered Amount
                 </Text>
-              )}
-
-              {/* Status Badge + Time Row */}
-              <View style={styles.offerCardStatusRow}>
-                <View style={[
-                  styles.offerCardStatus,
-                  message.data.status === 'pending' && styles.statusPending,
-                  message.data.status === 'accepted' && styles.statusAccepted,
-                  message.data.status === 'declined' && styles.statusDeclined,
-                  message.data.status === 'countered' && styles.statusCountered,
-                ]}>
-                  <Text variant="label" weight="semibold" style={styles.statusText}>
-                    {message.data.status?.toUpperCase()}
-                  </Text>
-                </View>
-                <Text variant="label" color="textMuted">
-                  {formatTime(message.timestamp)}
+                <Text variant="h2" weight="bold" style={styles.offerCardPrice}>
+                  {formatFullPrice(message.data.amount || 0)}
                 </Text>
               </View>
+
+              {/* Status Badge - Only show for non-pending statuses */}
+              {message.data.status !== 'pending' && (
+                <View style={styles.offerCardStatusRow}>
+                  <View style={[
+                    styles.offerCardStatus,
+                    message.data.status === 'accepted' && styles.statusAccepted,
+                    message.data.status === 'declined' && styles.statusDeclined,
+                    message.data.status === 'countered' && styles.statusCountered,
+                  ]}>
+                    <Ionicons
+                      name={
+                        message.data.status === 'accepted' ? 'checkmark' :
+                        message.data.status === 'declined' ? 'close' : 'swap-horizontal'
+                      }
+                      size={12}
+                      color={Colors.text}
+                    />
+                    <Text variant="label" weight="semibold" style={styles.statusText}>
+                      {message.data.status?.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              )}
 
               {/* Action Buttons - Inside the card for dealer/buyer */}
               {showDealerActions && (
@@ -832,7 +768,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                       ? handleConfirmPurchase(message.id, message.data!.amount!)
                       : handleAcceptOffer(message.id, message.data!.amount!)
                     }
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
                     <Ionicons name="checkmark" size={16} color={Colors.white} />
                     <Text variant="bodySmall" weight="semibold" style={styles.actionBtnText}>Accept</Text>
@@ -841,8 +777,8 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                   {!isPurchaseReq && (
                     <TouchableOpacity
                       style={[styles.offerActionBtn, styles.counterBtn]}
-                      onPress={() => handleCounterOffer(message.id)}
-                      activeOpacity={0.8}
+                      onPress={() => handleCounterOffer(message.id, message.data!.amount!)}
+                      activeOpacity={0.7}
                     >
                       <Ionicons name="swap-horizontal" size={16} color={Colors.white} />
                       <Text variant="bodySmall" weight="semibold" style={styles.actionBtnText}>Counter</Text>
@@ -852,7 +788,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                   <TouchableOpacity
                     style={[styles.offerActionBtn, styles.declineBtn]}
                     onPress={() => handleDeclineOffer(message.id)}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
                     <Ionicons name="close" size={16} color={Colors.white} />
                     <Text variant="bodySmall" weight="semibold" style={styles.actionBtnText}>Decline</Text>
@@ -865,7 +801,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                   <TouchableOpacity
                     style={[styles.offerActionBtn, styles.acceptBtn]}
                     onPress={() => handleAcceptCounterOffer(message.id, message.data!.amount!)}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
                     <Ionicons name="checkmark" size={16} color={Colors.white} />
                     <Text variant="bodySmall" weight="semibold" style={styles.actionBtnText}>Accept</Text>
@@ -874,7 +810,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                   <TouchableOpacity
                     style={[styles.offerActionBtn, styles.declineBtn]}
                     onPress={() => handleDeclineCounterOffer(message.id)}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
                     <Ionicons name="close" size={16} color={Colors.white} />
                     <Text variant="bodySmall" weight="semibold" style={styles.actionBtnText}>Decline</Text>
@@ -883,6 +819,31 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
               )}
             </View>
           </View>
+
+          {/* Message shown as bubble below the card */}
+          {message.content && (
+            <View style={[
+              styles.messageRow,
+              isSenderCurrentUser ? styles.messageRowUser : styles.messageRowOther,
+              styles.offerMessageBubbleRow,
+            ]}>
+              {!isSenderCurrentUser && (
+                <View style={styles.avatarSmall}>
+                  <Text variant="label" weight="semibold" style={styles.avatarText}>
+                    {getInitials(message.sender === 'dealer' ? MOCK_DEALER.name : MOCK_BUYER.name)}
+                  </Text>
+                </View>
+              )}
+              <View style={[
+                styles.messageBubble,
+                isSenderCurrentUser ? styles.messageBubbleUser : styles.messageBubbleOther,
+              ]}>
+                <Text variant="bodySmall" color={isSenderCurrentUser ? 'white' : 'text'}>
+                  {message.content}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       );
     }
@@ -1073,6 +1034,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
             setCounterAmount('');
             setCounterMessage('');
             setPendingOfferMessageId(null);
+            setPendingOfferAmount(0);
           }}
         >
           <TouchableWithoutFeedback onPress={() => setShowCounterModal(false)}>
@@ -1100,6 +1062,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                           setCounterAmount('');
                           setCounterMessage('');
                           setPendingOfferMessageId(null);
+                          setPendingOfferAmount(0);
                         }}
                         style={styles.offerModalCloseButton}
                       >
@@ -1124,6 +1087,15 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                           {formatFullPrice(vehicle.askingPrice || vehicle.price)}
                         </Text>
                       </View>
+                      {/* Show current offer when countering */}
+                      {pendingOfferMessageId && pendingOfferAmount > 0 && (
+                        <View style={styles.offerVehiclePriceRow}>
+                          <Text variant="caption" color="textMuted">Their Offer:</Text>
+                          <Text variant="body" weight="bold" color="accent">
+                            {formatFullPrice(pendingOfferAmount)}
+                          </Text>
+                        </View>
+                      )}
                     </View>
 
                     <Spacer size="md" />
@@ -1210,6 +1182,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                         setCounterAmount('');
                         setCounterMessage('');
                         setPendingOfferMessageId(null);
+                        setPendingOfferAmount(0);
                       }}
                       activeOpacity={0.7}
                     >
@@ -1241,6 +1214,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                     onPress={() => {
                       setShowQuickActionMenu(false);
                       setPendingOfferMessageId(null);
+                      setPendingOfferAmount(0);
                       setShowCounterModal(true);
                     }}
                     activeOpacity={0.7}
@@ -1254,24 +1228,6 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
                   </TouchableOpacity>
-
-                  {/* Request Payment Option (only for dealers) */}
-                  {currentRole === 'dealer' && (
-                    <TouchableOpacity
-                      style={styles.quickActionMenuItem}
-                      onPress={handleSendPaymentRequest}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.quickActionIconWrapper, styles.quickActionIconPayment]}>
-                        <Ionicons name="card" size={20} color={Colors.white} />
-                      </View>
-                      <View style={styles.quickActionTextContainer}>
-                        <Text variant="body" weight="semibold">Request Payment</Text>
-                        <Text variant="caption" color="textMuted">Send a payment request to buyer</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
-                    </TouchableOpacity>
-                  )}
 
                   {/* Cancel Button */}
                   <TouchableOpacity
@@ -1287,8 +1243,8 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
           </TouchableWithoutFeedback>
         </Modal>
 
-        {/* Payment Modal */}
-        <PaymentModal
+        {/* Payment Modal - SubscriptionCard */}
+        <SubscriptionCard
           visible={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
           onPaymentSuccess={handlePaymentSuccess}
@@ -1298,9 +1254,11 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
             model: vehicle.model,
             year: vehicle.year,
             variant: vehicle.variant,
+            licensePlate: vehicle.registration,
+            dealerName: currentRole === 'buyer' ? vehicle.dealerName : undefined,
+            buyerName: currentRole === 'dealer' ? MOCK_BUYER.name : undefined,
           }}
-          title="Complete Payment"
-          subtitle="Secure payment powered by Stripe"
+          actionType={currentRole === 'buyer' ? 'purchase' : 'offer'}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -1470,6 +1428,12 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
+  // Message bubble row for offer cards
+  offerMessageBubbleRow: {
+    marginTop: Spacing.sm,
+    marginBottom: 0,
+  },
+
   // Status Message Content
   statusMessageContent: {
     flexDirection: 'row',
@@ -1480,101 +1444,156 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Offer Card Wrapper
+  // Offer Card Wrapper - Full Width
   offerCardWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: Spacing.xl,
-    gap: Spacing.xs,
-  },
-  offerCardWrapperUser: {
-    justifyContent: 'flex-end',
-  },
-  offerCardWrapperOther: {
-    justifyContent: 'flex-start',
+    width: '100%',
+    marginBottom: Spacing.lg,
   },
 
-  // Offer Card - Messenger style
+  // Offer Card - Full-width brand-compliant style
   offerCard: {
-    width: '80%',
-    maxWidth: 280,
-    borderRadius: BorderRadius.lg,
+    width: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border,
     ...Shadows.md,
-  },
-  offerCardUser: {
-    backgroundColor: Colors.white,
-  },
-  offerCardOther: {
-    backgroundColor: Colors.white,
   },
 
   // Offer Card Header
   offerCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
   },
   offerCardHeaderOffer: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.secondary,
   },
   offerCardHeaderPurchase: {
     backgroundColor: Colors.secondary,
   },
+  offerCardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  offerCardIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  offerCardIconCircleDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
   offerCardHeaderText: {
+    color: Colors.text,
+  },
+  offerCardHeaderTextLight: {
     color: Colors.white,
+  },
+  offerCardHeaderSubtext: {
+    color: Colors.textTertiary,
+    marginTop: 2,
+  },
+  offerCardHeaderSubtextLight: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+  },
+  offerCardHeaderRight: {
+    alignItems: 'flex-end',
+  },
+  offerCardTimeText: {
+    color: Colors.textTertiary,
+  },
+  offerCardTimeTextLight: {
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 
   // Offer Card Body
   offerCardBody: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
+  },
+  offerPriceSection: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: BorderRadius.lg,
+  },
+  offerPriceLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 11,
+    marginBottom: 4,
   },
   offerCardPrice: {
     color: Colors.text,
-    marginBottom: Spacing.xs,
+  },
+  offerMessageSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
   },
   offerCardMessage: {
+    flex: 1,
     fontStyle: 'italic',
-    marginBottom: Spacing.sm,
+    lineHeight: 20,
   },
 
   // Offer Card Status Row
   offerCardStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
   offerCardStatus: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
   statusPending: {
-    backgroundColor: Colors.warning,
+    backgroundColor: Colors.warning + '10',
+    borderColor: Colors.warning + '40',
   },
   statusAccepted: {
-    backgroundColor: Colors.success,
+    backgroundColor: Colors.success + '10',
+    borderColor: Colors.success + '40',
   },
   statusDeclined: {
-    backgroundColor: Colors.error,
+    backgroundColor: Colors.accent + '10',
+    borderColor: Colors.accent + '40',
   },
   statusCountered: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.secondary + '10',
+    borderColor: Colors.secondary + '40',
   },
   statusText: {
-    color: Colors.white,
-    fontSize: 10,
+    color: Colors.text,
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
 
   // Offer Card Actions
   offerCardActions: {
     flexDirection: 'row',
-    gap: Spacing.xs,
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.borderLight,
   },
@@ -1583,18 +1602,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: Spacing.sm,
+    gap: 6,
+    paddingVertical: 12,
     borderRadius: BorderRadius.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   acceptBtn: {
-    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+    backgroundColor: Colors.success ,
   },
   counterBtn: {
-    backgroundColor: Colors.secondary,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
   },
   declineBtn: {
-    backgroundColor: Colors.error,
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accent,
   },
   actionBtnText: {
     color: Colors.white,

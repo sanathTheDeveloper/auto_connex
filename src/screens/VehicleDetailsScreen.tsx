@@ -33,6 +33,10 @@ import { RootStackParamList } from '../navigation';
 import { Text, Button, Spacer, Accordion } from '../design-system';
 import { Colors, Spacing, BorderRadius, Shadows } from '../design-system/primitives';
 
+// Components
+import { SubscriptionCard } from '../components';
+import type { PaymentData } from '../components/SubscriptionCard';
+
 // Data
 import { VEHICLES, getVehicleImage, formatMileage } from '../data/vehicles';
 
@@ -65,6 +69,8 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
   const [offerMessage, setOfferMessage] = useState('');
   const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
   const [purchaseMessage, setPurchaseMessage] = useState('');
+  const [subscriptionCardVisible, setSubscriptionCardVisible] = useState(false);
+  const [paymentActionType, setPaymentActionType] = useState<'purchase' | 'offer'>('purchase');
   const mainScrollRef = useRef<ScrollView>(null);
   const fullscreenScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
@@ -88,21 +94,40 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
   // Current display price (offer price or asking price)
   const displayPrice = offerPrice !== null ? offerPrice : askingPrice;
 
-  // Price adjustment increment (1000)
-  const PRICE_INCREMENT = 1000;
+  // Offer price input as string for text field
+  const [offerPriceText, setOfferPriceText] = useState<string>('');
 
-  const handleIncreasePrice = useCallback(() => {
-    const currentPrice = offerPrice !== null ? offerPrice : askingPrice;
-    setOfferPrice(currentPrice + PRICE_INCREMENT);
-  }, [offerPrice, askingPrice]);
+  // Format price for display in input (without $ sign for editing)
+  const formatPriceForInput = (price: number): string => {
+    return price.toLocaleString();
+  };
 
-  const handleDecreasePrice = useCallback(() => {
-    const currentPrice = offerPrice !== null ? offerPrice : askingPrice;
-    const newPrice = currentPrice - PRICE_INCREMENT;
-    if (newPrice >= 1000) {
-      setOfferPrice(newPrice);
+  // Parse price from input string
+  const parsePriceFromInput = (text: string): number | null => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    if (cleaned === '') return null;
+    const num = parseInt(cleaned, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  // Handle offer price text change
+  const handleOfferPriceChange = useCallback((text: string) => {
+    // Remove non-numeric characters except commas
+    const cleaned = text.replace(/[^0-9,]/g, '');
+    setOfferPriceText(cleaned);
+
+    // Parse and set the numeric value
+    const numericValue = parsePriceFromInput(cleaned);
+    setOfferPrice(numericValue);
+  }, []);
+
+  // Initialize offer price text when modal opens
+  useEffect(() => {
+    if (offerModalVisible && offerPriceText === '') {
+      setOfferPriceText(formatPriceForInput(askingPrice));
+      setOfferPrice(askingPrice);
     }
-  }, [offerPrice, askingPrice]);
+  }, [offerModalVisible, askingPrice]);
 
   const handleImageScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -193,34 +218,54 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
     Alert.alert('Contact Seller', `Contact ${vehicle.dealer}`);
   }, [vehicle]);
 
-  // Send offer - navigate to messages with offer data
+  // Send offer - show subscription card for payment
   const handleSendOffer = useCallback(() => {
     if (!vehicle) return;
     setOfferModalVisible(false);
-    // Navigate to messages screen with offer amount
-    navigation.navigate('Messages', {
-      vehicleId: vehicle.id,
-      offerAmount: displayPrice,
-      offerMessage: offerMessage || undefined,
-    });
-  }, [vehicle, navigation, displayPrice, offerMessage]);
+    setPaymentActionType('offer');
+    setSubscriptionCardVisible(true);
+  }, [vehicle]);
 
-  // Open purchase modal
+  // Open subscription card directly for purchase
   const handlePurchasePress = useCallback(() => {
-    setPurchaseModalVisible(true);
+    setPaymentActionType('purchase');
+    setSubscriptionCardVisible(true);
   }, []);
 
-  // Send purchase request - navigate to messages with purchase intent
+  // Handle successful payment
+  const handlePaymentSuccess = useCallback((_paymentData: PaymentData) => {
+    if (!vehicle) return;
+    setSubscriptionCardVisible(false);
+
+    // Navigate to messages screen with appropriate data
+    if (paymentActionType === 'purchase') {
+      navigation.navigate('Messages', {
+        vehicleId: vehicle.id,
+        isPurchase: true,
+        purchaseMessage: purchaseMessage || undefined,
+      });
+    } else {
+      navigation.navigate('Messages', {
+        vehicleId: vehicle.id,
+        offerAmount: displayPrice,
+        offerMessage: offerMessage || undefined,
+      });
+    }
+
+    // Reset form states
+    setOfferPrice(null);
+    setOfferPriceText('');
+    setOfferMessage('');
+    setPurchaseMessage('');
+  }, [vehicle, navigation, paymentActionType, displayPrice, offerMessage, purchaseMessage]);
+
+  // Legacy purchase modal handler (kept for compatibility)
   const handleSendPurchase = useCallback(() => {
     if (!vehicle) return;
     setPurchaseModalVisible(false);
-    // Navigate to messages screen with purchase intent
-    navigation.navigate('Messages', {
-      vehicleId: vehicle.id,
-      isPurchase: true,
-      purchaseMessage: purchaseMessage || undefined,
-    });
-  }, [vehicle, navigation, purchaseMessage]);
+    setPaymentActionType('purchase');
+    setSubscriptionCardVisible(true);
+  }, [vehicle]);
 
   const formatPPSRDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
@@ -531,26 +576,19 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             {vehicle.afterMarketExtrasDetailed && vehicle.afterMarketExtrasDetailed.length > 0 && (
               <>
                 <Accordion
-                  title={`Aftermarket Extras (+$${vehicle.afterMarketExtrasDetailed.reduce((sum, e) => sum + e.cost, 0).toLocaleString()})`}
+                  title="Aftermarket Extras"
                   icon="construct-outline"
                   defaultExpanded={false}
                 >
-                  <View style={styles.extrasContent}>
+                  <View style={styles.extrasGrid}>
                     {vehicle.afterMarketExtrasDetailed.map((extra, idx) => (
-                      <View key={`extra-${idx}`} style={styles.extraItem}>
-                        <Text variant="body" weight="medium">{extra.name}</Text>
-                        <Text variant="body" weight="semibold" color="secondary">
-                          ${extra.cost.toLocaleString()}
+                      <View key={`extra-${idx}`} style={styles.extrasGridItem}>
+                        <Ionicons name="sparkles" size={14} color={Colors.secondary} />
+                        <Text variant="bodySmall" weight="medium" style={styles.extrasGridText}>
+                          {extra.name}
                         </Text>
                       </View>
                     ))}
-                    {/* Total Row */}
-                    <View style={styles.extrasTotalRow}>
-                      <Text variant="body" weight="semibold">Total</Text>
-                      <Text variant="body" weight="bold" color="secondary">
-                        ${vehicle.afterMarketExtrasDetailed.reduce((sum, e) => sum + e.cost, 0).toLocaleString()}
-                      </Text>
-                    </View>
                   </View>
                 </Accordion>
                 <Spacer size="sm" />
@@ -567,7 +605,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
         {/* Price Section */}
         <View style={styles.bottomPriceSection}>
           <Text variant="caption" color="textMuted">Asking Price</Text>
-          <Text variant="h4" weight="bold" color="secondary">
+          <Text variant="h3" weight="bold" color="secondary">
             ${askingPrice.toLocaleString()}
           </Text>
         </View>
@@ -580,9 +618,9 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             onPress={() => setOfferModalVisible(true)}
             activeOpacity={0.8}
           >
-            <Ionicons name="pricetag-outline" size={18} color={Colors.secondary} />
+            <Ionicons name="pricetag-outline" size={25} color={Colors.secondary} />
             <Text variant="caption" weight="semibold" color="secondary">
-              Request Offer
+               Request Offer
             </Text>
           </TouchableOpacity>
 
@@ -592,7 +630,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             onPress={handlePurchasePress}
             activeOpacity={0.8}
           >
-            <Ionicons name="cart-outline" size={18} color={Colors.white} />
+            <Ionicons name="cart-outline" size={25} color={Colors.white} />
             <Text variant="body" weight="semibold" style={styles.buyNowButtonText}>
               Purchase
             </Text>
@@ -617,19 +655,19 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                   {/* Header with Icon */}
                   <View style={styles.offerModalHeader}>
                     <View style={styles.offerModalIconBadge}>
-                      <Ionicons name="pricetag" size={24} color={Colors.white} />
+                      <Ionicons name="pricetag" size={20} color={Colors.white} />
                     </View>
                     <TouchableOpacity
                       onPress={() => setOfferModalVisible(false)}
                       style={styles.offerModalCloseButton}
                     >
-                      <Ionicons name="close" size={24} color={Colors.textMuted} />
+                      <Ionicons name="close" size={20} color={Colors.textMuted} />
                     </TouchableOpacity>
                   </View>
 
                   <Text variant="h4" weight="bold" align="center">Request Offer</Text>
 
-                  <Spacer size="md" />
+                  <Spacer size="sm" />
 
                   {/* Vehicle Info Card */}
                   <View style={styles.offerVehicleInfo}>
@@ -638,7 +676,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     </Text>
                     {vehicle.registration && (
                       <View style={styles.offerLicensePlate}>
-                        <Ionicons name="card-outline" size={14} color={Colors.textMuted} />
+                        <Ionicons name="card-outline" size={12} color={Colors.textMuted} />
                         <Text variant="caption" color="textMuted">
                           {vehicle.registration}
                         </Text>
@@ -646,53 +684,48 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     )}
                   </View>
 
-                  <Spacer size="sm" />
+                  <Spacer size="xs" />
 
                   {/* Info Message */}
                   <View style={styles.offerInfoMessage}>
-                    <Ionicons name="information-circle-outline" size={16} color={Colors.textBrand} />
+                    <Ionicons name="information-circle-outline" size={14} color={Colors.textBrand} />
                     <Text variant="caption" color="textSecondary" style={styles.offerInfoText}>
                       The dealer will receive your offer and negotiate with you via messages
                     </Text>
                   </View>
 
-                  <Spacer size="md" />
+                  <Spacer size="sm" />
 
                   {/* Original Price */}
                   <View style={styles.offerOriginalPrice}>
-                    <Text variant="bodySmall" color="textMuted">Asking Price: </Text>
-                    <Text variant="bodySmall" weight="bold" color="text">
+                    <Text variant="caption" color="textMuted">Asking Price: </Text>
+                    <Text variant="caption" weight="bold" color="text">
                       ${askingPrice.toLocaleString()}
                     </Text>
                   </View>
 
-                  <Spacer size="sm" />
+                  <Spacer size="xs" />
 
                   {/* Price Input */}
-                  <View style={styles.offerPriceRow}>
-                    <TouchableOpacity
-                      style={styles.offerPriceButton}
-                      onPress={handleDecreasePrice}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="remove" size={22} color={Colors.textBrand} />
-                    </TouchableOpacity>
-                    <View style={styles.offerPriceDisplay}>
-                      <Text variant="label" color="textMuted">Your Offer</Text>
-                      <Text variant="h2" weight="bold" color="textBrand">
-                        ${displayPrice.toLocaleString()}
-                      </Text>
+                  <View style={styles.offerPriceInputContainer}>
+                    <Text variant="caption" color="textMuted" style={styles.offerPriceLabel}>Your Offer</Text>
+                    <View style={styles.offerPriceInputRow}>
+                      <View style={styles.offerPriceInputInner}>
+                        <Text style={[styles.currencySymbol, { color: Colors.textBrand }]}>$</Text>
+                        <TextInput
+                          style={styles.offerPriceInput}
+                          value={offerPriceText}
+                          onChangeText={handleOfferPriceChange}
+                          keyboardType="numeric"
+                          placeholder={formatPriceForInput(askingPrice)}
+                          placeholderTextColor={Colors.textMuted}
+                          selectTextOnFocus
+                        />
+                      </View>
                     </View>
-                    <TouchableOpacity
-                      style={styles.offerPriceButton}
-                      onPress={handleIncreasePrice}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="add" size={22} color={Colors.textBrand} />
-                    </TouchableOpacity>
                   </View>
 
-                  <Spacer size="md" />
+                  <Spacer size="sm" />
 
                   {/* Message Input */}
                   <TextInput
@@ -706,7 +739,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     textAlignVertical="top"
                   />
 
-                  <Spacer size="lg" />
+                  <Spacer size="md" />
 
                   {/* Submit Button */}
                   <TouchableOpacity
@@ -714,7 +747,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     onPress={handleSendOffer}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="send" size={18} color={Colors.white} />
+                    <Ionicons name="send" size={16} color={Colors.white} />
                     <Text variant="bodySmall" weight="semibold" style={styles.offerSubmitButtonText}>
                       Send My Offer
                     </Text>
@@ -725,7 +758,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     onPress={() => setOfferModalVisible(false)}
                     activeOpacity={0.7}
                   >
-                    <Text variant="bodySmall" weight="medium" color="textMuted">
+                    <Text variant="caption" weight="medium" color="textMuted">
                       Cancel
                     </Text>
                   </TouchableOpacity>
@@ -844,6 +877,24 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Subscription Card Payment Modal */}
+      <SubscriptionCard
+        visible={subscriptionCardVisible}
+        onClose={() => setSubscriptionCardVisible(false)}
+        onPaymentSuccess={handlePaymentSuccess}
+        amount={paymentActionType === 'purchase' ? askingPrice : displayPrice}
+        vehicleInfo={{
+          make: vehicle.make,
+          model: vehicle.model,
+          year: vehicle.year,
+          variant: vehicle.variant,
+          licensePlate: vehicle.registration,
+          dealerName: vehicle.dealerName,
+        }}
+        title={paymentActionType === 'purchase' ? 'Complete Purchase' : 'Confirm Offer Payment'}
+        actionType={paymentActionType}
+      />
 
       {/* Fullscreen Modal */}
       <Modal visible={fullscreenVisible} transparent animationType="fade" onRequestClose={handleCloseFullscreen}>
@@ -1223,6 +1274,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.primary + '30',
   },
+  // Extras Grid (two-column layout)
+  extrasGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  extrasGridItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '48%',
+    paddingVertical: 4,
+  },
+  extrasGridText: {
+    flex: 1,
+    color: Colors.text,
+  },
 
   // Seller Content
   sellerContent: {
@@ -1269,12 +1337,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Platform.OS === 'ios' ? Spacing.xl : Spacing.md,
+    paddingVertical: 10,
     backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius['2xl'],
-    borderTopRightRadius: BorderRadius['2xl'],
-    ...Shadows.lg,
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+    ...Shadows.md,
   },
   bottomPriceSection: {
     gap: 2,
@@ -1288,11 +1355,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: Colors.secondary + '12',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.secondary + '30',
   },
@@ -1300,11 +1367,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: Colors.secondary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
     ...Shadows.sm,
   },
   buyNowButtonText: {
@@ -1379,7 +1446,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: BorderRadius['2xl'],
     borderTopRightRadius: BorderRadius['2xl'],
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] : Spacing.lg,
     width: '100%',
     maxWidth: Platform.OS === 'web' ? 480 : undefined,
@@ -1390,12 +1458,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
+    position: 'relative',
   },
   offerModalIconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.textBrand,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1417,63 +1486,76 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     backgroundColor: Colors.textBrand + '10',
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
   },
   offerInfoText: {
     flex: 1,
-    lineHeight: 18,
+    lineHeight: 16,
+    fontSize: 12,
   },
   offerVehicleInfo: {
     backgroundColor: Colors.surface,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 4,
   },
   offerLicensePlate: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   offerOriginalPrice: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  offerPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+  offerPriceInputContainer: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  offerPriceButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.textBrand + '30',
   },
-  offerPriceDisplay: {
+  offerPriceLabel: {
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
+  },
+  offerPriceInputRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
+    width: '100%',
+  },
+  offerPriceInputInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currencySymbol: {
+    fontSize: 26,
+    fontWeight: '700',
+  },
+  offerPriceInput: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: Colors.textBrand,
+    textAlign: 'center',
+    minWidth: 120,
+    paddingVertical: 4,
+    paddingHorizontal: 0,
   },
   offerMessageInput: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     fontSize: 14,
     color: Colors.text,
-    minHeight: 72,
+    minHeight: 64,
   },
   offerSubmitButton: {
     flexDirection: 'row',
@@ -1481,8 +1563,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.sm,
     backgroundColor: Colors.textBrand,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.lg,
     ...Shadows.sm,
   },
   offerSubmitButtonText: {
@@ -1491,7 +1573,7 @@ const styles = StyleSheet.create({
   offerCancelButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
 
   // Purchase Modal Styles

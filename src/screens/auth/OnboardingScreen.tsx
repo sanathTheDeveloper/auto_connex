@@ -70,7 +70,7 @@ const SLIDES = [
     id: 2,
     illustration: (
       <Image
-        source={require('../../../assets/images/onboarding-2.jpg')}
+        source={require('../../../assets/images/onboarding-2.png')}
         style={slideImageStyle}
       />
     ),
@@ -82,7 +82,7 @@ const SLIDES = [
     id: 3,
     illustration: (
       <Image
-        source={require('../../../assets/images/onboarding-3.jpg')}
+        source={require('../../../assets/images/onboarding-3.png')}
         style={slideImageStyle}
       />
     ),

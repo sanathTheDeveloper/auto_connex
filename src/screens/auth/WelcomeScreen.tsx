@@ -173,16 +173,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.innerContainer}>
         {/* Background Gradient - matches SignupScreen */}
-        <LinearGradient
-          colors={[
-            Colors.backgroundAlt,
-            Colors.tealLight + '15',
-            Colors.primary + '20',
-            Colors.backgroundAlt,
-          ]}
-          locations={[0, 0.3, 0.7, 1]}
-          style={StyleSheet.absoluteFillObject}
-        />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -198,7 +188,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
             </Text>
           </View>
 
-          <Spacer size="lg" />
+          <Spacer size="md" />
 
           {/* Tab Switcher */}
           <View style={styles.tabContainer}>
@@ -256,7 +246,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
             </View>
           </View>
 
-          <Spacer size="lg" />
+          <Spacer size="md" />
 
           {/* Animated Content Card */}
           <Animated.View
@@ -399,7 +389,7 @@ const FeatureRow: React.FC<FeatureRowProps> = ({ icon, title, description, accen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: '#EBEEF2',
   },
   innerContainer: {
     flex: 1,
@@ -429,16 +419,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
-    padding: 4,
+    padding: 3,
     position: 'relative',
     borderWidth: 1,
     borderColor: Colors.border,
   },
   tabIndicator: {
     position: 'absolute',
-    top: 4,
-    left: 4,
-    bottom: 4,
+    top: 3,
+    left: 3,
+    bottom: 3,
     borderRadius: BorderRadius.md,
   },
   tab: {
@@ -446,7 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.sm + 2,
+    paddingVertical: Spacing.xs + 2,
     zIndex: 1,
   },
   tabIcon: {

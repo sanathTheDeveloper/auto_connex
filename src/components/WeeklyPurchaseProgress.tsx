@@ -1,321 +1,153 @@
 /**
  * WeeklyPurchaseProgress Component
  *
- * Shows 7-day purchase progress bar with budget tracking.
- * Displays spending against set budget with visual progress indicator.
- * Uses brand-compliant Primary color (#0ABAB5) for progress bar.
+ * Compact weekly tracker with progress bar and spent amount.
+ * Uses brand colors for a polished look.
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
 import { Text } from '../design-system/atoms/Text';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
 import { formatFullPrice } from '../data/vehicles';
 
 interface WeeklyPurchaseProgressProps {
-  /** Total amount spent in the current 7-day period */
   amountSpent: number;
-  /** Number of vehicles purchased this week */
-  vehicleCount: number;
-  /** Days remaining in the current week */
-  daysRemaining: number;
-  /** Weekly budget limit */
-  budget: number;
-  /** Callback when settings button is pressed */
-  onSettingsPress: () => void;
+  currentDay: number;
 }
 
 export const WeeklyPurchaseProgress: React.FC<WeeklyPurchaseProgressProps> = ({
   amountSpent,
-  vehicleCount,
-  daysRemaining,
-  budget,
-  onSettingsPress,
+  currentDay,
 }) => {
-  const budgetPercentage = budget > 0 ? (amountSpent / budget) * 100 : 0;
-  const remainingBudget = budget - amountSpent;
-  const isOverBudget = amountSpent > budget;
-  const isNearBudget = budgetPercentage >= 80 && !isOverBudget;
-
-  const getProgressColor = () => {
-    if (isOverBudget) return Colors.accent;
-    if (isNearBudget) return Colors.warning;
-    return Colors.primary;
-  };
+  const progressPercent = (currentDay / 7) * 100;
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-          <Text variant="bodySmall" weight="semibold" style={styles.title}>
-            7-Day Purchase Activity
-          </Text>
+      {/* Progress Section */}
+      <View style={styles.progressSection}>
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>This Week</Text>
+          <Text style={styles.dayCount}>Day {currentDay} of 7</Text>
         </View>
-        <View style={styles.headerRight}>
-          <Text variant="caption" style={styles.daysRemaining}>
-            {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left
-          </Text>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={onSettingsPress}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="settings-outline" size={16} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Stats Row */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text variant="h4" weight="bold" style={styles.statValue}>
-            {formatFullPrice(amountSpent)}
-          </Text>
-          <Text variant="caption" style={styles.statLabel}>
-            Total Spent
-          </Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.statItem}>
-          <Text variant="h4" weight="bold" style={styles.statValue}>
-            {vehicleCount}
-          </Text>
-          <Text variant="caption" style={styles.statLabel}>
-            Vehicles Purchased
-          </Text>
-        </View>
-      </View>
-
-      {/* Budget Progress */}
-      <View style={styles.budgetSection}>
-        <View style={styles.budgetHeader}>
-          <Text variant="caption" style={styles.budgetLabel}>
-            Budget Progress
-          </Text>
-          <Text variant="caption" weight="semibold" style={[
-            styles.budgetPercentage,
-            isOverBudget && styles.budgetOverText,
-            isNearBudget && styles.budgetNearText,
-          ]}>
-            {Math.round(budgetPercentage)}% used
-          </Text>
-        </View>
-
         <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${Math.min(budgetPercentage, 100)}%`,
-                backgroundColor: getProgressColor(),
-              },
-            ]}
-          />
-        </View>
-
-        <View style={styles.budgetFooter}>
-          <Text variant="caption" style={styles.budgetText}>
-            {formatFullPrice(amountSpent)} of {formatFullPrice(budget)}
-          </Text>
-          {!isOverBudget ? (
-            <Text variant="caption" style={styles.remainingText}>
-              {formatFullPrice(remainingBudget)} remaining
-            </Text>
-          ) : (
-            <Text variant="caption" style={styles.overBudgetText}>
-              {formatFullPrice(Math.abs(remainingBudget))} over budget
-            </Text>
-          )}
+          <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+          <View style={styles.progressDots}>
+            {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+              <View
+                key={day}
+                style={[
+                  styles.dot,
+                  day <= currentDay && styles.dotActive
+                ]}
+              />
+            ))}
+          </View>
         </View>
       </View>
 
-      {/* Budget Alert Banner */}
-      {(isNearBudget || isOverBudget) && (
-        <View style={[
-          styles.alertBanner,
-          isOverBudget ? styles.alertBannerDanger : styles.alertBannerWarning,
-        ]}>
-          <Ionicons
-            name={isOverBudget ? 'alert-circle' : 'warning'}
-            size={16}
-            color={isOverBudget ? Colors.accent : Colors.warning}
-          />
-          <Text variant="caption" style={[
-            styles.alertText,
-            isOverBudget ? styles.alertTextDanger : styles.alertTextWarning,
-          ]}>
-            {isOverBudget
-              ? 'You have exceeded your weekly budget'
-              : 'You are approaching your weekly budget limit'}
-          </Text>
-        </View>
-      )}
-
-      {/* Set Budget Hint (shown when no budget or very low) */}
-      {budget === 0 && (
-        <TouchableOpacity style={styles.setBudgetHint} onPress={onSettingsPress}>
-          <Ionicons name="wallet-outline" size={16} color={Colors.primary} />
-          <Text variant="caption" style={styles.setBudgetText}>
-            Tap settings to set your weekly budget
-          </Text>
-          <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
-        </TouchableOpacity>
-      )}
+      {/* Spent Amount */}
+      <View style={styles.amountSection}>
+        <Text style={styles.spentLabel}>Spent</Text>
+        <Text style={styles.amount}>{formatFullPrice(amountSpent)}</Text>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.md,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
-    shadowColor: Colors.text,
+    shadowColor: Colors.secondary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 2,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.secondary,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  title: {
-    color: Colors.text,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  daysRemaining: {
-    color: Colors.primary,
-  },
-  settingsButton: {
-    width: 28,
-    height: 28,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  statItem: {
+  progressSection: {
     flex: 1,
-    alignItems: 'center',
   },
-  statValue: {
-    color: Colors.text,
-  },
-  statLabel: {
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  divider: {
-    width: 1,
-    height: 36,
-    backgroundColor: Colors.border,
-  },
-  budgetSection: {
-    marginTop: Spacing.xs,
-  },
-  budgetHeader: {
+  labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: 6,
   },
-  budgetLabel: {
-    color: Colors.textMuted,
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  budgetPercentage: {
-    color: Colors.primary,
-  },
-  budgetOverText: {
-    color: Colors.accent,
-  },
-  budgetNearText: {
-    color: Colors.warning,
+  dayCount: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.text,
+    opacity: 0.6,
   },
   progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.full,
+    height: 6,
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: 3,
     overflow: 'hidden',
+    position: 'relative',
   },
   progressFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
     height: '100%',
-    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.secondary,
+    borderRadius: 3,
   },
-  budgetFooter: {
+  progressDots: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: Spacing.xs,
+    paddingHorizontal: 2,
   },
-  budgetText: {
-    color: Colors.textMuted,
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'transparent',
   },
-  remainingText: {
-    color: Colors.success,
+  dotActive: {
+    backgroundColor: 'rgba(255,255,255,0.7)',
   },
-  overBudgetText: {
-    color: Colors.accent,
+  amountSection: {
+    alignItems: 'flex-end',
+    marginLeft: Spacing.md,
+    paddingLeft: Spacing.md,
+    borderLeftWidth: 1,
+    borderLeftColor: Colors.backgroundAlt,
   },
-  alertBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.md,
+  spentLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.text,
+    opacity: 0.6,
+    textTransform: 'uppercase',
   },
-  alertBannerWarning: {
-    backgroundColor: Colors.warning + '15',
-  },
-  alertBannerDanger: {
-    backgroundColor: Colors.accent + '15',
-  },
-  alertText: {
-    flex: 1,
-  },
-  alertTextWarning: {
-    color: Colors.warning,
-  },
-  alertTextDanger: {
-    color: Colors.accent,
-  },
-  setBudgetHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    marginTop: Spacing.sm,
-    backgroundColor: Colors.primary + '10',
-    borderRadius: BorderRadius.md,
-  },
-  setBudgetText: {
-    color: Colors.primary,
+  amount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text,
   },
 });
 
