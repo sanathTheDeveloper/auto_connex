@@ -16,6 +16,7 @@ import {
   Platform,
   Easing,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -83,6 +84,10 @@ const ROLE_DATA = {
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState<UserType>('dealer');
   const [containerWidth, setContainerWidth] = useState(getResponsiveWidth());
+  const { height: windowHeight } = useWindowDimensions();
+
+  // Determine if we should use flex layout (no scroll) on web
+  const isCompactWeb = Platform.OS === 'web' && windowHeight < 800;
 
   // Animation values
   const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
@@ -169,143 +174,175 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
     outputRange: [0, tabWidth],
   });
 
+  const renderContent = () => (
+    <>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text variant="h2" weight="bold" align="center">
+          How will you use
+        </Text>
+        <Text variant="h2" weight="bold" align="center" style={styles.brandText}>
+          Auto Connex?
+        </Text>
+      </View>
+
+      <Spacer size={isCompactWeb ? 'sm' : 'md'} />
+
+      {/* Tab Switcher */}
+      <View style={styles.tabContainer}>
+        <View style={styles.tabBackground}>
+          <Animated.View
+            style={[
+              styles.tabIndicator,
+              {
+                width: tabWidth,
+                transform: [{ translateX: indicatorTranslateX }],
+                backgroundColor: currentRole.accentColor,
+              }
+            ]}
+          />
+
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={() => handleTabChange('dealer')}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="storefront"
+              size={16}
+              color={activeTab === 'dealer' ? Colors.white : Colors.text}
+              style={styles.tabIcon}
+            />
+            <Text
+              variant="bodySmall"
+              weight="semibold"
+              style={activeTab === 'dealer' ? styles.tabTextActive : styles.tabText}
+            >
+              Dealer
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={() => handleTabChange('wholesaler')}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="business"
+              size={16}
+              color={activeTab === 'wholesaler' ? Colors.white : Colors.text}
+              style={styles.tabIcon}
+            />
+            <Text
+              variant="bodySmall"
+              weight="semibold"
+              style={activeTab === 'wholesaler' ? styles.tabTextActive : styles.tabText}
+            >
+              Wholesaler
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Spacer size={isCompactWeb ? 'sm' : 'md'} />
+
+      {/* Animated Content Card */}
+      <Animated.View
+        style={[
+          styles.cardWrapper,
+          isCompactWeb && styles.cardWrapperCompact,
+          {
+            opacity: contentFadeAnim,
+            transform: [
+              { translateX: contentSlideAnim },
+              { scale: cardScaleAnim }
+            ],
+          }
+        ]}
+      >
+        <View style={[styles.mainCard, isCompactWeb && styles.mainCardCompact]}>
+          {/* Card Header */}
+          <View style={styles.cardHeader}>
+            <LinearGradient
+              colors={currentRole.gradientColors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.iconBadge, isCompactWeb && styles.iconBadgeCompact]}
+            >
+              <Ionicons name={currentRole.icon} size={isCompactWeb ? 18 : 22} color={Colors.white} />
+            </LinearGradient>
+            <View style={styles.headerTextContainer}>
+              <Text variant="h4" weight="bold">
+                {currentRole.headline}
+              </Text>
+              <Spacer size="xs" />
+              <Text variant="bodySmall" style={styles.subtitleText}>
+                {currentRole.subtitle}
+              </Text>
+            </View>
+          </View>
+
+          {/* Divider */}
+          <View style={[styles.divider, isCompactWeb && styles.dividerCompact]} />
+
+          {/* Features */}
+          <View style={[styles.featuresContainer, isCompactWeb && styles.featuresContainerCompact]}>
+            {currentRole.features.map((feature, index) => (
+              <FeatureRow
+                key={`${activeTab}-${index}`}
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.desc}
+                accentColor={currentRole.accentColor}
+                index={index}
+                compact={isCompactWeb}
+              />
+            ))}
+          </View>
+        </View>
+      </Animated.View>
+    </>
+  );
+
+  // On web, use flex layout without scroll for compact fit
+  if (Platform.OS === 'web') {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.innerContainer}>
+          <View style={styles.webContentContainer}>
+            {renderContent()}
+          </View>
+
+          {/* Fixed Footer */}
+          <View style={[styles.footer, isCompactWeb && styles.footerCompact]}>
+            <Button
+              variant={activeTab === 'dealer' ? 'primary' : 'accent'}
+              size="md"
+              fullWidth
+              onPress={handleContinue}
+            >
+              Continue as {activeTab === 'dealer' ? 'Dealer' : 'Wholesaler'}
+            </Button>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // On mobile, use ScrollView
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.innerContainer}>
-        {/* Background Gradient - matches SignupScreen */}
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text variant="h2" weight="bold" align="center">
-              How will you use
-            </Text>
-            <Text variant="h2" weight="bold" align="center" style={styles.brandText}>
-              Auto Connex?
-            </Text>
-          </View>
-
-          <Spacer size="md" />
-
-          {/* Tab Switcher */}
-          <View style={styles.tabContainer}>
-            <View style={styles.tabBackground}>
-              <Animated.View
-                style={[
-                  styles.tabIndicator,
-                  {
-                    width: tabWidth,
-                    transform: [{ translateX: indicatorTranslateX }],
-                    backgroundColor: currentRole.accentColor,
-                  }
-                ]}
-              />
-
-              <TouchableOpacity
-                style={styles.tab}
-                onPress={() => handleTabChange('dealer')}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="storefront"
-                  size={16}
-                  color={activeTab === 'dealer' ? Colors.white : Colors.text}
-                  style={styles.tabIcon}
-                />
-                <Text
-                  variant="bodySmall"
-                  weight="semibold"
-                  style={activeTab === 'dealer' ? styles.tabTextActive : styles.tabText}
-                >
-                  Dealer
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.tab}
-                onPress={() => handleTabChange('wholesaler')}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="business"
-                  size={16}
-                  color={activeTab === 'wholesaler' ? Colors.white : Colors.text}
-                  style={styles.tabIcon}
-                />
-                <Text
-                  variant="bodySmall"
-                  weight="semibold"
-                  style={activeTab === 'wholesaler' ? styles.tabTextActive : styles.tabText}
-                >
-                  Wholesaler
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <Spacer size="md" />
-
-          {/* Animated Content Card */}
-          <Animated.View
-            style={[
-              styles.cardWrapper,
-              {
-                opacity: contentFadeAnim,
-                transform: [
-                  { translateX: contentSlideAnim },
-                  { scale: cardScaleAnim }
-                ],
-              }
-            ]}
-          >
-            <View style={styles.mainCard}>
-              {/* Card Header */}
-              <View style={styles.cardHeader}>
-                <LinearGradient
-                  colors={currentRole.gradientColors}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.iconBadge}
-                >
-                  <Ionicons name={currentRole.icon} size={22} color={Colors.white} />
-                </LinearGradient>
-                <View style={styles.headerTextContainer}>
-                  <Text variant="h4" weight="bold">
-                    {currentRole.headline}
-                  </Text>
-                  <Spacer size="xs" />
-                  <Text variant="bodySmall" style={styles.subtitleText}>
-                    {currentRole.subtitle}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Divider */}
-              <View style={styles.divider} />
-
-              {/* Features */}
-              <View style={styles.featuresContainer}>
-                {currentRole.features.map((feature, index) => (
-                  <FeatureRow
-                    key={`${activeTab}-${index}`}
-                    icon={feature.icon}
-                    title={feature.title}
-                    description={feature.desc}
-                    accentColor={currentRole.accentColor}
-                    index={index}
-                  />
-                ))}
-              </View>
-            </View>
-          </Animated.View>
-
+          {renderContent()}
           <Spacer size="lg" />
         </ScrollView>
 
-        {/* Fixed Footer - Consistent with OnboardingActions */}
+        {/* Fixed Footer */}
         <View style={styles.footer}>
           <Button
             variant={activeTab === 'dealer' ? 'primary' : 'accent'}
@@ -330,9 +367,10 @@ interface FeatureRowProps {
   description: string;
   accentColor: string;
   index: number;
+  compact?: boolean;
 }
 
-const FeatureRow: React.FC<FeatureRowProps> = ({ icon, title, description, accentColor, index }) => {
+const FeatureRow: React.FC<FeatureRowProps> = ({ icon, title, description, accentColor, index, compact = false }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(15)).current;
 
@@ -365,22 +403,25 @@ const FeatureRow: React.FC<FeatureRowProps> = ({ icon, title, description, accen
     <Animated.View
       style={[
         styles.featureRow,
+        compact && styles.featureRowCompact,
         {
           opacity: fadeAnim,
           transform: [{ translateY: slideAnim }],
         }
       ]}
     >
-      <View style={[styles.featureIconWrapper, { backgroundColor: accentColor + '12' }]}>
-        <Ionicons name={icon} size={16} color={accentColor} />
+      <View style={[styles.featureIconWrapper, compact && styles.featureIconWrapperCompact, { backgroundColor: accentColor + '12' }]}>
+        <Ionicons name={icon} size={compact ? 14 : 16} color={accentColor} />
       </View>
       <View style={styles.featureTextContainer}>
         <Text variant="bodySmall" weight="semibold" style={styles.featureTitle}>
           {title}
         </Text>
-        <Text variant="caption" style={styles.featureDesc}>
-          {description}
-        </Text>
+        {!compact && (
+          <Text variant="caption" style={styles.featureDesc}>
+            {description}
+          </Text>
+        )}
       </View>
     </Animated.View>
   );
@@ -477,7 +518,6 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     color: Colors.textMuted,
-    lineHeight: 18,
   },
   divider: {
     height: 1,
@@ -510,13 +550,47 @@ const styles = StyleSheet.create({
   },
   featureDesc: {
     color: Colors.textMuted,
-    lineHeight: 16,
   },
   // Footer - Consistent with OnboardingActions
   footer: {
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xl,
     paddingTop: Spacing.md,
+  },
+  // Web-specific styles
+  webContentContainer: {
+    flex: 1,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    justifyContent: 'center',
+  },
+  // Compact styles for smaller web viewports
+  cardWrapperCompact: {
+    flex: 1,
+  },
+  mainCardCompact: {
+    padding: Spacing.md,
+  },
+  iconBadgeCompact: {
+    width: 36,
+    height: 36,
+  },
+  dividerCompact: {
+    marginVertical: Spacing.sm,
+  },
+  featuresContainerCompact: {
+    gap: 0,
+  },
+  featureRowCompact: {
+    paddingVertical: Spacing.xs,
+  },
+  featureIconWrapperCompact: {
+    width: 28,
+    height: 28,
+  },
+  footerCompact: {
+    paddingBottom: Spacing.md,
+    paddingTop: Spacing.sm,
   },
 });
 
