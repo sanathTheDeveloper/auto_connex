@@ -23,6 +23,7 @@ import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Animated,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,7 +32,7 @@ import { RootStackParamList } from '../navigation';
 
 // Design System
 import { Text, Button, Spacer, Accordion } from '../design-system';
-import { Colors, Spacing, BorderRadius, Shadows } from '../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../design-system/primitives';
 
 // Components
 import { SubscriptionCard } from '../components';
@@ -46,9 +47,25 @@ import { useFavorites } from '../contexts/FavoritesContext';
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const IMAGE_WIDTH = Platform.OS === 'web' ? Math.min(480, SCREEN_WIDTH) : SCREEN_WIDTH;
-const IMAGE_HEIGHT = IMAGE_WIDTH * 0.85;
+/**
+ * Get responsive image dimensions based on viewport width
+ */
+const getImageDimensions = (screenWidth: number) => {
+  const imageWidth = Platform.OS === 'web' ? Math.min(480, screenWidth) : screenWidth;
+  const imageHeight = imageWidth * 0.85;
+  return { imageWidth, imageHeight };
+};
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
+
 const THUMBNAIL_SIZE = 64;
 
 type VehicleDetailsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'VehicleDetails'>;
@@ -74,6 +91,21 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
   const mainScrollRef = useRef<ScrollView>(null);
   const fullscreenScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
+
+  // Track viewport dimensions for responsive sizing
+  const [screenDimensions, setScreenDimensions] = useState(() => Dimensions.get('window'));
+
+  // Listen for dimension changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setScreenDimensions(window);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Calculate dynamic image dimensions
+  const { imageWidth, imageHeight } = getImageDimensions(screenDimensions.width);
+  const responsivePadding = getResponsiveSpacing('md', screenDimensions.width);
 
   const vehicle = useMemo(() => VEHICLES.find((v) => v.id === vehicleId), [vehicleId]);
 
@@ -131,20 +163,20 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
 
   const handleImageScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / IMAGE_WIDTH);
+    const index = Math.round(offsetX / imageWidth);
     setCurrentImageIndex(index);
-  }, []);
+  }, [imageWidth]);
 
   const handleFullscreenScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / SCREEN_WIDTH);
+    const index = Math.round(offsetX / screenDimensions.width);
     setCurrentImageIndex(index);
-  }, []);
+  }, [screenDimensions.width]);
 
   const handleThumbnailPress = useCallback((index: number) => {
     setCurrentImageIndex(index);
-    mainScrollRef.current?.scrollTo({ x: index * IMAGE_WIDTH, animated: true });
-  }, []);
+    mainScrollRef.current?.scrollTo({ x: index * imageWidth, animated: true });
+  }, [imageWidth]);
 
   // Thumbnail animation values - scale and opacity for blur effect
   const thumbnailScales = useRef<Animated.Value[]>([]).current;
@@ -190,7 +222,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
       // Calculate scroll position to center the active thumbnail
       const thumbnailTotalWidth = THUMBNAIL_SIZE + Spacing.sm; // thumbnail + gap
       const containerPadding = Spacing.md; // thumbnailStrip paddingHorizontal
-      const viewportWidth = IMAGE_WIDTH;
+      const viewportWidth = imageWidth;
 
       // Position of active thumbnail's center
       const thumbnailCenterX = containerPadding + (currentImageIndex * thumbnailTotalWidth) + (THUMBNAIL_SIZE / 2);
@@ -200,14 +232,14 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
 
       thumbnailScrollRef.current.scrollTo({ x: scrollX, animated: true });
     }
-  }, [currentImageIndex, vehicleImages.length]);
+  }, [currentImageIndex, vehicleImages.length, imageWidth]);
 
   const handleImagePress = useCallback(() => {
     setFullscreenVisible(true);
     setTimeout(() => {
-      fullscreenScrollRef.current?.scrollTo({ x: currentImageIndex * SCREEN_WIDTH, animated: false });
+      fullscreenScrollRef.current?.scrollTo({ x: currentImageIndex * screenDimensions.width, animated: false });
     }, 100);
-  }, [currentImageIndex]);
+  }, [currentImageIndex, screenDimensions.width]);
 
   const handleCloseFullscreen = useCallback(() => setFullscreenVisible(false), []);
   const handleBack = useCallback(() => navigation.goBack(), [navigation]);
@@ -337,7 +369,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                 <Image
                   key={`vehicle-image-${index}`}
                   source={image}
-                  style={styles.heroImage}
+                  style={[styles.heroImage, { width: imageWidth, height: imageHeight }]}
                   resizeMode="cover"
                 />
               ))}
@@ -918,8 +950,8 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             scrollEventThrottle={16}
           >
             {vehicleImages.map((image, index) => (
-              <View key={`fs-${index}`} style={styles.fullscreenImageWrapper}>
-                <Image source={image} style={styles.fullscreenImage} resizeMode="contain" />
+              <View key={`fs-${index}`} style={[styles.fullscreenImageWrapper, { width: screenDimensions.width, height: screenDimensions.height }]}>
+                <Image source={image} style={[styles.fullscreenImage, { width: screenDimensions.width, height: screenDimensions.height * 0.7 }]} resizeMode="contain" />
               </View>
             ))}
           </ScrollView>
@@ -1017,8 +1049,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   heroImage: {
-    width: IMAGE_WIDTH,
-    height: IMAGE_HEIGHT,
+    // width and height set dynamically via inline style
   },
   imageCounter: {
     position: 'absolute',
@@ -1426,14 +1457,12 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   fullscreenImageWrapper: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    // width and height set dynamically via inline style
     justifyContent: 'center',
     alignItems: 'center',
   },
   fullscreenImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.7,
+    // width and height set dynamically via inline style
   },
 
   // Offer Modal - Modern Design

@@ -4,6 +4,9 @@
  * Touchable button with Auto Connex brand variants.
  * Supports icons, loading states, and multiple sizes.
  *
+ * Now uses dynamic dimension detection for proper responsive behavior
+ * across mobile devices and desktop browser inspect mode.
+ *
  * @example
  * <Button variant="primary" onPress={handleSubmit}>
  *   Submit Deal
@@ -18,7 +21,7 @@
  * </Button>
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TouchableOpacity,
   TouchableOpacityProps,
@@ -28,16 +31,11 @@ import {
   View,
   Platform,
   Dimensions,
+  ScaledSize,
 } from 'react-native';
-import { Colors, Spacing, BorderRadius } from '../primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius } from '../primitives';
 import { Text } from './Text';
 import { Ionicons } from '@expo/vector-icons';
-
-// Helper to detect mobile viewport (including mobile web)
-const isMobileViewport = () => {
-  const width = Dimensions.get('window').width;
-  return width < 768; // True for both native mobile and mobile web
-};
 
 type ButtonVariant =
   | 'primary'    // Teal solid (main actions)
@@ -77,6 +75,8 @@ export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
  * Accent: Pink/coral solid for CTAs
  * Outline: Bordered for low emphasis
  * Ghost: Text-only for minimal emphasis
+ *
+ * Now includes dimension change listener for proper responsive updates
  */
 export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
@@ -91,9 +91,21 @@ export const Button: React.FC<ButtonProps> = ({
   onPress,
   ...rest
 }) => {
+  // Track viewport width for responsive sizing
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for dimension changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  const isMobile = viewportWidth <= 480;
   const isDisabled = disabled || loading;
   const variantStyle = variantStyles[variant];
-  const sizeStyle = sizeStyles[size];
+  const sizeStyle = getSizeStyle(size, isMobile);
   const textColor = getTextColor(variant);
   const textColorKey = getTextColorKey(variant);
 
@@ -120,13 +132,13 @@ export const Button: React.FC<ButtonProps> = ({
             {iconLeft && (
               <Ionicons
                 name={iconLeft}
-                size={getIconSize(size)}
+                size={getIconSize(size, isMobile)}
                 color={textColor}
                 style={styles.iconLeft}
               />
             )}
             <Text
-              variant={getTextVariant(size)}
+              variant={getTextVariant(size, isMobile)}
               color={textColorKey as any}
               weight="medium"
               style={styles.text}
@@ -136,7 +148,7 @@ export const Button: React.FC<ButtonProps> = ({
             {iconRight && (
               <Ionicons
                 name={iconRight}
-                size={getIconSize(size)}
+                size={getIconSize(size, isMobile)}
                 color={textColor}
                 style={styles.iconRight}
               />
@@ -227,25 +239,29 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
 };
 
 /**
- * Size-specific styles (Mobile-optimized for comfortable tap targets - min 44px)
+ * Get size-specific styles dynamically based on viewport
+ * (Mobile-optimized for comfortable tap targets - min 44px)
  */
-const sizeStyles: Record<ButtonSize, ViewStyle> = {
-  sm: {
-    paddingHorizontal: isMobileViewport() ? Spacing.md : Spacing.lg,
-    paddingVertical: isMobileViewport() ? 6 : Spacing.sm,
-    minHeight: isMobileViewport() ? 36 : 40,
-  },
-  md: {
-    paddingHorizontal: isMobileViewport() ? Spacing.lg : Spacing.xl,
-    paddingVertical: isMobileViewport() ? 10 : Spacing.md,
-    minHeight: isMobileViewport() ? 48 : 52,
-  },
-  lg: {
-    paddingHorizontal: isMobileViewport() ? Spacing.xl : Spacing['2xl'],
-    paddingVertical: isMobileViewport() ? 12 : Spacing.lg,
-    minHeight: isMobileViewport() ? 52 : 56,
-  },
-};
+function getSizeStyle(size: ButtonSize, isMobile: boolean): ViewStyle {
+  const styles: Record<ButtonSize, ViewStyle> = {
+    sm: {
+      paddingHorizontal: isMobile ? SpacingMobile.md : Spacing.lg,
+      paddingVertical: isMobile ? 6 : Spacing.sm,
+      minHeight: isMobile ? 36 : 40,
+    },
+    md: {
+      paddingHorizontal: isMobile ? SpacingMobile.lg : Spacing.xl,
+      paddingVertical: isMobile ? 10 : Spacing.md,
+      minHeight: isMobile ? 48 : 52,
+    },
+    lg: {
+      paddingHorizontal: isMobile ? SpacingMobile.xl : Spacing['2xl'],
+      paddingVertical: isMobile ? 12 : Spacing.lg,
+      minHeight: isMobile ? 52 : 56,
+    },
+  };
+  return styles[size];
+}
 
 /**
  * Get text color key based on variant (returns key for Text component)
@@ -278,32 +294,30 @@ function getTextColor(variant: ButtonVariant): string {
 /**
  * Get icon size based on button size (smaller on mobile viewports)
  */
-function getIconSize(size: ButtonSize): number {
-  const mobile = isMobileViewport();
+function getIconSize(size: ButtonSize, isMobile: boolean): number {
   switch (size) {
     case 'sm':
-      return mobile ? 14 : 16;
+      return isMobile ? 14 : 16;
     case 'md':
-      return mobile ? 18 : 20;
+      return isMobile ? 18 : 20;
     case 'lg':
-      return mobile ? 20 : 24;
+      return isMobile ? 20 : 24;
     default:
-      return mobile ? 18 : 20;
+      return isMobile ? 18 : 20;
   }
 }
 
 /**
  * Get text variant based on button size
  */
-function getTextVariant(size: ButtonSize): 'caption' | 'label' | 'bodySmall' | 'body' {
-  const mobile = isMobileViewport();
+function getTextVariant(size: ButtonSize, isMobile: boolean): 'caption' | 'label' | 'bodySmall' | 'body' {
   switch (size) {
     case 'sm':
       return 'label';
     case 'md':
       return 'bodySmall';
     case 'lg':
-      return mobile ? 'bodySmall' : 'body';
+      return isMobile ? 'bodySmall' : 'body';
     default:
       return 'bodySmall';
   }

@@ -7,6 +7,9 @@
  * - Heading + body text below image
  * - Maximum whitespace and breathing room
  *
+ * Uses flex-based layout instead of percentage heights to avoid overflow
+ * and properly adapt to different viewport sizes including safe areas.
+ *
  * @example
  * <OnboardingSlide
  *   illustration={<Image source={...} />}
@@ -15,11 +18,11 @@
  * />
  */
 
-import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ViewStyle, Dimensions, ScaledSize } from 'react-native';
 import { Text } from '../atoms/Text';
 import { Spacer } from '../atoms/Spacer';
-import { Colors, Spacing } from '../primitives';
+import { Colors, Spacing, SpacingMobile } from '../primitives';
 
 export interface OnboardingSlideProps {
   /** Category label - DEPRECATED */
@@ -41,11 +44,24 @@ export interface OnboardingSlideProps {
 }
 
 /**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
+
+/**
  * OnboardingSlide organism
  *
  * Clean, centered design with large illustration as primary focus.
  * Text content is secondary, positioned below the image.
  * Navigation buttons handled separately by OnboardingActions component.
+ *
+ * Uses flex-based layout (flex: 6 for image, flex: 3 for text) instead of
+ * percentage heights to avoid overflow issues and adapt to safe areas.
  */
 export const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
   illustration,
@@ -53,15 +69,30 @@ export const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
   body,
   style,
 }) => {
+  // Track viewport for responsive spacing
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Calculate responsive spacing
+  const paddingHorizontal = getResponsiveSpacing('xl', viewportWidth);
+  const paddingTop = getResponsiveSpacing('xl', viewportWidth);
+  const paddingBottom = getResponsiveSpacing('lg', viewportWidth);
+
   return (
     <View style={[styles.container, style]}>
-      {/* Image Area - Top portion */}
+      {/* Image Area - Uses flex instead of fixed percentage */}
       <View style={styles.illustrationContainer}>
         {illustration}
       </View>
 
-      {/* Text Area - Bottom portion */}
-      <View style={styles.textContainer}>
+      {/* Text Area - Uses flex instead of fixed percentage */}
+      <View style={[styles.textContainer, { paddingHorizontal, paddingTop, paddingBottom }]}>
         {/* Heading - Volkhov font for titles/headings */}
         <Text variant="h2" align="center" weight="bold" style={styles.heading}>
           {heading}
@@ -84,29 +115,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   illustrationContainer: {
-    height: '70%',
+    flex: 1, // Take remaining space after text content
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
+    overflow: 'hidden',
   },
   textContainer: {
-    height: '40%',
-    justifyContent: 'flex-start',
+    // No flex - sizes to content naturally
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing['2xl'], // Minimal spacing between image and heading
-    paddingBottom: Spacing.lg,
     backgroundColor: Colors.white,
+    // paddingHorizontal, paddingTop, paddingBottom applied dynamically
   },
   heading: {
     maxWidth: 380,
     color: Colors.text,
-    lineHeight: 32,
   },
   body: {
     maxWidth: 380,
-    color: Colors.greyscale700, // Darker grey for better visibility on white background
-    lineHeight: 24,
+    color: Colors.greyscale700,
     opacity: 0.9,
   },
 });

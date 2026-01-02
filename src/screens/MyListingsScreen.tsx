@@ -6,7 +6,7 @@
  * Allows sellers to view, edit, and manage their listings.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,6 +17,8 @@ import {
   Platform,
   Alert,
   RefreshControl,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,7 +27,17 @@ import { RootStackParamList } from '../navigation';
 
 // Design System
 import { Text, Spacer } from '../design-system';
-import { Colors, Spacing, BorderRadius, Shadows } from '../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Context
 import { useMyListings, ListingStatus, PublishedListing } from '../contexts/MyListingsContext';
@@ -358,6 +370,19 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, onCreateListing }) => {
 export default function MyListingsScreen({ navigation }: MyListingsScreenProps) {
   const [activeTab, setActiveTab] = useState<ListingStatus>('available');
   const [refreshing, setRefreshing] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
+  const responsiveGap = getResponsiveSpacing('md', viewportWidth);
 
   const {
     listings,

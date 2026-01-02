@@ -9,7 +9,7 @@
  * proper typography, and consistent spacing.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,6 +18,8 @@ import {
   TouchableOpacity,
   TextInput,
   Platform,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,8 +27,18 @@ import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation';
 
 // Design System
-import { Text, Spacer, Accordion, Button } from '../../design-system';
-import { Colors, Spacing, BorderRadius, Shadows } from '../../design-system/primitives';
+import { Text, Spacer, Accordion, Button, ProgressBar } from '../../design-system';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Context
 import { useSell, maskVIN, VehicleBasicDetails } from '../../contexts/SellContext';
@@ -79,6 +91,20 @@ export const VehicleDetailsFormScreen: React.FC<VehicleDetailsFormScreenProps> =
 }) => {
   const { listingData, setVehicleDetails } = useSell();
   const fromReview = route.params?.fromReview ?? false;
+
+  // Viewport state for responsive design
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
 
   // Local form state initialized from context
   const [formData, setFormData] = useState<VehicleBasicDetails>(
@@ -175,24 +201,16 @@ export const VehicleDetailsFormScreen: React.FC<VehicleDetailsFormScreenProps> =
       >
         {/* Progress Section - Hidden when editing from review */}
         {!fromReview && (
-          <View style={styles.progressSection}>
-            <View style={styles.progressBarContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${(CURRENT_STEP / TOTAL_STEPS) * 100}%` },
-                  ]}
-                />
-              </View>
-            </View>
-            <Text variant="caption" color="textMuted" style={styles.stepText}>
-              Step {CURRENT_STEP} of {TOTAL_STEPS}
-            </Text>
-          </View>
+          <>
+            <ProgressBar 
+              currentStep={2} 
+              totalSteps={7} 
+              stepLabel="Vehicle Details"
+              variant="minimal"
+            />
+            <Spacer size="sm" />
+          </>
         )}
-
-        {!fromReview && <Spacer size="xs" />}
 
         {/* Success Banner */}
         <View style={styles.successBanner}>
@@ -655,30 +673,6 @@ const styles = StyleSheet.create({
   },
 
   // Progress
-  progressSection: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  progressBarContainer: {
-    width: '100%',
-    marginBottom: Spacing.md,
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  stepText: {
-    letterSpacing: 0.5,
-  },
-
   // Success Banner
   successBanner: {
     flexDirection: 'row',

@@ -4,6 +4,9 @@
  * User type selection screen with animated tab switcher.
  * Features Dealer/Wholesaler tabs with smooth content transitions.
  * Brand-compliant design following Auto Connex guidelines.
+ *
+ * Now uses Dimensions event listener for proper responsive behavior
+ * across mobile devices and desktop browser inspect mode.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -16,6 +19,7 @@ import {
   Platform,
   Easing,
   Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,10 +28,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../design-system/atoms/Text';
 import { Spacer } from '../../design-system/atoms/Spacer';
 import { Button } from '../../design-system/atoms/Button';
-import { Colors, Spacing, BorderRadius, Shadows } from '../../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../../design-system/primitives';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const getResponsiveWidth = () => Platform.OS === 'web' ? Math.min(480, SCREEN_WIDTH) : SCREEN_WIDTH;
+/**
+ * Calculate responsive width based on current viewport
+ * Constrains to 480px max on web for mobile simulation
+ */
+const getResponsiveWidth = (screenWidth: number) => {
+  return Platform.OS === 'web' ? Math.min(480, screenWidth) : screenWidth;
+};
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Navigation types
 type RootStackParamList = {
@@ -82,7 +101,8 @@ const ROLE_DATA = {
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState<UserType>('dealer');
-  const [containerWidth, setContainerWidth] = useState(getResponsiveWidth());
+  const [containerWidth, setContainerWidth] = useState(() => getResponsiveWidth(Dimensions.get('window').width));
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
 
   // Animation values
   const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
@@ -90,13 +110,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   const contentSlideAnim = useRef(new Animated.Value(0)).current;
   const cardScaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Handle window resize on web
+  // Handle dimension changes (resize on web, orientation on mobile)
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      const handleResize = () => setContainerWidth(getResponsiveWidth());
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setContainerWidth(getResponsiveWidth(window.width));
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
   }, []);
 
   const handleTabChange = useCallback((tab: UserType) => {
@@ -162,8 +182,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
 
   const currentRole = ROLE_DATA[activeTab];
 
-  // Tab indicator position - calculate based on container width
-  const tabWidth = (containerWidth - Spacing.xl * 2 - Spacing.xs * 2 - 8) / 2;
+  // Get responsive spacing values
+  const spacingXl = getResponsiveSpacing('xl', viewportWidth);
+  const spacingXs = getResponsiveSpacing('xs', viewportWidth);
+  const spacingLg = getResponsiveSpacing('lg', viewportWidth);
+  const spacingMd = getResponsiveSpacing('md', viewportWidth);
+
+  // Tab indicator position - calculate based on container width with responsive spacing
+  const tabWidth = (containerWidth - spacingXl * 2 - spacingXs * 2 - 8) / 2;
   const indicatorTranslateX = tabIndicatorAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, tabWidth],
@@ -175,7 +201,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
         {/* Background Gradient - matches SignupScreen */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingHorizontal: spacingXl, paddingTop: spacingLg, paddingBottom: spacingMd }
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
@@ -306,7 +335,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
         </ScrollView>
 
         {/* Fixed Footer - Consistent with OnboardingActions */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingHorizontal: spacingXl, paddingBottom: spacingXl, paddingTop: spacingMd }]}>
           <Button
             variant={activeTab === 'dealer' ? 'primary' : 'accent'}
             size="md"
@@ -401,12 +430,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
+    // paddingHorizontal, paddingTop, paddingBottom applied dynamically
   },
   header: {
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: 4, // Minimal padding for header alignment
   },
   brandText: {
     color: Colors.primary,
@@ -512,11 +539,9 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     lineHeight: 16,
   },
-  // Footer - Consistent with OnboardingActions
+  // Footer - padding applied dynamically for responsive behavior
   footer: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xl,
-    paddingTop: Spacing.md,
+    // paddingHorizontal, paddingBottom, paddingTop applied dynamically
   },
 });
 

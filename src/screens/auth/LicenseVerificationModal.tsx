@@ -5,7 +5,7 @@
  * Clean, brand-compliant design following Auto Connex guidelines.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,12 +13,24 @@ import {
   Animated,
   Platform,
   Image,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../design-system/atoms/Text';
 import { Button } from '../../design-system/atoms/Button';
 import { Spacer } from '../../design-system/atoms/Spacer';
-import { Colors, Spacing, BorderRadius } from '../../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius } from '../../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 interface LicenseVerificationModalProps {
   visible: boolean;
@@ -34,6 +46,20 @@ export const LicenseVerificationModal: React.FC<LicenseVerificationModalProps> =
 }) => {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Viewport state for responsive design
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('xl', viewportWidth);
 
   useEffect(() => {
     if (visible) {

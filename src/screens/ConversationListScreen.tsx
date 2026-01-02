@@ -5,7 +5,7 @@
  * Consistent with HomeScreen and MessagesScreen design patterns.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,6 +16,8 @@ import {
   Platform,
   RefreshControl,
   Image,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,7 +26,27 @@ import { RootStackParamList } from '../navigation';
 
 // Design System
 import { Text, Spacer } from '../design-system';
-import { Colors, Spacing, BorderRadius, Shadows, Typography, responsive } from '../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows, Typography } from '../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
+
+/**
+ * Get responsive font size based on viewport width
+ */
+const getResponsiveFontSize = (size: keyof typeof Typography.fontSize, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return Typography.fontSizeMobile[size];
+  }
+  return Typography.fontSize[size];
+};
 
 // Data
 import { DEALER_NAMES } from '../data/vehicles';
@@ -217,6 +239,21 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'deals'>('all');
 
+  // Track viewport width for responsive sizing
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for dimension changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Calculate responsive values
+  const responsivePadding = getResponsiveSpacing('md', viewportWidth);
+  const responsiveFontSize = getResponsiveFontSize('base', viewportWidth);
+
   const handleBack = useCallback(() => navigation.goBack(), [navigation]);
 
   const handleRefresh = useCallback(() => {
@@ -332,7 +369,7 @@ export const ConversationListScreen: React.FC<ConversationListScreenProps> = ({ 
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { fontSize: responsiveFontSize }]}
             placeholder="Search conversations..."
             placeholderTextColor={Colors.textMuted}
             value={searchQuery}
@@ -586,7 +623,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: responsive.getFontSize('base'),
+    // fontSize set dynamically via inline style for responsive updates
     color: Colors.text,
     paddingVertical: 2,
     fontFamily: Typography.fontFamily.vesperLibre,

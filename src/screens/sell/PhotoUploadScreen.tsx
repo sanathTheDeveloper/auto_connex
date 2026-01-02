@@ -9,7 +9,7 @@
  * proper typography, and consistent spacing.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -20,6 +20,7 @@ import {
   Platform,
   Alert,
   Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,8 +29,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { RootStackParamList } from '../../navigation';
 
 // Design System
-import { Text, Spacer, Button } from '../../design-system';
-import { Colors, Spacing, BorderRadius, Shadows } from '../../design-system/primitives';
+import { Text, Spacer, Button, ProgressBar } from '../../design-system';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../../design-system/primitives';
 
 // Context
 import { useSell } from '../../contexts/SellContext';
@@ -46,8 +47,19 @@ interface PhotoUploadScreenProps {
   route: PhotoUploadScreenRouteProp;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PHOTO_SIZE = (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.sm * 2 - Spacing.md * 2) / 3;
+// Photo grid gap
+const PHOTO_GAP = 8;
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
+
 const MAX_PHOTOS = 20;
 const MIN_PHOTOS = 1;
 const TOTAL_STEPS = 7;
@@ -57,6 +69,17 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
   const { listingData, setPhotos, addPhoto, removePhoto } = useSell();
   const [isPickerLoading, setIsPickerLoading] = useState(false);
   const fromReview = route.params?.fromReview ?? false;
+
+  // Track viewport width for responsive spacing
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for dimension changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
 
   // Request permissions
   const requestPermissions = useCallback(async () => {
@@ -204,24 +227,16 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
       >
         {/* Progress Section - Hidden when editing from review */}
         {!fromReview && (
-          <View style={styles.progressSection}>
-            <View style={styles.progressBarContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${(CURRENT_STEP / TOTAL_STEPS) * 100}%` },
-                  ]}
-                />
-              </View>
-            </View>
-            <Text variant="caption" color="textMuted" style={styles.stepText}>
-              Step {CURRENT_STEP} of {TOTAL_STEPS}
-            </Text>
-          </View>
+          <>
+            <ProgressBar 
+              currentStep={3} 
+              totalSteps={7} 
+              stepLabel="Upload Photos"
+              variant="minimal"
+            />
+            <Spacer size="sm" />
+          </>
         )}
-
-        {!fromReview && <Spacer size="xs" />}
 
         {/* Photo Count Card */}
         <View style={styles.photoCountCard}>
@@ -243,7 +258,7 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
           </View>
         </View>
 
-        <Spacer size="lg" />
+        <Spacer size="md" />
 
         {/* Upload Buttons */}
         <View style={styles.uploadButtonsRow}>
@@ -276,7 +291,7 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
           </TouchableOpacity>
         </View>
 
-        <Spacer size="lg" />
+        <Spacer size="md" />
 
         {/* Photo Grid */}
         {listingData.photos.length > 0 ? (
@@ -311,7 +326,7 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
                         onPress={() => handleSetAsCover(index)}
                         activeOpacity={0.7}
                       >
-                        <Ionicons name="star-outline" size={14} color={Colors.white} />
+                        <Ionicons name="star-outline" size={12} color={Colors.white} />
                       </TouchableOpacity>
                     )}
                     <TouchableOpacity
@@ -319,7 +334,7 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
                       onPress={() => handleRemovePhoto(index)}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name="trash-outline" size={14} color={Colors.white} />
+                      <Ionicons name="trash-outline" size={12} color={Colors.white} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -332,8 +347,8 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
                   onPress={handlePickImage}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="add" size={28} color={Colors.primary} />
-                  <Text variant="caption" color="primary">
+                  <Ionicons name="add" size={20} color={Colors.primary} />
+                  <Text variant="label" color="primary" style={{ fontSize: 10 }}>
                     Add
                   </Text>
                 </TouchableOpacity>
@@ -356,19 +371,18 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
           </View>
         )}
 
-        <Spacer size="lg" />
+        <Spacer size="md" />
 
         {/* Tips Card */}
         <View style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
             <View style={styles.tipsIconWrapper}>
-              <Ionicons name="bulb" size={16} color={Colors.warning} />
+              <Ionicons name="bulb" size={14} color={Colors.warning} />
             </View>
-            <Text variant="bodySmall" weight="semibold" color="text">
+            <Text variant="label" weight="semibold" color="text">
               Photo Tips
             </Text>
           </View>
-          <Spacer size="sm" />
           <View style={styles.tipsGrid}>
             <View style={styles.tipItem}>
               <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
@@ -397,7 +411,7 @@ export const PhotoUploadScreen: React.FC<PhotoUploadScreenProps> = ({ navigation
           </View>
         </View>
 
-        <Spacer size="xl" />
+        <Spacer size="md" />
 
         {/* Continue/Done Button */}
         <Button
@@ -454,52 +468,28 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
+    paddingBottom: Spacing['2xl'],
   },
 
   // Progress
-  progressSection: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  progressBarContainer: {
-    width: '100%',
-    marginBottom: Spacing.md,
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  stepText: {
-    letterSpacing: 0.5,
-  },
-
   // Photo Count Card
   photoCountCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    ...Shadows.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.sm,
   },
   photoCountIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.primary + '12',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   photoCountInfo: {
     flex: 1,
@@ -513,46 +503,48 @@ const styles = StyleSheet.create({
   // Upload Buttons
   uploadButtonsRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   uploadButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.lg,
-    borderWidth: 2,
-    borderColor: Colors.primary + '25',
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '30',
     borderStyle: 'dashed',
     ...Shadows.sm,
   },
   uploadButtonIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.primary + '12',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
 
   // Photo Grid Card
   photoGridCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
-    ...Shadows.md,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.sm,
+    ...Shadows.sm,
   },
   photoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: PHOTO_GAP,
+    justifyContent: 'flex-start',
   },
   photoContainer: {
-    width: PHOTO_SIZE,
-    height: PHOTO_SIZE,
-    borderRadius: BorderRadius.lg,
+    // 3 columns: (100% - 2 gaps) / 3 = ~31.5% each
+    width: '31.5%',
+    aspectRatio: 1,
+    borderRadius: BorderRadius.md,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -562,46 +554,46 @@ const styles = StyleSheet.create({
   },
   coverBadge: {
     position: 'absolute',
-    top: 4,
-    left: 4,
+    top: 3,
+    left: 3,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
     backgroundColor: Colors.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
     borderRadius: BorderRadius.sm,
   },
   coverBadgeText: {
     color: Colors.white,
-    fontSize: 9,
+    fontSize: 8,
   },
   photoNumber: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 3,
+    right: 3,
     backgroundColor: Colors.text + 'CC',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   photoNumberText: {
     color: Colors.white,
-    fontSize: 10,
+    fontSize: 9,
   },
   photoActions: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
+    bottom: 3,
+    right: 3,
     flexDirection: 'row',
-    gap: 4,
+    gap: 3,
   },
   photoActionButton: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: Colors.text + 'AA',
     alignItems: 'center',
     justifyContent: 'center',
@@ -610,16 +602,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent + 'DD',
   },
   addMoreButton: {
-    width: PHOTO_SIZE,
-    height: PHOTO_SIZE,
-    borderRadius: BorderRadius.lg,
+    width: '31.5%',
+    aspectRatio: 1,
+    borderRadius: BorderRadius.md,
     backgroundColor: Colors.surface,
-    borderWidth: 2,
-    borderColor: Colors.primary + '30',
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '40',
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
+    gap: 2,
   },
 
   // Empty State
@@ -642,20 +634,20 @@ const styles = StyleSheet.create({
   // Tips Card
   tipsCard: {
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.warning + '25',
   },
   tipsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   tipsIconWrapper: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: Colors.warning + '20',
     alignItems: 'center',
     justifyContent: 'center',
@@ -663,12 +655,13 @@ const styles = StyleSheet.create({
   tipsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 4,
     width: '48%',
   },
   tipText: {

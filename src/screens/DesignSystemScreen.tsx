@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   Image,
   SafeAreaView,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
-import { Spacing, Colors as ThemeColors } from '../constants/theme';
+import { Spacing, SpacingMobile, Colors as ThemeColors } from '../constants/theme';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 import { 
   Text, 
   Button, 
@@ -27,7 +39,21 @@ import {
  * Demonstrates proper usage patterns and component variants.
  */
 export default function DesignSystemScreen() {
-  const [inputValue, setInputValue] = React.useState('');
+  const [inputValue, setInputValue] = useState('');
+
+  // Viewport state for responsive design
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
 
   return (
     <SafeAreaView style={styles.container}>

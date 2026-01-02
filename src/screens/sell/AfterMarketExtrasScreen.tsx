@@ -5,7 +5,7 @@
  * Allows users to add after-market extras as a simple list.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,6 +15,8 @@ import {
   TextInput,
   Platform,
   KeyboardAvoidingView,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,8 +24,18 @@ import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation';
 
 // Design System
-import { Text, Spacer, Button } from '../../design-system';
-import { Colors, Spacing, BorderRadius, Shadows } from '../../design-system/primitives';
+import { Text, Spacer, Button, ProgressBar } from '../../design-system';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Context
 import { useSell, AfterMarketExtra, generateId } from '../../contexts/SellContext';
@@ -57,6 +69,20 @@ const SUGGESTIONS = [
 export const AfterMarketExtrasScreen: React.FC<AfterMarketExtrasScreenProps> = ({ navigation, route }) => {
   const { listingData, setAfterMarketExtras } = useSell();
   const fromReview = route.params?.fromReview ?? false;
+
+  // Viewport state for responsive design
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
 
   // Local state
   const [extras, setExtras] = useState<AfterMarketExtra[]>(listingData.afterMarketExtras);
@@ -138,17 +164,16 @@ export const AfterMarketExtrasScreen: React.FC<AfterMarketExtrasScreenProps> = (
         >
           {/* Progress Indicator - Hidden when editing from review */}
           {!fromReview && (
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '71%' }]} />
-              </View>
-              <Text variant="caption" color="textMuted" style={styles.stepText}>
-                Step 5 of 7
-              </Text>
-            </View>
+            <>
+              <ProgressBar 
+                currentStep={5} 
+                totalSteps={7} 
+                stepLabel="Aftermarket Extras"
+                variant="minimal"
+              />
+              <Spacer size="sm" />
+            </>
           )}
-
-          {!fromReview && <Spacer size="xs" />}
 
           {/* Icon */}
           <View style={styles.iconWrapper}>
@@ -340,30 +365,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing['3xl'],
-  },
-
-  // Progress
-  progressContainer: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-    gap: Spacing.md,
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  stepText: {
-    letterSpacing: 0.5,
   },
 
   // Icon

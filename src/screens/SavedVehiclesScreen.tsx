@@ -5,7 +5,7 @@
  * Uses the FavoritesContext to get and manage favorites.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,6 +15,8 @@ import {
   Image,
   Platform,
   ImageBackground,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,7 +25,17 @@ import { RootStackParamList } from '../navigation';
 // Design System
 import { Text } from '../design-system/atoms/Text';
 import { Spacer } from '../design-system/atoms/Spacer';
-import { Colors, Spacing, BorderRadius, Shadows } from '../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Data
 import {
@@ -219,6 +231,19 @@ const EmptyState: React.FC<{ onBrowsePress: () => void }> = ({ onBrowsePress }) 
 
 export default function SavedVehiclesScreen({ navigation }: SavedVehiclesScreenProps) {
   const { favorites, toggleFavorite, getFavoriteCount } = useFavorites();
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
+  const responsiveGap = getResponsiveSpacing('md', viewportWidth);
 
   // Get saved vehicles from VEHICLES data
   const savedVehicles = VEHICLES.filter(vehicle => favorites.has(vehicle.id));

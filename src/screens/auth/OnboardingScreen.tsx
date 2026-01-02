@@ -6,6 +6,9 @@
  * Swipeable with iOS-style spring animations and pagination.
  * Responsive for web with centered max-width container.
  *
+ * Now uses Dimensions event listener for proper responsive behavior
+ * across mobile devices and desktop browser inspect mode.
+ *
  * @example
  * <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
  */
@@ -20,14 +23,20 @@ import {
   NativeScrollEvent,
   Platform,
   Image,
+  ScaledSize,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingSlide, OnboardingPagination, OnboardingActions } from '../../design-system/organisms';
-import { Colors, Spacing } from '../../design-system/primitives';
+import { Colors } from '../../design-system/primitives';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const getResponsiveWidth = () => Platform.OS === 'web' ? Math.min(480, SCREEN_WIDTH) : SCREEN_WIDTH;
+/**
+ * Calculate responsive width based on current viewport
+ * Constrains to 480px max on web for mobile simulation
+ */
+const getResponsiveWidth = (screenWidth: number) => {
+  return Platform.OS === 'web' ? Math.min(480, screenWidth) : screenWidth;
+};
 
 // Navigation types
 type RootStackParamList = {
@@ -104,18 +113,15 @@ const SLIDES = [
  */
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [slideWidth, setSlideWidth] = useState(getResponsiveWidth());
+  const [slideWidth, setSlideWidth] = useState(() => getResponsiveWidth(Dimensions.get('window').width));
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Handle window resize on web
+  // Handle dimension changes (resize on web, orientation on mobile)
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      const handleResize = () => {
-        setSlideWidth(getResponsiveWidth());
-      };
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setSlideWidth(getResponsiveWidth(window.width));
+    });
+    return () => subscription?.remove();
   }, []);
 
   /**

@@ -1,9 +1,11 @@
 /**
  * Text Atomic Component
- * 
+ *
  * Typography component with Auto Connex brand variants.
  * Automatically applies correct fonts (Volkhov/Vesper Libre) and sizes from Figma.
- * 
+ * Now uses dynamic dimension updates for proper responsive behavior across
+ * mobile devices and desktop browser inspect mode.
+ *
  * @example
  * <Text variant="display">AutoConnex</Text>
  * <Text variant="h1">Dashboard</Text>
@@ -11,8 +13,8 @@
  * <Text variant="caption" color="textSecondary">Last updated 5 min ago</Text>
  */
 
-import React from 'react';
-import { Text as RNText, TextProps as RNTextProps, StyleSheet, TextStyle } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text as RNText, TextProps as RNTextProps, StyleSheet, TextStyle, Dimensions, ScaledSize } from 'react-native';
 import { Colors, Typography, responsive } from '../primitives';
 
 type TextVariant = 
@@ -45,9 +47,12 @@ export interface TextComponentProps extends RNTextProps {
 
 /**
  * Text component with brand-compliant typography
- * 
+ *
  * Uses Volkhov for data-heavy/dashboard content (display, h1, h2)
  * Uses Vesper Libre for listings/transactions (h3, h4, body, caption, label)
+ *
+ * Now includes dimension change listener for proper responsive updates
+ * when viewport size changes (e.g., desktop browser inspect mode)
  */
 export const Text: React.FC<TextComponentProps> = ({
   variant = 'body',
@@ -59,8 +64,19 @@ export const Text: React.FC<TextComponentProps> = ({
   children,
   ...rest
 }) => {
-  // Get dynamic variant style (recalculates on viewport changes)
-  const variantStyle = getVariantStyle(variant);
+  // Track viewport width for responsive font sizes
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for dimension changes (resize on web, orientation on mobile)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Get dynamic variant style based on current viewport width
+  const variantStyle = getVariantStyle(variant, viewportWidth);
   const colorValue = color ? Colors[color] || '#000000' : '#000000';
   const fontWeight = weight ? Typography.fontWeight[weight] : undefined;
 
@@ -92,79 +108,92 @@ const styles = StyleSheet.create({
 });
 
 /**
- * Get dynamic variant style based on current viewport
- * This recalculates on each render to support responsive font sizes
+ * Get responsive font size based on viewport width
+ * Uses mobile font sizes for viewports <= 480px
  */
-const getVariantStyle = (variant: TextVariant): TextStyle => {
+const getResponsiveFontSize = (size: keyof typeof Typography.fontSize, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return Typography.fontSizeMobile[size];
+  }
+  return Typography.fontSize[size];
+};
+
+/**
+ * Get dynamic variant style based on current viewport width
+ * Now accepts viewportWidth parameter for proper responsive updates
+ */
+const getVariantStyle = (variant: TextVariant, viewportWidth: number): TextStyle => {
+  const getFontSize = (size: keyof typeof Typography.fontSize) => getResponsiveFontSize(size, viewportWidth);
+
   const styles: Record<TextVariant, TextStyle> = {
     // Volkhov variants - for data/dashboards
     display: {
       fontFamily: Typography.fontFamily.volkhov,
-      fontSize: responsive.getFontSize('6xl'),
+      fontSize: getFontSize('6xl'),
       fontWeight: Typography.fontWeight.bold,
-      lineHeight: responsive.getFontSize('6xl') * 1.3,
+      lineHeight: getFontSize('6xl') * 1.3,
       letterSpacing: 0,
     },
     h1: {
       fontFamily: Typography.fontFamily.volkhov,
-      fontSize: responsive.getFontSize('5xl'),
+      fontSize: getFontSize('5xl'),
       fontWeight: Typography.fontWeight.bold,
-      lineHeight: responsive.getFontSize('5xl') * 1.3,
+      lineHeight: getFontSize('5xl') * 1.3,
       letterSpacing: 0,
     },
     h2: {
       fontFamily: Typography.fontFamily.volkhov,
-      fontSize: responsive.getFontSize('4xl'),
+      fontSize: getFontSize('4xl'),
       fontWeight: Typography.fontWeight.bold,
-      lineHeight: responsive.getFontSize('4xl') * 1.3,
+      lineHeight: getFontSize('4xl') * 1.3,
       letterSpacing: 0,
     },
-    
+
     // Vesper Libre variants - for listings/transactions
     h3: {
       fontFamily: Typography.fontFamily.volkhov,
-      fontSize: responsive.getFontSize('3xl'),
+      fontSize: getFontSize('3xl'),
       fontWeight: Typography.fontWeight.regular,
-      lineHeight: responsive.getFontSize('3xl') * 1.35,
+      lineHeight: getFontSize('3xl') * 1.35,
       letterSpacing: 0,
     },
     h4: {
       fontFamily: Typography.fontFamily.volkhov,
-      fontSize: responsive.getFontSize('2xl'),
+      fontSize: getFontSize('2xl'),
       fontWeight: Typography.fontWeight.regular,
-      lineHeight: responsive.getFontSize('2xl') * 1.35,
+      lineHeight: getFontSize('2xl') * 1.35,
       letterSpacing: 0,
     },
     body: {
       fontFamily: Typography.fontFamily.vesperLibre,
-      fontSize: responsive.getFontSize('xl'),
+      fontSize: getFontSize('xl'),
       fontWeight: Typography.fontWeight.regular,
-      lineHeight: responsive.getFontSize('xl') * 1.5,
+      lineHeight: getFontSize('xl') * 1.5,
       letterSpacing: 0,
     },
     bodySmall: {
       fontFamily: Typography.fontFamily.vesperLibre,
-      fontSize: responsive.getFontSize('lg'),
+      fontSize: getFontSize('lg'),
       fontWeight: Typography.fontWeight.regular,
-      lineHeight: responsive.getFontSize('lg') * 1.5,
+      lineHeight: getFontSize('lg') * 1.5,
       letterSpacing: 0,
     },
     caption: {
       fontFamily: Typography.fontFamily.vesperLibre,
-      fontSize: responsive.getFontSize('base'),
+      fontSize: getFontSize('base'),
       fontWeight: Typography.fontWeight.regular,
-      lineHeight: responsive.getFontSize('base') * 1.5,
+      lineHeight: getFontSize('base') * 1.5,
       letterSpacing: 0,
     },
     label: {
       fontFamily: Typography.fontFamily.vesperLibre,
-      fontSize: responsive.getFontSize('sm'),
+      fontSize: getFontSize('sm'),
       fontWeight: Typography.fontWeight.medium,
-      lineHeight: responsive.getFontSize('sm') * 1.5,
+      lineHeight: getFontSize('sm') * 1.5,
       letterSpacing: 0.3,
     },
   };
-  
+
   return styles[variant];
 };
 

@@ -9,7 +9,7 @@
  * proper typography, and consistent spacing.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,14 +18,26 @@ import {
   TouchableOpacity,
   TextInput,
   Platform,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 
 // Design System
-import { Text, Spacer, Button } from '../../design-system';
-import { Colors, Spacing, BorderRadius, Shadows } from '../../design-system/primitives';
+import { Text, Spacer, Button, ProgressBar } from '../../design-system';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Context
 import { useSell } from '../../contexts/SellContext';
@@ -47,6 +59,20 @@ const CURRENT_STEP = 1;
 
 export const RegoLookupScreen: React.FC<RegoLookupScreenProps> = ({ navigation }) => {
   const { setVehicleDetails, resetFlow } = useSell();
+
+  // Viewport state for responsive design
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
 
   // Form state
   const [registration, setRegistration] = useState('');
@@ -120,23 +146,14 @@ export const RegoLookupScreen: React.FC<RegoLookupScreenProps> = ({ navigation }
         keyboardShouldPersistTaps="handled"
       >
         {/* Progress Section */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${(CURRENT_STEP / TOTAL_STEPS) * 100}%` },
-                ]}
-              />
-            </View>
-          </View>
-          <Text variant="caption" color="textMuted" style={styles.stepText}>
-            Step {CURRENT_STEP} of {TOTAL_STEPS}
-          </Text>
-        </View>
+        <ProgressBar 
+          currentStep={1} 
+          totalSteps={7} 
+          stepLabel="Rego Lookup"
+          variant="minimal"
+        />
 
-        <Spacer size="xl" />
+        <Spacer size="sm" />
 
         {/* Icon */}
         <View style={styles.iconWrapper}>
@@ -327,30 +344,6 @@ const styles = StyleSheet.create({
   },
 
   // Progress
-  progressSection: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  progressBarContainer: {
-    width: '100%',
-    marginBottom: Spacing.md,
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  stepText: {
-    letterSpacing: 0.5,
-  },
-
   // Icon
   iconWrapper: {
     alignSelf: 'center',

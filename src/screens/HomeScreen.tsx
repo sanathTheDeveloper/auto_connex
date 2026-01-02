@@ -5,11 +5,14 @@
  * Displays vehicle listings with filtering and search capabilities.
  * Features redesigned vehicle cards with background images and streamlined info.
  *
+ * Now uses Dimensions event listener for proper responsive behavior
+ * across mobile devices and desktop browser inspect mode.
+ *
  * @example
  * <Stack.Screen name="Home" component={HomeScreen} />
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -19,6 +22,8 @@ import {
   Image,
   Platform,
   ImageBackground,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -33,7 +38,17 @@ import type { FilterOptions } from '../components';
 import { Text } from '../design-system/atoms/Text';
 import { Button } from '../design-system/atoms/Button';
 import { Spacer } from '../design-system/atoms/Spacer';
-import { Colors, Spacing, BorderRadius } from '../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius } from '../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Data
 import {
@@ -249,6 +264,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  // Track viewport for responsive updates
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Handle dimension changes (resize on web, orientation on mobile)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
 
   // License verification banner state
   const [showLicenseBanner, setShowLicenseBanner] = useState(true);

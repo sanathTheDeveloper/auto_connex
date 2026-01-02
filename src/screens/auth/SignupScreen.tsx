@@ -1,20 +1,23 @@
 /**
  * SignupScreen Component
- * 
+ *
  * Multi-step signup wizard with form validation.
  * Steps: 1) Contact Info → 2) Business Verification → 3) License → 4) Payment Setup
  * Uses slide animations between steps and progress indicator.
- * 
+ *
+ * Now uses Dimensions event listener for proper responsive behavior
+ * across mobile devices and desktop browser inspect mode.
+ *
  * @example
- * <Stack.Screen 
- *   name="Signup" 
- *   component={SignupScreen} 
- *   options={{ headerShown: false }} 
+ * <Stack.Screen
+ *   name="Signup"
+ *   component={SignupScreen}
+ *   options={{ headerShown: false }}
  * />
  */
 
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions, Image } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions, Image, ScaledSize } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,11 +31,21 @@ import {
   EmailInput,
   ABNInput,
 } from '../../design-system/molecules/auth';
-import { Colors, Spacing, BorderRadius, responsive } from '../../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Typography, responsive } from '../../design-system/primitives';
 import { useAuth, SignupData } from '../../contexts/AuthContext';
 import { lookupABN } from '../../services/mockAPI';
 import { AUSTRALIAN_STATES } from '../../data/australia';
 import { WelcomeModal } from './WelcomeModal';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Navigation types
 type RootStackParamList = {
@@ -88,16 +101,24 @@ interface FormErrors {
 
 /**
  * SignupScreen
- * 
+ *
  * 4-step signup wizard:
  * 1. Contact Info (name, email, phone)
  * 2. Business Verification (ABN lookup with auto-fill)
  * 3. License Verification (state-specific)
  * 4. Payment Setup (card details, consent)
  */
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route }) => {
+  // Track viewport for responsive updates
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Handle dimension changes (resize on web, orientation on mobile)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
   const { userType } = route.params;
   const { signup } = useAuth();
 
@@ -116,7 +137,8 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
    * Animate transition between steps
    */
   const animateToStep = (newStep: number, direction: 'forward' | 'back') => {
-    const toValue = direction === 'forward' ? -SCREEN_WIDTH : SCREEN_WIDTH;
+    const screenWidth = viewportWidth;
+    const toValue = direction === 'forward' ? -screenWidth : screenWidth;
 
     // Slide out current step
     Animated.parallel([
@@ -134,7 +156,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
       // Update step and reset position for slide in
       setAnimatingStep(newStep);
       setCurrentStep(newStep);
-      slideAnim.setValue(direction === 'forward' ? SCREEN_WIDTH : -SCREEN_WIDTH);
+      slideAnim.setValue(direction === 'forward' ? screenWidth : -screenWidth);
 
       // Slide in new step
       Animated.parallel([
@@ -648,6 +670,11 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
     </View>
   );
 
+  // Calculate responsive spacing values
+  const spacingMd = getResponsiveSpacing('md', viewportWidth);
+  const spacing3xl = getResponsiveSpacing('3xl', viewportWidth);
+  const spacingXs = getResponsiveSpacing('xs', viewportWidth);
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -657,7 +684,10 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
         >
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingHorizontal: spacingMd, paddingTop: spacing3xl, paddingBottom: spacingXs }
+            ]}
             showsVerticalScrollIndicator={false}
           >
             {/* Centered Card Container */}
@@ -753,9 +783,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing['3xl'],
-    paddingBottom: Spacing.xs,
+    // paddingHorizontal, paddingTop, paddingBottom applied dynamically
   },
   cardContainer: {
     backgroundColor: Colors.white,

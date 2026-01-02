@@ -19,6 +19,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Modal,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,7 +30,17 @@ import { RootStackParamList } from '../navigation';
 
 // Design System
 import { Text, Button, Spacer, Accordion } from '../design-system';
-import { Colors, Spacing, BorderRadius, Shadows } from '../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Context
 import {
@@ -282,6 +294,21 @@ export default function EditListingScreen({ navigation, route }: EditListingScre
 
   // Get the listing data
   const listing = getListingById(listingId);
+
+  // Viewport state for responsive design
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
+  const responsiveGap = getResponsiveSpacing('md', viewportWidth);
 
   // Local state for editing
   const [status, setStatus] = useState<ListingStatus>('available');

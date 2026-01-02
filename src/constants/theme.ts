@@ -234,43 +234,46 @@ export const Layout = {
 /**
  * Responsive utilities for web and mobile
  * CRITICAL: Uses viewport width (not Platform.OS) for web mobile responsiveness
+ *
+ * NOTE: For dynamic updates in components, use the useResponsive hook instead.
+ * These utilities call Dimensions.get() each time for fresh values.
  */
 export const responsive = {
   // Check if running on web
   isWeb: Platform.OS === 'web',
-  
+
   // Check if mobile viewport (works on web AND native mobile)
-  // This ensures mobile styles apply in browser mobile viewports too
+  // NOTE: Calls Dimensions.get() each time for fresh value
   isMobileViewport: () => Dimensions.get('window').width <= 480,
-  
+
   // Check if small mobile device (iPhone SE, iPhone 12 Mini, etc.)
-  isSmallMobile: Dimensions.get('window').width < 375,
-  
+  // NOTE: Now a function to get fresh value each call
+  isSmallMobile: () => Dimensions.get('window').width < 375,
+
   // Check if standard mobile device (based on viewport, not Platform)
-  isMobile: Dimensions.get('window').width < 768,
+  // NOTE: Now a function to get fresh value each call
+  isMobile: () => Dimensions.get('window').width < 768,
 
   // Get responsive padding based on viewport width
   getContentPadding: () => {
     const width = Dimensions.get('window').width;
-    if (width <= 480) return SpacingMobile.lg; // Mobile viewport (web or native)
-    if (width < 375) return SpacingMobile.md; // Small mobile
+    if (width < 375) return SpacingMobile.md; // Small mobile first
+    if (width <= 480) return SpacingMobile.lg; // Mobile viewport
     return Spacing.md; // Desktop
   },
-  
+
   // Get responsive spacing based on viewport width
   getSpacing: (size: keyof typeof Spacing) => {
     const width = Dimensions.get('window').width;
-    // Use mobile spacing for all viewports <= 480px (web mobile + native)
     if (width <= 480) {
       return SpacingMobile[size];
     }
     return Spacing[size];
   },
-  
+
   // Get responsive font size based on viewport width
   getFontSize: (size: keyof typeof Typography.fontSize) => {
     const width = Dimensions.get('window').width;
-    // Use mobile fonts for all viewports <= 480px (web mobile + native)
     if (width <= 480) {
       return Typography.fontSizeMobile[size];
     }
@@ -278,18 +281,22 @@ export const responsive = {
   },
 
   // Get responsive maxWidth for containers
-  getMaxWidth: (defaultWidth: number | string = 400) => {
-    const width = Dimensions.get('window').width;
-    // Constrain to 480px on web for mobile viewport simulation
-    if (Platform.OS === 'web' && width > 480) {
+  getMaxWidth: () => {
+    if (Platform.OS === 'web') {
       return 480;
     }
-    return '100%';
+    return '100%' as const;
   },
 
-  // Get screen dimensions
-  screen: {
+  // Get current screen dimensions (fresh call each time)
+  getScreenDimensions: () => ({
     width: Dimensions.get('window').width,
     height: Dimensions.get('window').height,
+  }),
+
+  // Calculate responsive width (constrained for web)
+  getResponsiveWidth: () => {
+    const width = Dimensions.get('window').width;
+    return Platform.OS === 'web' ? Math.min(480, width) : width;
   },
 };

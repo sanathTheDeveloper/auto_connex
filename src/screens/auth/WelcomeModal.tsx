@@ -9,7 +9,7 @@
  * <WelcomeModal visible={showWelcome} onDismiss={() => {}} />
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,12 +18,21 @@ import {
   Dimensions,
   Image,
   StatusBar,
+  ScaledSize,
 } from 'react-native';
 import { Text } from '../../design-system/atoms/Text';
 import { Spacer } from '../../design-system/atoms/Spacer';
-import { Colors } from '../../design-system/primitives';
+import { Colors, Spacing, SpacingMobile } from '../../design-system/primitives';
 
-const { width, height } = Dimensions.get('window');
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 interface WelcomeModalProps {
   visible: boolean;
@@ -34,6 +43,20 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ visible, onDismiss }
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const gradientAnim = useRef(new Animated.Value(0)).current;
+
+  // Viewport state for responsive design
+  const [dimensions, setDimensions] = useState(() => Dimensions.get('window'));
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setDimensions(window);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('xl', dimensions.width);
 
   useEffect(() => {
     if (visible) {
@@ -102,7 +125,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ visible, onDismiss }
       <StatusBar barStyle="dark-content" />
       
       {/* White Background */}
-      <View style={styles.whiteBackground}>
+      <View style={[styles.whiteBackground, { width: dimensions.width, height: dimensions.height }]}>
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
           {/* App Icon/Logo */}
           <Animated.View
@@ -146,8 +169,6 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ visible, onDismiss }
 const styles = StyleSheet.create({
   whiteBackground: {
     flex: 1,
-    width: width,
-    height: height,
     backgroundColor: Colors.white,
   },
   container: {

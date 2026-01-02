@@ -5,16 +5,29 @@
  * White background with app icon and logo lockup.
  * Auto-navigates to onboarding after 2.5 seconds.
  *
+ * Now uses Dimensions event listener for proper responsive behavior
+ * across mobile devices and desktop browser inspect mode.
+ *
  * @example
  * <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
  */
 
-import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Image, Animated, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Image, Animated, Platform, Dimensions, ScaledSize } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Spacer } from '../../design-system';
-import { Colors, Spacing, responsive } from '../../design-system/primitives';
+import { Colors, Spacing, SpacingMobile } from '../../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Navigation types (will be defined in navigation/index.tsx)
 type RootStackParamList = {
@@ -39,6 +52,15 @@ interface SplashScreenProps {
  */
 export const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Handle dimension changes (resize on web, orientation on mobile)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
 
   useEffect(() => {
     // Simple fade-in animation
@@ -56,13 +78,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
     return () => clearTimeout(timer);
   }, [fadeAnim, navigation]);
 
+  // Calculate responsive values
+  const isMobileViewport = viewportWidth <= 480;
+  const paddingHorizontal = getResponsiveSpacing('xl', viewportWidth);
+  const iconSize = isMobileViewport ? 100 : 120;
+  const logoHeight = isMobileViewport ? 60 : 70;
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingHorizontal }]}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         {/* App Icon */}
         <Image
           source={require('../../../assets/logos/app-icon-teal.png')}
-          style={styles.appIcon}
+          style={[styles.appIcon, { width: iconSize, height: iconSize }]}
           resizeMode="contain"
         />
 
@@ -71,7 +99,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
         {/* Logo Lockup (Brand Name + Tagline) */}
         <Image
           source={require('../../../assets/logos/logo-lockup-teal.png')}
-          style={styles.logoLockup}
+          style={[styles.logoLockup, { height: logoHeight }]}
           resizeMode="contain"
         />
       </Animated.View>
@@ -85,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: responsive.getSpacing('xl'),
+    // paddingHorizontal applied dynamically for responsive behavior
     maxWidth: Platform.OS === 'web' ? 480 : '100%',
     alignSelf: 'center',
     width: '100%',
@@ -96,13 +124,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   appIcon: {
-    width: responsive.isMobileViewport() ? 100 : 120,
-    height: responsive.isMobileViewport() ? 100 : 120,
+    // width and height applied dynamically for responsive behavior
   },
   logoLockup: {
     width: '85%',
     maxWidth: 340,
-    height: responsive.isMobileViewport() ? 60 : 70,
+    // height applied dynamically for responsive behavior
   },
 });
 

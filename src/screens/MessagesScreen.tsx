@@ -26,6 +26,7 @@ import {
   Dimensions,
   Image,
   ImageBackground,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -37,7 +38,7 @@ import { SubscriptionCard } from '../components/SubscriptionCard';
 
 // Design System
 import { Text, Spacer } from '../design-system';
-import { Colors, Spacing, BorderRadius, Shadows, responsive } from '../design-system/primitives';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows, responsive } from '../design-system/primitives';
 
 // Data
 import {
@@ -51,7 +52,15 @@ import {
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 type MessagesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Messages'>;
 type MessagesScreenRouteProp = RouteProp<RootStackParamList, 'Messages'>;
@@ -154,6 +163,20 @@ const MOCK_BUYER = {
 
 export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, route }) => {
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Track viewport width for responsive sizing
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for dimension changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Calculate responsive padding
+  const responsivePadding = getResponsiveSpacing('md', viewportWidth);
 
   // Get params from navigation
   const { vehicleId, offerAmount, offerMessage, isPurchase, purchaseMessage } = route.params || {};

@@ -78,6 +78,9 @@ export type { VerificationBadgeProps } from './molecules/VerificationBadge';
 export { Accordion } from './molecules/Accordion';
 export type { AccordionProps } from './molecules/Accordion';
 
+export { ProgressBar } from './molecules/ProgressBar';
+export type { ProgressBarProps } from './molecules/ProgressBar';
+
 // ============ Auth Molecules ============
 export {
   PhoneInput,

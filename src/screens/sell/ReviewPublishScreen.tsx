@@ -6,7 +6,7 @@
  * Clean, modern design for mobile web view.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,14 +17,26 @@ import {
   ImageBackground,
   Platform,
   Alert,
+  Dimensions,
+  ScaledSize,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 
 // Design System
-import { Text, Spacer, Button } from '../../design-system';
-import { Colors, Spacing, BorderRadius, Shadows } from '../../design-system/primitives';
+import { Text, Spacer, Button, ProgressBar } from '../../design-system';
+import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows } from '../../design-system/primitives';
+
+/**
+ * Get responsive spacing based on viewport width
+ */
+const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
+  if (viewportWidth <= 480) {
+    return SpacingMobile[size];
+  }
+  return Spacing[size];
+};
 
 // Helper functions
 const formatMileage = (mileage: number): string => {
@@ -52,6 +64,20 @@ export const ReviewPublishScreen: React.FC<ReviewPublishScreenProps> = ({ naviga
   const { listingData, clearDraft, resetFlow } = useSell();
   const { addListing } = useMyListings();
   const [isPublishing, setIsPublishing] = useState(false);
+
+  // Viewport state for responsive design
+  const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+
+  // Listen for viewport changes (for web browser resize/inspect mode)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
+      setViewportWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive values
+  const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
 
   const { vehicleDetails, photos, conditionReport, afterMarketExtras, writeOff, pricing, pickupLocation } =
     listingData;
@@ -118,14 +144,12 @@ export const ReviewPublishScreen: React.FC<ReviewPublishScreenProps> = ({ naviga
         showsVerticalScrollIndicator={false}
       >
         {/* Progress */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: '100%' }]} />
-          </View>
-          <Text variant="caption" color="textMuted" style={styles.stepText}>
-            Final Step
-          </Text>
-        </View>
+        <ProgressBar 
+          currentStep={7} 
+          totalSteps={7} 
+          stepLabel="Final Review"
+          variant="minimal"
+        />
 
         <Spacer size="sm" />
 
@@ -463,27 +487,6 @@ const styles = StyleSheet.create({
   },
 
   // Progress
-  progressContainer: {
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  stepText: {
-    letterSpacing: 0.5,
-  },
-
   // Vehicle Card - Matching HomeScreen design
   vehicleCard: {
     backgroundColor: Colors.white,
