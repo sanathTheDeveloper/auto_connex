@@ -20,6 +20,7 @@ export interface UserProfile {
   fullName: string;
   email: string;
   phone: string;
+  accountName: string; // Unique account handle (like @username)
   
   // Business info
   abn: string;
@@ -156,6 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
+        accountName: `${data.userType === 'dealer' ? 'Dealer' : 'Wholesale'}_${Math.floor(Math.random() * 99) + 1}`,
         
         abn: data.abn,
         businessName: data.businessName,
@@ -206,6 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         fullName: 'John Smith',
         email: email,
         phone: '0412 345 678',
+        accountName: 'DealerPro_42',
         
         abn: '12 345 678 901',
         businessName: 'Smith Motors Pty Ltd',

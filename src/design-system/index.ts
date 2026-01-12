@@ -81,6 +81,12 @@ export type { AccordionProps } from './molecules/Accordion';
 export { ProgressBar } from './molecules/ProgressBar';
 export type { ProgressBarProps } from './molecules/ProgressBar';
 
+export { SettingsListItem } from './molecules/SettingsListItem';
+export type { SettingsListItemProps } from './molecules/SettingsListItem';
+
+export { SettingsSection } from './molecules/SettingsSection';
+export type { SettingsSectionProps } from './molecules/SettingsSection';
+
 // ============ Auth Molecules ============
 export {
   PhoneInput,
@@ -113,6 +119,12 @@ export type { OnboardingPaginationProps } from './organisms/OnboardingPagination
 
 export { OnboardingActions } from './organisms/OnboardingActions';
 export type { OnboardingActionsProps } from './organisms/OnboardingActions';
+
+export { WeeklyChargesBanner } from './organisms/WeeklyChargesBanner';
+export type { WeeklyChargesBannerProps } from './organisms/WeeklyChargesBanner';
+
+export { SpendingAnalyticsCard } from './organisms/SpendingAnalyticsCard';
+export type { SpendingAnalyticsCardProps } from './organisms/SpendingAnalyticsCard';
 
 /**
  * Design System Documentation

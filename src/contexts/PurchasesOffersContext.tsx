@@ -138,6 +138,24 @@ interface PurchasesOffersContextActions {
   getPendingOffersSentCount: () => number;
   getOfferById: (offerId: string) => OfferSent | OfferReceived | null;
   
+  // Weekly Charges
+  getWeeklyCharges: () => {
+    totalAmount: number;
+    purchaseCount: number;
+    daysRemaining: number;
+    purchases: Purchase[];
+  };
+  
+  // Spending Analytics
+  getSpendingAnalytics: () => {
+    weeklySpending: number;
+    monthlySpending: number;
+    yearlySpending: number;
+    weeklyCount: number;
+    monthlyCount: number;
+    yearlyCount: number;
+  };
+  
   // Refresh
   refreshData: () => Promise<void>;
 }
@@ -551,6 +569,73 @@ export const PurchasesOffersProvider: React.FC<PurchasesOffersProviderProps> = (
     await loadData();
   }, [loadData]);
 
+  /**
+   * Get weekly charges for pending purchases
+   */
+  const getWeeklyCharges = useCallback(() => {
+    const now = new Date();
+    
+    // Get start of current week (Sunday)
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    // Get end of current week (Saturday 11:59 PM)
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    // Calculate days remaining
+    const daysRemaining = Math.ceil((endOfWeek.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Get purchases made this week (for weekly charges)
+    const weeklyPurchases = state.purchases.filter(purchase => {
+      const purchaseDate = new Date(purchase.purchaseDate);
+      return purchaseDate >= startOfWeek && purchaseDate <= endOfWeek;
+    });
+    
+    const totalAmount = weeklyPurchases.reduce((sum, purchase) => sum + purchase.purchaseAmount, 0);
+    
+    return {
+      totalAmount,
+      purchaseCount: weeklyPurchases.length,
+      daysRemaining: Math.max(0, daysRemaining),
+      purchases: weeklyPurchases,
+    };
+  }, [state.purchases]);
+
+  /**
+   * Get spending analytics for different time periods
+   */
+  const getSpendingAnalytics = useCallback(() => {
+    const now = new Date();
+    
+    // Get start of current week (Sunday)
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    // Get start of current month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Get start of current year
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    
+    // Filter purchases by time period
+    const weeklyPurchases = state.purchases.filter(p => new Date(p.purchaseDate) >= startOfWeek);
+    const monthlyPurchases = state.purchases.filter(p => new Date(p.purchaseDate) >= startOfMonth);
+    const yearlyPurchases = state.purchases.filter(p => new Date(p.purchaseDate) >= startOfYear);
+    
+    return {
+      weeklySpending: weeklyPurchases.reduce((sum, p) => sum + p.purchaseAmount, 0),
+      monthlySpending: monthlyPurchases.reduce((sum, p) => sum + p.purchaseAmount, 0),
+      yearlySpending: yearlyPurchases.reduce((sum, p) => sum + p.purchaseAmount, 0),
+      weeklyCount: weeklyPurchases.length,
+      monthlyCount: monthlyPurchases.length,
+      yearlyCount: yearlyPurchases.length,
+    };
+  }, [state.purchases]);
+
   const value: PurchasesOffersContextValue = {
     // State
     ...state,
@@ -565,6 +650,8 @@ export const PurchasesOffersProvider: React.FC<PurchasesOffersProviderProps> = (
     getPendingOffersReceivedCount,
     getPendingOffersSentCount,
     getOfferById,
+    getWeeklyCharges,
+    getSpendingAnalytics,
     refreshData,
   };
 

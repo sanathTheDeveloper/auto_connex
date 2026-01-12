@@ -73,6 +73,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: 'saved', label: 'Favorites', icon: 'heart-outline', screen: 'SavedVehicles' },
   { id: 'messages', label: 'Messages', icon: 'chatbubbles-outline', screen: 'ConversationList', badge: 5, dividerAfter: true },
 
+  { id: 'account', label: 'Account & Settings', icon: 'settings-outline', screen: 'Account' },
   { id: 'profile', label: 'My Profile', icon: 'person-outline', dividerAfter: true },
 
   { id: 'logout', label: 'Sign Out', icon: 'log-out-outline' },

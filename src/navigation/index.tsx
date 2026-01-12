@@ -28,6 +28,20 @@ import EditListingScreen from '../screens/EditListingScreen';
 // Purchases & Offers Screen
 import PurchasesOffersScreen from '../screens/PurchasesOffersScreen';
 
+// Account & Settings Screens
+import AccountScreen from '../screens/AccountScreen';
+import {
+  ProfileDetailsScreen,
+  BusinessDetailsScreen,
+  PaymentMethodsScreen,
+  SubscriptionBudgetScreen,
+  BillingHistoryScreen,
+  NotificationsSettingsScreen,
+  PrivacySecurityScreen,
+  ContactSupportScreen,
+  DisputeResolutionScreen,
+} from '../screens/account';
+
 /**
  * Navigation Setup
  * 
@@ -72,6 +86,18 @@ export type RootStackParamList = {
   
   // Purchases & Offers
   PurchasesOffers: undefined;
+  
+  // Account & Settings Screens
+  Account: undefined;
+  ProfileDetails: undefined;
+  BusinessDetails: undefined;
+  PaymentMethods: undefined;
+  SubscriptionBudget: undefined;
+  BillingHistory: undefined;
+  NotificationsSettings: undefined;
+  PrivacySecurity: undefined;
+  ContactSupport: undefined;
+  DisputeResolution: undefined;
 }; 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -268,6 +294,98 @@ export default function Navigation() {
           component={PurchasesOffersScreen}
           options={{
             title: 'Purchases & Offers',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        
+        {/* Account & Settings Screen */}
+        <Stack.Screen
+          name="Account"
+          component={AccountScreen}
+          options={{
+            title: 'Account & Settings',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="ProfileDetails"
+          component={ProfileDetailsScreen}
+          options={{
+            title: 'Profile Details',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="BusinessDetails"
+          component={BusinessDetailsScreen}
+          options={{
+            title: 'Business Details',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="PaymentMethods"
+          component={PaymentMethodsScreen}
+          options={{
+            title: 'Payment Methods',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="SubscriptionBudget"
+          component={SubscriptionBudgetScreen}
+          options={{
+            title: 'Subscription & Budget',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="BillingHistory"
+          component={BillingHistoryScreen}
+          options={{
+            title: 'Billing History',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="NotificationsSettings"
+          component={NotificationsSettingsScreen}
+          options={{
+            title: 'Notifications',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="PrivacySecurity"
+          component={PrivacySecurityScreen}
+          options={{
+            title: 'Privacy & Security',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="ContactSupport"
+          component={ContactSupportScreen}
+          options={{
+            title: 'Contact Support',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="DisputeResolution"
+          component={DisputeResolutionScreen}
+          options={{
+            title: 'Dispute Resolution',
             headerShown: false,
             animation: 'slide_from_right',
           }}
