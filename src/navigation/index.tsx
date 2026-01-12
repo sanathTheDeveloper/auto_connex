@@ -25,6 +25,9 @@ import {
 import MyListingsScreen from '../screens/MyListingsScreen';
 import EditListingScreen from '../screens/EditListingScreen';
 
+// Purchases & Offers Screen
+import PurchasesOffersScreen from '../screens/PurchasesOffersScreen';
+
 /**
  * Navigation Setup
  * 
@@ -66,6 +69,9 @@ export type RootStackParamList = {
   // My Listings Screens
   MyListings: undefined;
   EditListing: { listingId: string };
+  
+  // Purchases & Offers
+  PurchasesOffers: undefined;
 }; 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -251,6 +257,17 @@ export default function Navigation() {
           component={EditListingScreen}
           options={{
             title: 'Edit Listing',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        
+        {/* Purchases & Offers Screen */}
+        <Stack.Screen
+          name="PurchasesOffers"
+          component={PurchasesOffersScreen}
+          options={{
+            title: 'Purchases & Offers',
             headerShown: false,
             animation: 'slide_from_right',
           }}

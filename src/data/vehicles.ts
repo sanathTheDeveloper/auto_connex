@@ -420,6 +420,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'mazda-cx5',
     backgroundImageIndex: 3,
+    registration: '456DEF',
   },
   {
     id: '4',
@@ -449,6 +450,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'ford-ranger',
     backgroundImageIndex: 4,
+    registration: 'BRQ-742',
   },
   {
     id: '5',
@@ -478,6 +480,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'hyundai-tucson',
     backgroundImageIndex: 5,
+    registration: '1YB4GP',
   },
   {
     id: '6',
@@ -507,6 +510,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'tesla-model3',
     backgroundImageIndex: 6,
+    registration: '789XYZ',
   },
   {
     id: '7',
@@ -536,6 +540,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'bmw-3series',
     backgroundImageIndex: 7,
+    registration: 'DXM-19K',
   },
   {
     id: '8',
@@ -565,6 +570,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'mercedes-cclass',
     backgroundImageIndex: 8,
+    registration: 'WXY-987',
   },
   {
     id: '9',
@@ -594,6 +600,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'audi-a4',
     backgroundImageIndex: 9,
+    registration: '234JKL',
   },
   {
     id: '10',
@@ -623,6 +630,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'volkswagen-golf',
     backgroundImageIndex: 10,
+    registration: 'HVT-234',
   },
   {
     id: '11',
@@ -652,6 +660,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'porsche-911',
     backgroundImageIndex: 11,
+    registration: '2FR9XP',
   },
   {
     id: '12',
@@ -681,6 +690,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'lexus-rx',
     backgroundImageIndex: 12,
+    registration: '567MNO',
   },
   {
     id: '13',
@@ -710,6 +720,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'subaru-outback',
     backgroundImageIndex: 13,
+    registration: 'FGH-567',
   },
   {
     id: '14',
@@ -739,6 +750,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'kia-sportage',
     backgroundImageIndex: 14,
+    registration: '3TK8LM',
   },
   {
     id: '15',
@@ -768,6 +780,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'nissan-xtrail',
     backgroundImageIndex: 15,
+    registration: '890PQR',
   },
   {
     id: '16',
@@ -797,6 +810,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'jeep-wrangler',
     backgroundImageIndex: 16,
+    registration: 'KLM-890',
   },
   {
     id: '17',
@@ -826,6 +840,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'range-rover',
     backgroundImageIndex: 17,
+    registration: '4RV2QS',
   },
   {
     id: '18',
@@ -855,6 +870,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'mustang-gt',
     backgroundImageIndex: 18,
+    registration: '912STU',
   },
   {
     id: '19',
@@ -884,6 +900,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'chevrolet-camaro',
     backgroundImageIndex: 19,
+    registration: 'NOP-123',
   },
   {
     id: '20',
@@ -913,6 +930,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'lamborghini-huracan',
     backgroundImageIndex: 20,
+    registration: '5LH7WN',
   },
 ];
 

@@ -384,6 +384,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             navigation.navigate('RegoLookup');
           } else if (screen === 'MyListings') {
             navigation.navigate('MyListings');
+          } else if (screen === 'PurchasesOffers') {
+            navigation.navigate('PurchasesOffers');
           } else if (screen === 'Home') {
             // Already on Home
           } else {

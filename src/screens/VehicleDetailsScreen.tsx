@@ -43,6 +43,7 @@ import { VEHICLES, getVehicleImage, formatMileage } from '../data/vehicles';
 
 // Context
 import { useFavorites } from '../contexts/FavoritesContext';
+import { usePurchasesOffers } from '../contexts/PurchasesOffersContext';
 
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
@@ -79,6 +80,7 @@ interface VehicleDetailsScreenProps {
 export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navigation, route }) => {
   const { vehicleId } = route.params;
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { addOfferSent, addPurchase } = usePurchasesOffers();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fullscreenVisible, setFullscreenVisible] = useState(false);
   const [offerModalVisible, setOfferModalVisible] = useState(false);
@@ -265,18 +267,50 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
   }, []);
 
   // Handle successful payment
-  const handlePaymentSuccess = useCallback((_paymentData: PaymentData) => {
+  const handlePaymentSuccess = useCallback(async (_paymentData: PaymentData) => {
     if (!vehicle) return;
     setSubscriptionCardVisible(false);
 
     // Navigate to messages screen with appropriate data
     if (paymentActionType === 'purchase') {
+      // Record purchase in context
+      await addPurchase({
+        vehicleId: vehicle.id,
+        vehicleDetails: {
+          make: vehicle.make,
+          model: vehicle.model,
+          year: vehicle.year,
+          mileage: vehicle.mileage,
+          imageKey: vehicle.imageKey,
+        },
+        sellerId: vehicle.dealer,
+        sellerName: vehicle.dealerName,
+        purchaseAmount: displayPrice,
+        paymentMethod: _paymentData.cardType || 'Credit Card',
+      });
+      
       navigation.navigate('Messages', {
         vehicleId: vehicle.id,
         isPurchase: true,
         purchaseMessage: purchaseMessage || undefined,
       });
     } else {
+      // Record offer sent in context
+      await addOfferSent({
+        vehicleId: vehicle.id,
+        vehicleDetails: {
+          make: vehicle.make,
+          model: vehicle.model,
+          year: vehicle.year,
+          imageKey: vehicle.imageKey,
+        },
+        sellerId: vehicle.dealer,
+        sellerName: vehicle.dealerName,
+        offerAmount: displayPrice,
+        askingPrice: askingPrice,
+        message: offerMessage || undefined,
+      });
+      
       navigation.navigate('Messages', {
         vehicleId: vehicle.id,
         offerAmount: displayPrice,
@@ -289,7 +323,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
     setOfferPriceText('');
     setOfferMessage('');
     setPurchaseMessage('');
-  }, [vehicle, navigation, paymentActionType, displayPrice, offerMessage, purchaseMessage]);
+  }, [vehicle, navigation, paymentActionType, displayPrice, offerMessage, purchaseMessage, addPurchase, addOfferSent, askingPrice]);
 
   // Legacy purchase modal handler (kept for compatibility)
   const handleSendPurchase = useCallback(() => {

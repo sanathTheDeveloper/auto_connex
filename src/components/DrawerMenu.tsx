@@ -30,6 +30,7 @@ import { Text } from '../design-system/atoms/Text';
 import { Spacer } from '../design-system/atoms/Spacer';
 import { Colors, Spacing, BorderRadius } from '../design-system/primitives';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { usePurchasesOffers } from '../contexts/PurchasesOffersContext';
 
 // Assets
 const APP_ICON = require('../../assets/logos/app-icon-teal.png');
@@ -68,6 +69,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: 'marketplace', label: 'Marketplace', icon: 'car-sport-outline', screen: 'Home' },
   { id: 'sell-vehicle', label: 'Sell Vehicle', icon: 'pricetag-outline', screen: 'RegoLookup' },
   { id: 'my-listings', label: 'My Listings', icon: 'list-outline', screen: 'MyListings' },
+  { id: 'purchases-offers', label: 'Purchases & Offers', icon: 'receipt-outline', screen: 'PurchasesOffers' },
   { id: 'saved', label: 'Favorites', icon: 'heart-outline', screen: 'SavedVehicles' },
   { id: 'messages', label: 'Messages', icon: 'chatbubbles-outline', screen: 'ConversationList', badge: 5, dividerAfter: true },
 
@@ -96,6 +98,10 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
   // Get favorites count from context
   const { getFavoriteCount } = useFavorites();
   const favoritesCount = getFavoriteCount();
+  
+  // Get pending offers count from context
+  const { getPendingOffersReceivedCount } = usePurchasesOffers();
+  const pendingOffersCount = getPendingOffersReceivedCount();
 
   // PanResponder for swipe to close (on drawer)
   const panResponder = useRef(
@@ -267,8 +273,13 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
         <ScrollView style={styles.menuList} showsVerticalScrollIndicator={false}>
           {MENU_ITEMS.map((item) => {
             const isActive = item.screen === activeScreen;
-            // Use dynamic count for saved vehicles, static for others
-            const badgeCount = item.id === 'saved' ? favoritesCount : item.badge;
+            // Use dynamic count for saved vehicles and purchases/offers, static for others
+            const badgeCount = 
+              item.id === 'saved' 
+                ? favoritesCount 
+                : item.id === 'purchases-offers' 
+                ? pendingOffersCount 
+                : item.badge;
             return (
               <React.Fragment key={item.id}>
                 <TouchableOpacity
