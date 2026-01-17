@@ -12,7 +12,7 @@
  * <Stack.Screen name="Home" component={HomeScreen} />
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -30,9 +30,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation';
 
 // Components
-import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS, WeeklyPurchaseProgress, SearchBar } from '../components';
+import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS, WeeklyPurchaseProgress, SearchBar, SortModal } from '../components';
 import { LicenseVerificationBanner } from '../components/LicenseVerificationBanner';
-import type { FilterOptions } from '../components';
+import type { FilterOptions, SortOption } from '../components';
 
 // Design System
 import { Text } from '../design-system/atoms/Text';
@@ -197,7 +197,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
         <View style={styles.dotSeparator} />
         <TouchableOpacity onPress={onDealerPress} activeOpacity={0.7}>
           <Text variant="caption" style={styles.dealerNameClickable}>
-            {vehicle.dealerName} · <Text style={styles.viewAllText}>View all</Text>
+            {vehicle.dealerName}
           </Text>
         </TouchableOpacity>
       </View>
@@ -268,7 +268,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   // Track viewport for responsive updates
@@ -297,57 +299,83 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // Scroll tracking for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Filter vehicles based on search query and filters
-  const filteredVehicles = VEHICLES.filter((vehicle) => {
-    // Text search
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        vehicle.make.toLowerCase().includes(query) ||
-        vehicle.model.toLowerCase().includes(query) ||
-        vehicle.location.toLowerCase().includes(query) ||
-        vehicle.suburb.toLowerCase().includes(query) ||
-        vehicle.dealerName.toLowerCase().includes(query);
-      if (!matchesSearch) return false;
+  // Filter and sort vehicles based on search query, filters, and sort option
+  const filteredVehicles = useMemo(() => {
+    let vehicles = VEHICLES.filter((vehicle) => {
+      // Text search
+      if (searchQuery.trim() !== '') {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch =
+          vehicle.make.toLowerCase().includes(query) ||
+          vehicle.model.toLowerCase().includes(query) ||
+          vehicle.location.toLowerCase().includes(query) ||
+          vehicle.suburb.toLowerCase().includes(query) ||
+          vehicle.dealerName.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      // Make filter
+      if (filters.make.length > 0 && !filters.make.includes(vehicle.make)) {
+        return false;
+      }
+
+      // State filter
+      if (filters.state.length > 0 && !filters.state.includes(vehicle.state)) {
+        return false;
+      }
+
+      // Transmission filter
+      if (filters.transmission.length > 0 && !filters.transmission.includes(vehicle.transmission)) {
+        return false;
+      }
+
+      // Fuel type filter
+      if (filters.fuelType.length > 0 && !filters.fuelType.includes(vehicle.fuelType)) {
+        return false;
+      }
+
+      // Condition filter
+      if (filters.condition.length > 0 && !filters.condition.includes(vehicle.condition)) {
+        return false;
+      }
+
+      // Price range filter
+      if (vehicle.price < filters.priceRange[0] || vehicle.price > filters.priceRange[1]) {
+        return false;
+      }
+
+      // Verified only filter
+      if (filters.verifiedOnly && !vehicle.verified) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Apply sort
+    switch (sortOption) {
+      case 'price-asc':
+        vehicles.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        vehicles.sort((a, b) => b.price - a.price);
+        break;
+      case 'newest':
+        vehicles.sort((a, b) => b.year - a.year);
+        break;
+      case 'oldest':
+        vehicles.sort((a, b) => a.year - b.year);
+        break;
+      case 'mileage-asc':
+        vehicles.sort((a, b) => a.mileage - b.mileage);
+        break;
+      case 'mileage-desc':
+        vehicles.sort((a, b) => b.mileage - a.mileage);
+        break;
     }
 
-    // Make filter
-    if (filters.make.length > 0 && !filters.make.includes(vehicle.make)) {
-      return false;
-    }
-
-    // State filter
-    if (filters.state.length > 0 && !filters.state.includes(vehicle.state)) {
-      return false;
-    }
-
-    // Transmission filter
-    if (filters.transmission.length > 0 && !filters.transmission.includes(vehicle.transmission)) {
-      return false;
-    }
-
-    // Fuel type filter
-    if (filters.fuelType.length > 0 && !filters.fuelType.includes(vehicle.fuelType)) {
-      return false;
-    }
-
-    // Condition filter
-    if (filters.condition.length > 0 && !filters.condition.includes(vehicle.condition)) {
-      return false;
-    }
-
-    // Price range filter
-    if (vehicle.price < filters.priceRange[0] || vehicle.price > filters.priceRange[1]) {
-      return false;
-    }
-
-    // Verified only filter
-    if (filters.verifiedOnly && !vehicle.verified) {
-      return false;
-    }
-
-    return true;
-  });
+    return vehicles;
+  }, [searchQuery, filters, sortOption]);
 
   // Count active filters
   const activeFilterCount = () => {
@@ -415,6 +443,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         onToggleNotifications={setNotificationsEnabled}
       />
 
+      {/* Sort Modal */}
+      <SortModal
+        isOpen={isSortOpen}
+        onClose={() => setIsSortOpen(false)}
+        onApply={setSortOption}
+        currentSort={sortOption}
+      />
+
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -432,13 +468,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
         <Spacer size="lg" />
 
-        {/* Search Bar with Filter */}
+        {/* Search Bar with Filter and Sort */}
         <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search vehicles, dealers..."
           activeFilterCount={activeFilterCount()}
           onFilterPress={() => setIsFilterOpen(true)}
+          showSortButton={true}
+          onSortPress={() => setIsSortOpen(true)}
         />
 
         <Spacer size="md" />
@@ -615,11 +653,6 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     fontWeight: '600',
     textDecorationLine: 'underline',
-  },
-  viewAllText: {
-    color: Colors.textMuted,
-    fontWeight: '400',
-    textDecorationLine: 'none',
   },
   specsRow: {
     flexDirection: 'row',
