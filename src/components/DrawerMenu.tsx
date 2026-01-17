@@ -216,7 +216,6 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
     if (item.id === 'logout') {
       onClose();
       // Handle logout logic
-      console.log('Logout pressed');
       return;
     }
 

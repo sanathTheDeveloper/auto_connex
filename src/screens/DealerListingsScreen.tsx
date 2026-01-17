@@ -323,7 +323,7 @@ export default function DealerListingsScreen({ navigation, route }: DealerListin
         title: `${dealerName} - Auto Connex`,
       });
     } catch (error) {
-      console.log('Share error:', error);
+      // Share cancelled or failed - silent fail for better UX
     }
   };
 
@@ -476,7 +476,9 @@ export default function DealerListingsScreen({ navigation, route }: DealerListin
             isFavorite={isFavorite(vehicle.id)}
             onFavoritePress={() => toggleFavorite(vehicle.id)}
             onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
-            onSharePress={() => console.log('Share vehicle:', vehicle.id)}
+            onSharePress={() => {
+              // TODO: Implement share functionality
+            }}
           />
         ))}
 

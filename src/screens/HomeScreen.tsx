@@ -431,8 +431,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             navigation.navigate('Account');
           } else if (screen === 'Home') {
             // Already on Home
-          } else {
-            console.log('Navigate to:', screen);
           }
         }}
         userName="John Dealer"
@@ -510,7 +508,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               isFavorite={isFavorite(vehicle.id)}
               onFavoritePress={() => toggleFavorite(vehicle.id)}
               onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
-              onSharePress={() => console.log('Share vehicle:', vehicle.id)}
+              onSharePress={() => {
+                // TODO: Implement share functionality
+              }}
               onDealerPress={() => navigation.navigate('DealerListings', { dealerName: vehicle.dealerName })}
             />
           ))

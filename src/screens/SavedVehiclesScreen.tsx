@@ -526,7 +526,9 @@ export default function SavedVehiclesScreen({ navigation }: SavedVehiclesScreenP
                   onPress={() => navigation.navigate('VehicleDetails', { vehicleId: vehicle.id })}
                   onRemovePress={() => toggleFavorite(vehicle.id)}
                   onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
-                  onSharePress={() => console.log('Share vehicle:', vehicle.id)}
+                  onSharePress={() => {
+                    // TODO: Implement share functionality
+                  }}
                 />
               ))}
               <Spacer size="xl" />

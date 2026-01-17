@@ -468,6 +468,11 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
         </View>
 
         {/* Subtitle */}
+        <View style={styles.subtitleContainer}>
+          <Text variant="bodySmall" style={styles.subtitle}>
+            Track your sales performance and revenue trends
+          </Text>
+        </View>
 
         <Spacer size="md" />
 
@@ -677,7 +682,8 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
             variant="primary"
             fullWidth
             onPress={() => {
-              console.log('Export analytics data');
+              // TODO: Implement analytics export functionality
+              alert('Export functionality coming soon');
             }}
           >
             Export Full Report

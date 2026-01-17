@@ -178,7 +178,8 @@ export default function PaymentMethodsScreen() {
           variant="outline"
           fullWidth
           onPress={() => {
-            console.log('Add payment method');
+            // TODO: Implement payment method addition
+            alert('Payment method setup coming soon');
           }}
         >
           + Add New Card
