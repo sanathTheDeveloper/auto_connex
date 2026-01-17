@@ -156,7 +156,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
             onPress={onFilterPress}
           >
-            <Ionicons name="options-outline" size={18} color={Colors.black} />
+            <Ionicons 
+              name={activeFilterCount > 0 ? "options" : "options-outline"} 
+              size={18} 
+              color={activeFilterCount > 0 ? Colors.white : Colors.black} 
+            />
             {activeFilterCount > 0 && (
               <View style={styles.filterBadge}>
                 <Text variant="label" style={styles.filterBadgeText}>
@@ -201,7 +205,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.vesperLibre,
   },
   buttonWrapper: {
-    overflow: 'hidden',
+    overflow: 'visible', // Changed from 'hidden' to allow badge to show
   },
   sortButton: {
     width: 44,
@@ -220,21 +224,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...Shadows.sm,
+    overflow: 'visible', // Allow badge to be visible outside button bounds
   },
   filterButtonActive: {
     backgroundColor: Colors.secondary,
   },
   filterBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -6,
+    right: -6,
     backgroundColor: Colors.accent,
-    minWidth: 18,
-    height: 18,
+    minWidth: 20,
+    height: 20,
     borderRadius: BorderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: '#EBEEF2', // Match background to create cutout effect
+    ...Shadows.sm,
   },
   filterBadgeText: {
     color: Colors.white,

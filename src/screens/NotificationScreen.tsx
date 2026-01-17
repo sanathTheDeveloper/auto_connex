@@ -504,9 +504,11 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
   cardUnread: {
-    backgroundColor: Colors.primary + '08', // Subtle teal tint for unread
+    backgroundColor: Colors.tealLight + '15', // Light teal background for unread (matching ConversationListScreen)
     borderLeftWidth: 3,
     borderLeftColor: Colors.primary,
+    borderColor: Colors.primary + '30', // Subtle teal border
+    borderWidth: 1,
   },
 
   // Icon
@@ -563,6 +565,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap', // Allow wrapping to prevent overflow
     marginTop: Spacing.xs,
     gap: Spacing.xs,
   },
@@ -574,9 +577,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 12,
     gap: 4,
+    flexShrink: 1, // Allow shrinking if needed
   },
   vehicleText: {
     fontSize: 11,
+    flexShrink: 1, // Allow text to shrink
   },
   regoPill: {
     flexDirection: 'row',
@@ -588,6 +593,7 @@ const styles = StyleSheet.create({
     gap: 3,
     borderWidth: 1,
     borderColor: Colors.primary + '25',
+    flexShrink: 0, // Keep rego badge at fixed size
   },
   regoText: {
     color: Colors.primary,
@@ -602,6 +608,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 12,
     gap: 3,
+    flexShrink: 0, // Keep price badge at fixed size
   },
   priceText: {
     color: Colors.success,

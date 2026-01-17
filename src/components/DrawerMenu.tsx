@@ -26,6 +26,7 @@ import {
   GestureResponderEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from '../design-system/atoms/Text';
 import { Spacer } from '../design-system/atoms/Spacer';
 import { Colors, Spacing, BorderRadius } from '../design-system/primitives';
@@ -252,21 +253,38 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={20} color={Colors.black} />
+          {/* Close Button */}
+          <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.7}>
+            <Ionicons name="close" size={22} color={Colors.text} />
           </TouchableOpacity>
 
+          {/* User Profile Section */}
           <View style={styles.userSection}>
-            <Image source={APP_ICON} style={styles.avatar} resizeMode="contain" />
+            {/* Avatar */}
+            <View style={styles.avatarContainer}>
+              <Image source={APP_ICON} style={styles.avatar} resizeMode="contain" />
+            </View>
+
+            {/* User Info */}
             <View style={styles.userInfo}>
-              <Text variant="bodySmall" weight="bold" style={styles.userName}>
+              <Text variant="body" weight="bold" style={styles.userName}>
                 {userName}
               </Text>
-              <Text variant="caption" style={styles.userTypeText}>
-                {userType === 'dealer' ? 'Licensed Dealer' : 'Wholesaler'}
-              </Text>
+              <View style={styles.userTypeBadge}>
+                <Ionicons 
+                  name={userType === 'dealer' ? 'shield-checkmark' : 'briefcase'} 
+                  size={11} 
+                  color={Colors.text} 
+                />
+                <Text variant="caption" style={styles.userTypeText}>
+                  {userType === 'dealer' ? 'Licensed Dealer' : 'Wholesaler'}
+                </Text>
+              </View>
             </View>
           </View>
+
+          {/* Decorative bottom wave */}
+          <View style={styles.headerWave} />
         </View>
 
         {/* Menu Items */}
@@ -368,43 +386,76 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 44 : 32,
-    paddingBottom: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    position: 'relative',
     backgroundColor: Colors.primary,
   },
   closeButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 40 : 24,
-    right: Spacing.sm,
-    width: 28,
-    height: 28,
+    top: Platform.OS === 'ios' ? 46 : 32,
+    right: Spacing.md,
+    width: 32,
+    height: 32,
     borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   userSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.xs,
-    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    gap: Spacing.md,
+  },
+  avatarContainer: {
+    position: 'relative',
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.black,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.white,
   },
   userInfo: {
     flex: 1,
+    gap: 4,
   },
   userName: {
-    color: Colors.black,
+    color: Colors.text,
+    fontSize: 18,
+    letterSpacing: 0.3,
+  },
+  userTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BorderRadius.sm,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.12)',
   },
   userTypeText: {
-    color: Colors.black,
+    color: Colors.text,
     fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  headerWave: {
+    position: 'absolute',
+    bottom: -1,
+    left: 0,
+    right: 0,
+    height: 20,
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   menuList: {
     flex: 1,
