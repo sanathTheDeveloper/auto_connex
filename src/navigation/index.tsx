@@ -29,6 +29,9 @@ import EditListingScreen from '../screens/EditListingScreen';
 // Purchases & Offers Screen
 import PurchasesOffersScreen from '../screens/PurchasesOffersScreen';
 
+// Notifications Screen
+import NotificationScreen from '../screens/NotificationScreen';
+
 // Account & Settings Screens
 import AccountScreen from '../screens/AccountScreen';
 import {
@@ -88,7 +91,10 @@ export type RootStackParamList = {
   
   // Purchases & Offers
   PurchasesOffers: undefined;
-  
+
+  // Notifications
+  Notifications: undefined;
+
   // Account & Settings Screens
   Account: undefined;
   ProfileDetails: undefined;
@@ -311,7 +317,18 @@ export default function Navigation() {
             animation: 'slide_from_right',
           }}
         />
-        
+
+        {/* Notifications Screen */}
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationScreen}
+          options={{
+            title: 'Notifications',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+
         {/* Account & Settings Screen */}
         <Stack.Screen
           name="Account"

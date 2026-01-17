@@ -61,6 +61,7 @@ import {
 
 // Context
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
@@ -296,6 +297,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // Favorites from shared context (persisted)
   const { toggleFavorite, isFavorite } = useFavorites();
 
+  // Notifications context for badge count
+  const { getUnreadCount } = useNotifications();
+
   // Scroll tracking for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -395,7 +399,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       {/* Header with solid Primary color - Collapses on scroll */}
       <Header
         onMenuPress={() => setIsMenuOpen(true)}
-        onNotificationPress={() => console.log('Notifications pressed')}
+        onNotificationPress={() => navigation.navigate('Notifications')}
+        notificationCount={getUnreadCount()}
       />
 
       {/* License Verification Banner - Dismissible */}
