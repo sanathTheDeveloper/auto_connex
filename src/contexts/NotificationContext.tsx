@@ -366,7 +366,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           isLoading: false,
         }));
       } else {
-        setState(prev => ({ ...prev, notifications: [], isLoading: false }));
+        // No stored data - use mock data for demo purposes
+        // In a real production app, this would be empty until server sync
+        setState(prev => ({ 
+          ...prev, 
+          notifications: MOCK_NOTIFICATIONS, 
+          isLoading: false 
+        }));
+        // Optionally save mock data to storage for persistence
+        await saveData(MOCK_NOTIFICATIONS);
       }
     } catch (error) {
       console.error('[NotificationContext] Error loading data:', error);

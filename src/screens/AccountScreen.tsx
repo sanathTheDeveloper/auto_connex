@@ -99,7 +99,6 @@ export default function AccountScreen() {
             <SettingsListItem
               icon={require('../../assets/icons/card.png')}
               label="Business Details"
-              value={user?.businessName || 'Not set'}
               onPress={() => navigation.navigate('BusinessDetails')}
               isLast
             />

@@ -74,8 +74,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: 'messages', label: 'Messages', icon: 'chatbubbles-outline', screen: 'ConversationList', badge: 5, dividerAfter: true },
 
   { id: 'analytics', label: 'Analytics Dashboard', icon: 'bar-chart-outline', screen: 'Analytics' },
-  { id: 'account', label: 'Account & Settings', icon: 'settings-outline', screen: 'Account' },
-  { id: 'profile', label: 'My Profile', icon: 'person-outline', dividerAfter: true },
+  { id: 'account', label: 'Account & Settings', icon: 'settings-outline', screen: 'Account', dividerAfter: true },
 
   { id: 'logout', label: 'Sign Out', icon: 'log-out-outline' },
 ];
