@@ -74,8 +74,8 @@ const ROLE_DATA = {
     subtitle: 'Access wholesale inventory from verified sellers across Australia',
     features: [
       { icon: 'search-outline' as const, title: 'Nationwide Discovery', desc: 'Search inventory by make, model, year or location across all states' },
-      { icon: 'shield-checkmark-outline' as const, title: 'PPSR Clear Title', desc: 'Every vehicle verified with instant PPSR certificate at purchase' },
-      { icon: 'wallet-outline' as const, title: 'Weekly Buy & Pay', desc: 'Track your weekly purchases and settle payments on your terms' },
+      { icon: 'checkmark-circle-outline' as const, title: 'Verified Sellers', desc: 'Only deal with ABN-verified wholesalers with transparent business credentials' },
+      { icon: 'calendar-outline' as const, title: '7-Day Payment Terms', desc: 'Buy now and settle within 7 days flexible payment terms that work for your cash flow' },
       { icon: 'notifications-outline' as const, title: 'Auto-Match Alerts', desc: 'Set criteria and get notified when matching stock is listed' },
       { icon: 'chatbubbles-outline' as const, title: 'Direct Negotiation', desc: 'Message wholesalers directly and negotiate deals in-app' },
     ],

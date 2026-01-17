@@ -958,7 +958,6 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
           licensePlate: vehicle.registration,
           dealerName: vehicle.dealerName,
         }}
-        title={paymentActionType === 'purchase' ? 'Complete Purchase' : 'Confirm Offer Payment'}
         actionType={paymentActionType}
       />
 

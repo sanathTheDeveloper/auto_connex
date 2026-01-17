@@ -272,6 +272,8 @@ function getTextColorKey(variant: ButtonVariant): string {
       return 'text';
     case 'ghost':
       return 'textTertiary';
+    case 'accent':
+      return 'white';
     default:
       return 'text';
   }
@@ -286,6 +288,8 @@ function getTextColor(variant: ButtonVariant): string {
       return Colors.text;
     case 'ghost':
       return Colors.textTertiary;
+    case 'accent':
+      return Colors.white;
     default:
       return Colors.text;
   }

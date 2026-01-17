@@ -27,7 +27,9 @@ import {
   Image,
   ImageBackground,
   ScaledSize,
+  Animated,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -83,6 +85,7 @@ type MessageType =
   | 'offer_declined'
   | 'purchase_confirmed'
   | 'payment_complete'
+  | 'deal_confirmed'
   | 'system'
   | 'vehicle_card';
 
@@ -101,6 +104,8 @@ interface Message {
     counterAmount?: number;
     negotiationRound?: number;
     vehicleId?: string;
+    buyerEmail?: string;
+    buyerName?: string;
   };
 }
 
@@ -221,6 +226,15 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
   const [negotiationRound, setNegotiationRound] = useState(0);
   const MAX_NEGOTIATION_ROUNDS = 2;
 
+  // Toast state for copy feedback
+  const [showCopyToast, setShowCopyToast] = useState(false);
+  const toastSlideAnim = useRef(new Animated.Value(0)).current; // Start at resting position
+
+  // Animation refs for Deal Confirmed card
+  const dealCardFadeAnim = useRef(new Animated.Value(0)).current;
+  const dealCardScaleAnim = useRef(new Animated.Value(0.8)).current;
+  const checkmarkScaleAnim = useRef(new Animated.Value(0)).current;
+
   // ============================================================================
   // HELPERS
   // ============================================================================
@@ -295,6 +309,46 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       }, 300);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ============================================================================
+  // DEAL CONFIRMED ANIMATION EFFECT
+  // ============================================================================
+
+  // Trigger animations when a deal_confirmed message appears
+  useEffect(() => {
+    const hasDealConfirmed = messages.some((m) => m.type === 'deal_confirmed');
+    if (hasDealConfirmed) {
+      // Reset animations first
+      dealCardFadeAnim.setValue(0);
+      dealCardScaleAnim.setValue(0.8);
+      checkmarkScaleAnim.setValue(0);
+
+      // Start animations
+      Animated.parallel([
+        Animated.timing(dealCardFadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(dealCardScaleAnim, {
+          toValue: 1,
+          tension: 50,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Delayed checkmark animation
+      setTimeout(() => {
+        Animated.spring(checkmarkScaleAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 5,
+          useNativeDriver: true,
+        }).start();
+      }, 150);
+    }
+  }, [messages, dealCardFadeAnim, dealCardScaleAnim, checkmarkScaleAnim]);
 
   // ============================================================================
   // HANDLERS
@@ -495,23 +549,19 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
         data: { amount: paymentAmount },
       });
 
-      // Auto-generated message from buyer with email details
+      // Show Deal Confirmed card with buyer email reveal
       setTimeout(() => {
         addMessage({
-          type: 'text',
-          content: `Thank you for accepting my offer! Please send the invoice and pickup details to my email:`,
-          sender: 'buyer',
+          type: 'deal_confirmed',
+          content: 'Deal confirmed! Buyer contact details revealed.',
+          sender: 'system',
+          data: {
+            amount: paymentAmount,
+            buyerEmail: MOCK_BUYER.email,
+            buyerName: MOCK_BUYER.name,
+          },
         });
-      }, 800);
-
-      // Send email as separate message for easy copying
-      setTimeout(() => {
-        addMessage({
-          type: 'text',
-          content: MOCK_BUYER.email,
-          sender: 'buyer',
-        });
-      }, 1200);
+      }, 600);
     } else if (paymentContext === 'purchase') {
       // Dealer confirming purchase request
       addMessage({
@@ -521,23 +571,19 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
         data: { amount: paymentAmount },
       });
 
-      // Auto-generated message from buyer with email details
+      // Show Deal Confirmed card with buyer email reveal
       setTimeout(() => {
         addMessage({
-          type: 'text',
-          content: `Thank you for confirming the purchase! Please send the invoice and transaction details to my email:`,
-          sender: 'buyer',
+          type: 'deal_confirmed',
+          content: 'Deal confirmed! Buyer contact details revealed.',
+          sender: 'system',
+          data: {
+            amount: paymentAmount,
+            buyerEmail: MOCK_BUYER.email,
+            buyerName: MOCK_BUYER.name,
+          },
         });
-      }, 800);
-
-      // Send email as separate message for easy copying
-      setTimeout(() => {
-        addMessage({
-          type: 'text',
-          content: MOCK_BUYER.email,
-          sender: 'buyer',
-        });
-      }, 1200);
+      }, 600);
     }
 
     // Reset payment context (removed all payment-related system messages)
@@ -649,6 +695,139 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
       );
     }
 
+    // Deal Confirmed Card - Role-based views for buyer and wholesaler
+    if (message.type === 'deal_confirmed' && message.data?.buyerEmail) {
+      const handleCopyEmail = async () => {
+        await Clipboard.setStringAsync(message.data!.buyerEmail!);
+        setShowCopyToast(true);
+        
+        // Animate toast from below input bar upward
+        Animated.sequence([
+          Animated.spring(toastSlideAnim, {
+            toValue: -150, // Slide up 150px above resting position
+            useNativeDriver: true,
+            tension: 60,
+            friction: 8,
+          }),
+          Animated.delay(2000),
+          Animated.timing(toastSlideAnim, {
+            toValue: 0, // Slide back down to resting position (below screen)
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setShowCopyToast(false);
+          toastSlideAnim.setValue(0); // Reset position
+        });
+      };
+
+      return (
+        <View key={message.id} style={styles.dealCardWrapper}>
+          <Animated.View
+            style={[
+              styles.dealCard,
+              {
+                opacity: dealCardFadeAnim,
+                transform: [{ scale: dealCardScaleAnim }],
+              }
+            ]}
+          >
+            {/* Animated checkmark with rings */}
+            <View style={styles.checkmarkContainer}>
+              <View style={styles.outerRing} />
+              <Animated.View
+                style={[
+                  styles.innerCircle,
+                  { transform: [{ scale: checkmarkScaleAnim }] }
+                ]}
+              >
+                <Ionicons name="checkmark" size={28} color={Colors.white} />
+              </Animated.View>
+            </View>
+
+            <Spacer size="sm" />
+
+            {/* Title */}
+            <Text variant="h4" weight="bold" align="center" style={styles.dealCardTitle}>
+              Deal Confirmed!
+            </Text>
+
+            {/* Agreed Price */}
+            {message.data?.amount && (
+              <View style={styles.dealAmountContainer}>
+                <Text variant="caption" color="textMuted" align="center">
+                  Agreed Price
+                </Text>
+                <Text variant="h3" weight="bold" style={styles.dealAmountText}>
+                  {formatFullPrice(message.data.amount)}
+                </Text>
+              </View>
+            )}
+
+            <Spacer size="md" />
+
+            {/* Role-specific content */}
+            {currentRole === 'buyer' ? (
+              /* BUYER VIEW */
+              <View style={styles.roleContentSection}>
+                <View style={styles.roleContentHeader}>
+                  <View style={styles.roleIconCircle}>
+                    <Ionicons name="mail-open-outline" size={18} color={Colors.primary} />
+                  </View>
+                  <Text variant="bodySmall" weight="semibold" color="text">
+                    Check Your Email
+                  </Text>
+                </View>
+                <Text variant="caption" color="textSecondary" style={styles.roleContentMessage}>
+                  The wholesaler will send you an invoice shortly. Keep an eye on your inbox!
+                </Text>
+              </View>
+            ) : (
+              /* WHOLESALER/DEALER VIEW */
+              <View style={styles.roleContentSection}>
+                <View style={styles.roleContentHeader}>
+                  <View style={styles.roleIconCircle}>
+                    <Ionicons name="person-outline" size={18} color={Colors.primary} />
+                  </View>
+                  <Text variant="bodySmall" weight="semibold" color="text">
+                    Buyers Contact Details
+                  </Text>
+                </View>
+                <Text variant="caption" color="textSecondary" style={styles.roleContentMessage}>
+                  Send your invoice to complete the transaction
+                </Text>
+
+                {/* Email box with copy */}
+                <TouchableOpacity
+                  style={styles.emailBox}
+                  onPress={handleCopyEmail}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.emailBoxContent}>
+                    <Ionicons name="mail-outline" size={16} color={Colors.secondary} />
+                    <Text variant="caption" weight="semibold" style={styles.emailText} numberOfLines={2}>
+                      {message.data.buyerEmail}
+                    </Text>
+                  </View>
+                  <View style={styles.copyButton}>
+                    <Ionicons name="copy-outline" size={14} color={Colors.black} />
+                    <Text variant="caption" weight="semibold" style={styles.copyButtonText}>
+                      Copy Email
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Timestamp */}
+            <Text variant="caption" color="textMuted" align="center" style={styles.dealTimestamp}>
+              {formatTime(message.timestamp)}
+            </Text>
+          </Animated.View>
+        </View>
+      );
+    }
+
     // Payment Complete Card - DISABLED (don't show in chat)
     // if (message.type === 'payment_complete' && message.data?.amount) {
     //   return (
@@ -679,7 +858,6 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
     //   );
     // }
 
-    // System Message (generic)
     if (isSystem) {
       return (
         <View key={message.id} style={styles.systemMessageContainer}>
@@ -1283,6 +1461,25 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
           }}
           actionType={currentRole === 'buyer' ? 'purchase' : 'offer'}
         />
+
+        {/* Copy Toast Notification */}
+        {showCopyToast && (
+          <Animated.View 
+            style={[
+              styles.toastContainer,
+              {
+                transform: [{ translateY: toastSlideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.toast}>
+              <Ionicons name="clipboard-outline" size={16} color={Colors.white} />
+              <Text variant="caption" weight="semibold" style={styles.toastText}>
+                Email id copied to cipboard!
+              </Text>
+            </View>
+          </Animated.View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -2176,6 +2373,179 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.textMuted,
   },
   modalButtonText: {
+    color: Colors.white,
+  },
+
+  // ============================================================================
+  // NEW Deal Confirmed Card Styles (Modern Redesign)
+  // ============================================================================
+
+  dealCardWrapper: {
+    width: '100%',
+    marginVertical: Spacing.md,
+    alignItems: 'center',
+  },
+  dealCard: {
+    width: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    padding: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.md,
+    position: 'relative',
+    ...Shadows.md,
+  },
+
+  // Decorative circles - removed for cleaner look
+  decoCircle1: {
+    display: 'none',
+  },
+  decoCircle2: {
+    display: 'none',
+  },
+  decoCircle3: {
+    display: 'none',
+  },
+
+  // Checkmark rings
+  checkmarkContainer: {
+    alignSelf: 'center',
+    width: 70,
+    height: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outerRing: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2,
+    borderColor: Colors.success + '20',
+  },
+  middleRing: {
+    display: 'none',
+  },
+  innerCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.success,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+
+  // Title
+  dealCardTitle: {
+    color: Colors.text,
+  },
+
+  // Amount display
+  dealAmountContainer: {
+    alignItems: 'center',
+  },
+  dealAmountText: {
+    color: Colors.success,
+  },
+
+  // Role-specific content section
+  roleContentSection: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+  },
+  roleContentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  roleIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  roleContentMessage: {
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+
+  // Next steps row
+  nextStepsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+
+  // Email box (Wholesaler view)
+  emailBox: {
+    flexDirection: 'column',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '30',
+    marginBottom: Spacing.xs,
+    overflow: 'hidden',
+  },
+  emailBoxContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  emailText: {
+    color: Colors.text,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    backgroundColor: Colors.primary,
+  },
+  copyButtonText: {
+    color: Colors.black,
+  },
+
+  // Timestamp
+  dealTimestamp: {
+    marginTop: Spacing.sm,
+  },
+
+  // Toast notification
+  toastContainer: {
+    position: 'absolute',
+    bottom: -60, // Start below the input bar (hidden)
+    left: Spacing.md,
+    right: Spacing.md,
+    alignItems: 'center',
+    zIndex: 1500,
+  },
+  toast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.success,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    ...Shadows.md,
+  },
+  toastText: {
     color: Colors.white,
   },
 });
