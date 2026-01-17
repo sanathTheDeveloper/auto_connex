@@ -19,6 +19,7 @@ export interface PPSRDetails {
     writtenOff: boolean;
     validRegistration: boolean;
   };
+  writeOffMessage?: string; // Seller's explanation for write-off status
 }
 
 export interface ConditionReport {
@@ -350,41 +351,49 @@ export const VEHICLES: Vehicle[] = [
     dealerName: 'WheelDealer_X',
     sellerType: 'Wholesaler',
     verified: true,
-    hasLogbook: false,
+    hasLogbook: true,
     featured: false,
     imageKey: 'honda-accord',
     backgroundImageIndex: 2,
-    images: ['honda-accord', 'toyota-camry', 'bmw-3series'],
+    images: ['honda-accord', 'toyota-camry', 'bmw-3series', 'honda-accord'],
     registration: 'XYZ-789',
-    askingPrice: 28900,
+    askingPrice: 30400, // Trade price ($27,200) + Extras ($2,700) + inspection ($500) = $30,400
     ppsr: {
       status: 'clear',
       checkDate: '2025-12-08',
-      certificateNumber: '987654321',
+      certificateNumber: 'PPSR987654321',
       details: {
         moneyOwing: false,
         stolen: false,
-        writtenOff: false,
+        writtenOff: true,
         validRegistration: true,
       },
+      writeOffMessage: 'This vehicle was involved in a minor hail damage incident in 2021. All repairs were completed by Honda-certified technicians at an authorized service center. The vehicle has passed all Victorian roadworthy inspections and WOVR assessments. Complete repair documentation and inspection certificates are available. Vehicle drives perfectly with no mechanical issues.',
     },
     conditionReport: {
       pros: [
-        'Full logbook service history',
-        'Non-smoking vehicle',
-        'Premium sound system',
-        'Recent brake service',
+        'Full Honda service history with stamped logbook',
+        'Non-smoking vehicle, single owner',
+        'Premium sound system with 10 speakers',
+        'Recent major service completed (Dec 2025)',
+        'New Michelin tires (less than 2,000km)',
+        'Factory warranty transferable until June 2026',
+        'All recall work completed and documented',
+        'Climate control serviced and recharged',
       ],
       cons: [
-        'Minor stone chips on windscreen',
-        'Light scratches on rear bumper',
+        'Minor stone chips on windscreen (common wear)',
+        'Light scratches on rear bumper from parking',
+        'Driver seat bolster shows slight wear',
+        'Small paint touch-up on front bumper',
       ],
     },
-    afterMarketExtras: ['Apple CarPlay', 'Blind Spot Monitoring', 'Heated Seats'],
+    afterMarketExtras: ['Apple CarPlay', 'Blind Spot Monitoring', 'Heated Seats', 'Dash Camera'],
     afterMarketExtrasDetailed: [
-      { name: 'Apple CarPlay', cost: 650, category: 'Electronics' },
-      { name: 'Blind Spot Monitoring', cost: 1100, category: 'Safety' },
-      { name: 'Heated Seats', cost: 950, category: 'Comfort' },
+      { name: 'Apple CarPlay & Android Auto', cost: 650, category: 'Electronics' },
+      { name: 'Blind Spot Monitoring System', cost: 1100, category: 'Safety' },
+      { name: 'Heated Front Seats', cost: 950, category: 'Comfort' },
+      { name: 'Front & Rear Dash Camera', cost: 400, category: 'Electronics' },
     ],
     sellerDetails: {
       abn: '98 765 432 109',
@@ -417,10 +426,64 @@ export const VEHICLES: Vehicle[] = [
     sellerType: 'Dealer',
     verified: true,
     hasLogbook: true,
-    featured: false,
+    featured: true,
     imageKey: 'mazda-cx5',
     backgroundImageIndex: 3,
-    registration: '456DEF',
+    images: ['mazda-cx5', 'hyundai-tucson', 'kia-sportage', 'mazda-cx5'],
+    registration: 'QLD-456',
+    askingPrice: 41350, // Trade price ($36,200) + Extras ($4,650) + detailing ($500) = $41,350
+    ppsr: {
+      status: 'clear',
+      checkDate: '2026-01-05',
+      certificateNumber: 'PPSR445566778',
+      details: {
+        moneyOwing: false,
+        stolen: false,
+        writtenOff: true,
+        validRegistration: true,
+      },
+      writeOffMessage: 'Vehicle was declared a statutory write-off by insurance in June 2023 due to flood water damage (water level reached door sills during Brisbane floods). Comprehensive restoration completed by Mazda Australia authorized repairer including: complete interior replacement, full electrical system inspection and replacement, engine and transmission serviced, all safety systems tested and recertified. Passed Queensland Transport WOVR inspection with no defects. Vehicle comes with 12-month mechanical warranty. Drives and performs like new.',
+    },
+    conditionReport: {
+      pros: [
+        'Comprehensive flood damage restoration completed',
+        'Brand new interior (seats, carpet, dashboard)',
+        'Complete electrical system replaced and certified',
+        'Engine and transmission professionally serviced',
+        'All safety systems tested and functioning perfectly',
+        '12-month comprehensive mechanical warranty included',
+        'Queensland Transport WOVR certificate - no defects',
+        'Full Mazda service history since restoration',
+        'Fresh premium paint protection applied',
+        'New tires - Bridgestone Alenza (less than 500km)',
+      ],
+      cons: [
+        'Insurance history shows previous flood damage (fully disclosed)',
+        'Some buyers may prefer non-write-off vehicles',
+        'Resale value may be affected by write-off status',
+      ],
+    },
+    afterMarketExtras: [
+      'Premium Sound System',
+      '360° Camera',
+      'Adaptive Cruise Control',
+      'Leather Interior',
+      'Sunroof',
+      'Tow Package',
+    ],
+    afterMarketExtrasDetailed: [
+      { name: 'Bose Premium Sound System', cost: 1200, category: 'Electronics' },
+      { name: '360° Surround View Camera', cost: 850, category: 'Safety' },
+      { name: 'Adaptive Cruise Control', cost: 1100, category: 'Safety' },
+      { name: 'Nappa Leather Interior Package', cost: 1800, category: 'Comfort' },
+      { name: 'Panoramic Sunroof', cost: 1500, category: 'Comfort' },
+      { name: 'Heavy Duty Tow Package (2000kg)', cost: 950, category: 'Exterior' },
+    ],
+    sellerDetails: {
+      abn: '55 123 456 789',
+      memberSince: '2018',
+      rating: 4.9,
+    },
   },
   {
     id: '4',

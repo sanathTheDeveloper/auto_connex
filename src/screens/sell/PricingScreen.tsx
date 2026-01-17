@@ -38,7 +38,7 @@ const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number)
 };
 
 // Context
-import { useSell, WriteOffDetails, PricingDetails, PickupLocation } from '../../contexts/SellContext';
+import { useSell, WriteOffDetails, PricingDetails, PickupLocation, PPSRCheckDetails } from '../../contexts/SellContext';
 
 // Data
 import { AUSTRALIAN_STATES } from '../../data/australia';
@@ -53,7 +53,7 @@ interface PricingScreenProps {
 }
 
 export const PricingScreen: React.FC<PricingScreenProps> = ({ navigation, route }) => {
-  const { listingData, setWriteOff, setPricing, setPickupLocation } = useSell();
+  const { listingData, setWriteOff, setPPSRCheck, setPricing, setPickupLocation } = useSell();
   const fromReview = route.params?.fromReview ?? false;
 
   // Viewport state for responsive design
@@ -75,6 +75,15 @@ export const PricingScreen: React.FC<PricingScreenProps> = ({ navigation, route 
   const [writeOffExplanation, setWriteOffExplanation] = useState(
     listingData.writeOff.explanation || ''
   );
+  
+  // PPSR Check state
+  const [isPPSRCleared, setIsPPSRCleared] = useState(listingData.ppsrCheck.isCleared);
+  const [showPPSRDetails, setShowPPSRDetails] = useState(false);
+  const [ppsrMoneyOwing, setPPSRMoneyOwing] = useState(listingData.ppsrCheck.moneyOwing);
+  const [ppsrStolen, setPPSRStolen] = useState(listingData.ppsrCheck.stolen);
+  const [ppsrWrittenOff, setPPSRWrittenOff] = useState(listingData.ppsrCheck.writtenOff);
+  const [ppsrValidRegistration, setPPSRValidRegistration] = useState(listingData.ppsrCheck.validRegistration);
+  
   const [askingPrice, setAskingPrice] = useState(
     listingData.pricing.askingPrice > 0
       ? formatCurrency(listingData.pricing.askingPrice.toString())
@@ -106,16 +115,27 @@ export const PricingScreen: React.FC<PricingScreenProps> = ({ navigation, route 
   // Validate form
   const isFormValid = (): boolean => {
     if (parseCurrency(askingPrice) <= 0) return false;
-    if (isWriteOff && !writeOffExplanation.trim()) return false;
+    // If PPSR cleared and vehicle IS a write-off, explanation is required
+    if (isPPSRCleared && isWriteOff && !writeOffExplanation.trim()) return false;
     if (!location.suburb.trim() || !location.state || !location.postcode.trim()) return false;
     return true;
   };
 
   // Handle continue
   const handleContinue = useCallback(() => {
+    // Write-off status is directly from isWriteOff state
     const writeOffData: WriteOffDetails = {
-      isWriteOff,
+      isWriteOff: isWriteOff,
       explanation: isWriteOff ? writeOffExplanation.trim() : undefined,
+    };
+
+    const ppsrCheckData: PPSRCheckDetails = {
+      isCleared: isPPSRCleared,
+      moneyOwing: ppsrMoneyOwing,
+      stolen: ppsrStolen,
+      writtenOff: ppsrWrittenOff, // This is the inverse of isWriteOff
+      validRegistration: ppsrValidRegistration,
+      checkDate: new Date().toISOString(),
     };
 
     const pricingData: PricingDetails = {
@@ -124,6 +144,7 @@ export const PricingScreen: React.FC<PricingScreenProps> = ({ navigation, route 
     };
 
     setWriteOff(writeOffData);
+    setPPSRCheck(ppsrCheckData);
     setPricing(pricingData);
     setPickupLocation(location);
 
@@ -133,11 +154,16 @@ export const PricingScreen: React.FC<PricingScreenProps> = ({ navigation, route 
       navigation.navigate('ReviewPublish');
     }
   }, [
-    isWriteOff,
+    isPPSRCleared,
+    ppsrMoneyOwing,
+    ppsrStolen,
+    ppsrWrittenOff,
+    ppsrValidRegistration,
     writeOffExplanation,
     askingPrice,
     location,
     setWriteOff,
+    setPPSRCheck,
     setPricing,
     setPickupLocation,
     navigation,
@@ -204,21 +230,21 @@ export const PricingScreen: React.FC<PricingScreenProps> = ({ navigation, route 
 
           <Spacer size="lg" />
 
-          {/* Repairable Write-Off Section */}
+          {/* PPSR Check Section (includes Write-Off) */}
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIconWrapper, { backgroundColor: Colors.warning + '15' }]}>
-                <Ionicons name="alert-circle" size={16} color={Colors.warning} />
+              <View style={[styles.sectionIconWrapper, { backgroundColor: Colors.success + '15' }]}>
+                <Ionicons name="shield-checkmark" size={16} color={Colors.success} />
               </View>
               <Text variant="bodySmall" weight="semibold">
-                Repairable Write-Off
+                PPSR Check
               </Text>
             </View>
 
             <Spacer size="sm" />
 
             <Text variant="label" color="textSecondary">
-              Has this vehicle ever been declared a repairable write-off (WOVR)?
+              Has this vehicle passed a PPSR (Personal Property Securities Register) check?
             </Text>
 
             <Spacer size="md" />
@@ -226,74 +252,244 @@ export const PricingScreen: React.FC<PricingScreenProps> = ({ navigation, route 
             {/* Yes/No Toggle */}
             <View style={styles.toggleContainer}>
               <TouchableOpacity
-                style={[styles.toggleOption, !isWriteOff && styles.toggleOptionActive]}
-                onPress={() => setIsWriteOff(false)}
+                style={[styles.toggleOption, !isPPSRCleared && styles.toggleOptionActiveWarning]}
+                onPress={() => {
+                  setIsPPSRCleared(false);
+                  setShowPPSRDetails(false);
+                }}
                 activeOpacity={0.7}
               >
                 <Ionicons
-                  name={!isWriteOff ? 'checkmark-circle' : 'ellipse-outline'}
+                  name={!isPPSRCleared ? 'checkmark-circle' : 'ellipse-outline'}
                   size={18}
-                  color={!isWriteOff ? Colors.success : Colors.textMuted}
+                  color={!isPPSRCleared ? Colors.warning : Colors.textMuted}
                 />
                 <Text
                   variant="bodySmall"
-                  weight={!isWriteOff ? 'semibold' : 'regular'}
-                  color={!isWriteOff ? 'success' : 'textMuted'}
+                  weight={!isPPSRCleared ? 'semibold' : 'regular'}
+                  style={{ color: !isPPSRCleared ? Colors.warning : Colors.textMuted }}
                 >
                   No
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.toggleOption, isWriteOff && styles.toggleOptionActiveWarning]}
-                onPress={() => setIsWriteOff(true)}
+                style={[styles.toggleOption, isPPSRCleared && styles.toggleOptionActive]}
+                onPress={() => {
+                  setIsPPSRCleared(true);
+                  setShowPPSRDetails(true);
+                }}
                 activeOpacity={0.7}
               >
                 <Ionicons
-                  name={isWriteOff ? 'checkmark-circle' : 'ellipse-outline'}
+                  name={isPPSRCleared ? 'checkmark-circle' : 'ellipse-outline'}
                   size={18}
-                  color={isWriteOff ? Colors.warning : Colors.textMuted}
+                  color={isPPSRCleared ? Colors.success : Colors.textMuted}
                 />
                 <Text
                   variant="bodySmall"
-                  weight={isWriteOff ? 'semibold' : 'regular'}
-                  style={{ color: isWriteOff ? Colors.warning : Colors.textMuted }}
+                  weight={isPPSRCleared ? 'semibold' : 'regular'}
+                  color={isPPSRCleared ? 'success' : 'textMuted'}
                 >
-                  Yes
+                  Yes, Cleared
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Write-Off Warning & Explanation */}
-            {isWriteOff && (
+            {/* PPSR Warning for not cleared */}
+            {!isPPSRCleared && (
               <>
                 <Spacer size="md" />
                 <View style={styles.warningCard}>
-                  <Ionicons name="warning" size={18} color={Colors.warning} />
+                  <Ionicons name="information-circle" size={18} color={Colors.warning} />
                   <Text variant="label" color="textSecondary" style={styles.warningText}>
-                    Vehicles with write-off history typically sell for less than market value.
-                    Please provide details about the write-off to help buyers make informed
-                    decisions.
+                    Vehicles without a PPSR check may be harder to sell and could attract lower offers. 
+                    Buyers prefer vehicles that are clear of encumbrances, not reported stolen, and have valid registration.
                   </Text>
+                </View>
+              </>
+            )}
+
+            {/* PPSR Check Details - Expandable */}
+            {isPPSRCleared && showPPSRDetails && (
+              <>
+                <Spacer size="md" />
+                
+                <View style={styles.ppsrSuccessCard}>
+                  <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+                  <View style={styles.ppsrSuccessTextContainer}>
+                    <Text variant="bodySmall" weight="semibold" color="success">
+                      PPSR Check Cleared
+                    </Text>
+                    <Text variant="caption" color="textSecondary">
+                      Confirm the checks below
+                    </Text>
+                  </View>
                 </View>
 
                 <Spacer size="md" />
-
+                
                 <Text variant="caption" weight="semibold" color="textTertiary" style={styles.labelText}>
-                  WRITE-OFF EXPLANATION
+                  CHECK DETAILS
                 </Text>
-                <Spacer size="xs" />
-                <View style={styles.explanationWrapper}>
-                  <TextInput
-                    style={styles.explanationInput}
-                    placeholder="Explain the circumstances of the write-off and repairs made..."
-                    placeholderTextColor={Colors.textMuted}
-                    value={writeOffExplanation}
-                    onChangeText={setWriteOffExplanation}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
+                <Spacer size="sm" />
+
+                {/* PPSR Check Items */}
+                <View style={styles.ppsrChecksList}>
+                  {/* No Money Owing */}
+                  <TouchableOpacity
+                    style={styles.ppsrCheckItem}
+                    onPress={() => setPPSRMoneyOwing(!ppsrMoneyOwing)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.ppsrCheckBox, ppsrMoneyOwing && styles.ppsrCheckBoxChecked]}>
+                      {ppsrMoneyOwing && (
+                        <Ionicons name="checkmark" size={16} color={Colors.white} />
+                      )}
+                    </View>
+                    <View style={styles.ppsrCheckTextContainer}>
+                      <Text variant="bodySmall" weight="medium">
+                        No Money Owing
+                      </Text>
+                      <Text variant="caption" color="textMuted">
+                        No financial encumbrances
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Not Stolen */}
+                  <TouchableOpacity
+                    style={styles.ppsrCheckItem}
+                    onPress={() => setPPSRStolen(!ppsrStolen)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.ppsrCheckBox, ppsrStolen && styles.ppsrCheckBoxChecked]}>
+                      {ppsrStolen && (
+                        <Ionicons name="checkmark" size={16} color={Colors.white} />
+                      )}
+                    </View>
+                    <View style={styles.ppsrCheckTextContainer}>
+                      <Text variant="bodySmall" weight="medium">
+                        Not Reported Stolen
+                      </Text>
+                      <Text variant="caption" color="textMuted">
+                        Clear stolen vehicle check
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Write-Off Status - Yes/No Toggle */}
+                  <View style={styles.ppsrCheckItem}>
+                    <View style={styles.ppsrCheckTextContainer}>
+                      <Text variant="bodySmall" weight="medium">
+                        Repairable Write-Off (WOVR)
+                      </Text>
+                      <Text variant="caption" color="textMuted">
+                        Is this vehicle a repairable write-off?
+                      </Text>
+                      
+                      <Spacer size="sm" />
+                      
+                      {/* Yes/No Toggle for Write-Off */}
+                      <View style={styles.writeOffToggleContainer}>
+                        <TouchableOpacity
+                          style={[
+                            styles.writeOffToggleOption,
+                            isWriteOff && styles.writeOffToggleOptionActiveWarning
+                          ]}
+                          onPress={() => {
+                            setIsWriteOff(true);
+                            setPPSRWrittenOff(false); // Inverse: if IS write-off, then NOT cleared
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={isWriteOff ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={16}
+                            color={isWriteOff ? Colors.warning : Colors.textMuted}
+                          />
+                          <Text
+                            variant="caption"
+                            weight={isWriteOff ? 'semibold' : 'regular'}
+                            style={{ color: isWriteOff ? Colors.warning : Colors.textMuted }}
+                          >
+                            Yes
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.writeOffToggleOption,
+                            !isWriteOff && styles.writeOffToggleOptionActiveSuccess
+                          ]}
+                          onPress={() => {
+                            setIsWriteOff(false);
+                            setPPSRWrittenOff(true); // Inverse: if NOT write-off, then cleared
+                            setWriteOffExplanation(''); // Clear explanation
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={!isWriteOff ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={16}
+                            color={!isWriteOff ? Colors.success : Colors.textMuted}
+                          />
+                          <Text
+                            variant="caption"
+                            weight={!isWriteOff ? 'semibold' : 'regular'}
+                            color={!isWriteOff ? 'success' : 'textMuted'}
+                          >
+                            No
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Write-Off Explanation - Shows when YES (is write-off) */}
+                  {isWriteOff && (
+                    <View style={styles.writeOffExplanationContainer}>
+                      <View style={styles.writeOffWarning}>
+                        <Ionicons name="alert-circle" size={16} color={Colors.warning} />
+                        <Text variant="caption" color="textSecondary" style={styles.writeOffWarningText}>
+                          Vehicles with write-off history typically sell for less. Please explain the circumstances.
+                        </Text>
+                      </View>
+                      <View style={styles.explanationWrapper}>
+                        <TextInput
+                          style={styles.explanationInput}
+                          placeholder="Explain the write-off circumstances and repairs made..."
+                          placeholderTextColor={Colors.textMuted}
+                          value={writeOffExplanation}
+                          onChangeText={setWriteOffExplanation}
+                          multiline
+                          numberOfLines={3}
+                          textAlignVertical="top"
+                        />
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Valid Registration */}
+                  <TouchableOpacity
+                    style={[styles.ppsrCheckItem, styles.ppsrCheckItemLast]}
+                    onPress={() => setPPSRValidRegistration(!ppsrValidRegistration)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.ppsrCheckBox, ppsrValidRegistration && styles.ppsrCheckBoxChecked]}>
+                      {ppsrValidRegistration && (
+                        <Ionicons name="checkmark" size={16} color={Colors.white} />
+                      )}
+                    </View>
+                    <View style={styles.ppsrCheckTextContainer}>
+                      <Text variant="bodySmall" weight="medium">
+                        Valid Registration
+                      </Text>
+                      <Text variant="caption" color="textMuted">
+                        Current registration status
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 </View>
               </>
             )}
@@ -734,6 +930,108 @@ const styles = StyleSheet.create({
   },
   dropdownItemLast: {
     borderBottomWidth: 0,
+  },
+
+  // PPSR Check Styles
+  ppsrSuccessCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.success + '10',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.success + '30',
+  },
+  ppsrSuccessTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  ppsrChecksList: {
+    gap: 0,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    overflow: 'hidden',
+  },
+  ppsrCheckItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+    backgroundColor: Colors.white,
+  },
+  ppsrCheckItemLast: {
+    borderBottomWidth: 0,
+  },
+  ppsrCheckBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ppsrCheckBoxChecked: {
+    borderColor: Colors.success,
+    backgroundColor: Colors.success,
+  },
+  ppsrCheckTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+
+  // Write-Off Explanation (inside PPSR)
+  writeOffExplanationContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.warning + '08',
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  writeOffWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  writeOffWarningText: {
+    flex: 1,
+    lineHeight: 16,
+  },
+
+  // Write-Off Yes/No Toggle
+  writeOffToggleContainer: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  writeOffToggleOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.background,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.borderLight,
+  },
+  writeOffToggleOptionActiveWarning: {
+    backgroundColor: Colors.warning + '12',
+    borderColor: Colors.warning,
+  },
+  writeOffToggleOptionActiveSuccess: {
+    backgroundColor: Colors.success + '12',
+    borderColor: Colors.success,
   },
 
 });

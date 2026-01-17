@@ -577,26 +577,105 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             {/* PPSR Verification */}
             {vehicle.ppsr && (
               <>
-                <Accordion title="PPSR Verification" icon="shield-checkmark-outline" defaultExpanded={false}>
+                <Accordion title="PPSR Check" icon="shield-checkmark-outline" defaultExpanded={false}>
                   <View style={styles.ppsrContent}>
-                    <View style={styles.ppsrStatus}>
-                      <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
-                      <View style={styles.ppsrStatusText}>
-                        <Text variant="body" weight="bold" style={{ color: Colors.success }}>
-                          Clear Title
-                        </Text>
-                        <Text variant="caption" color="textTertiary">
-                          Checked {formatPPSRDate(vehicle.ppsr.checkDate)}
+                    {/* PPSR Status Header */}
+                    <View style={styles.ppsrStatusHeader}>
+                      <View style={styles.ppsrStatusBadge}>
+                        <Ionicons 
+                          name={vehicle.ppsr.status === 'clear' ? 'checkmark-circle' : 'alert-circle'} 
+                          size={16} 
+                          color={vehicle.ppsr.status === 'clear' ? Colors.success : Colors.warning} 
+                        />
+                        <Text 
+                          variant="bodySmall" 
+                          weight="semibold"
+                          style={{ color: vehicle.ppsr.status === 'clear' ? Colors.success : Colors.warning }}
+                        >
+                          {vehicle.ppsr.status === 'clear' ? 'Cleared' : 'Not Cleared'}
                         </Text>
                       </View>
+                      <Text variant="caption" color="textTertiary">
+                        Checked {formatPPSRDate(vehicle.ppsr.checkDate)}
+                      </Text>
                     </View>
 
-                    <View style={styles.ppsrChecks}>
-                      <PPSRItem label="No money owing" passed={!vehicle.ppsr.details.moneyOwing} />
-                      <PPSRItem label="Not stolen" passed={!vehicle.ppsr.details.stolen} />
-                      <PPSRItem label="Not written off" passed={!vehicle.ppsr.details.writtenOff} />
-                      <PPSRItem label="Valid registration" passed={vehicle.ppsr.details.validRegistration} />
+                    {/* PPSR Check Details */}
+                    <View style={styles.ppsrDetailsContainer}>
+                      <PPSRCheckItem 
+                        icon="cash-outline" 
+                        label="No Money Owing" 
+                        passed={!vehicle.ppsr.details.moneyOwing}
+                        iconColor={Colors.primary}
+                      />
+                      <PPSRCheckItem 
+                        icon="ban-outline" 
+                        label="Not Reported Stolen" 
+                        passed={!vehicle.ppsr.details.stolen}
+                        iconColor={Colors.primary}
+                      />
+                      <PPSRCheckItem 
+                        icon="warning-outline" 
+                        label="Not Written Off / WOVR" 
+                        passed={!vehicle.ppsr.details.writtenOff}
+                        iconColor={Colors.warning}
+                      />
+                      <PPSRCheckItem 
+                        icon="document-text-outline" 
+                        label="Valid Registration" 
+                        passed={vehicle.ppsr.details.validRegistration}
+                        iconColor={Colors.primary}
+                      />
                     </View>
+
+                    {/* Write-Off Warning Banner (if applicable) */}
+                    {vehicle.ppsr.details.writtenOff && (
+                      <View style={styles.writeOffWarningBanner}>
+                        <View style={styles.writeOffWarningHeader}>
+                          <Ionicons name="warning" size={20} color={Colors.warning} />
+                          <Text variant="body" weight="bold" style={{ color: Colors.warning }}>
+                            Repairable Write-Off (WOVR)
+                          </Text>
+                        </View>
+                        <Text variant="bodySmall" color="textSecondary" style={styles.writeOffWarningText}>
+                          This vehicle has been declared a repairable write-off. It has been assessed, 
+                          repaired, and passed all necessary inspections to be roadworthy. Always verify 
+                          repair documentation before purchase.
+                        </Text>
+                        
+                        {/* Seller's Write-Off Explanation */}
+                        {vehicle.ppsr.writeOffMessage && (
+                          <View style={styles.sellerMessageBox}>
+                            <View style={styles.sellerMessageHeader}>
+                              <Ionicons name="chatbox-ellipses-outline" size={16} color={Colors.textBrand} />
+                              <Text variant="bodySmall" weight="semibold" color="textBrand">
+                                Seller's Explanation
+                              </Text>
+                            </View>
+                            <Text variant="bodySmall" color="text" style={styles.sellerMessageText}>
+                              {vehicle.ppsr.writeOffMessage}
+                            </Text>
+                          </View>
+                        )}
+                        
+                        <View style={styles.writeOffInfoBox}>
+                          <Ionicons name="information-circle-outline" size={14} color={Colors.warning} />
+                          <Text variant="caption" color="textSecondary" style={{ flex: 1 }}>
+                            WOVR vehicles can be legally driven but may affect insurance and resale value
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Certificate Number (if available) */}
+                    {vehicle.ppsr.certificateNumber && (
+                      <View style={styles.ppsrCertificate}>
+                        <Ionicons name="document-text-outline" size={14} color={Colors.textTertiary} />
+                        <Text variant="caption" color="textTertiary">
+                          Certificate: {vehicle.ppsr.certificateNumber}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </Accordion>
                 <Spacer size="sm" />
@@ -760,6 +839,19 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     </Text>
                   </View>
 
+                  {/* Write-Off Warning (if applicable) */}
+                  {vehicle.ppsr && vehicle.ppsr.details.writtenOff && (
+                    <>
+                      <Spacer size="xs" />
+                      <View style={styles.modalWriteOffWarning}>
+                        <Ionicons name="warning" size={14} color={Colors.warning} />
+                        <Text variant="caption" style={{ color: Colors.warning, flex: 1, lineHeight: 16 }}>
+                          <Text weight="semibold">Repairable Write-Off:</Text> Review PPSR details before finalizing
+                        </Text>
+                      </View>
+                    </>
+                  )}
+
                   <Spacer size="sm" />
 
                   {/* Original Price */}
@@ -901,6 +993,19 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
                     </Text>
                   </View>
 
+                  {/* Write-Off Warning (if applicable) */}
+                  {vehicle.ppsr && vehicle.ppsr.details.writtenOff && (
+                    <>
+                      <Spacer size="xs" />
+                      <View style={styles.modalWriteOffWarning}>
+                        <Ionicons name="warning" size={14} color={Colors.warning} />
+                        <Text variant="caption" style={{ color: Colors.warning, flex: 1, lineHeight: 16 }}>
+                          <Text weight="semibold">Repairable Write-Off:</Text> Review PPSR details before finalizing
+                        </Text>
+                      </View>
+                    </>
+                  )}
+
                   <Spacer size="md" />
 
                   {/* Message Input */}
@@ -1012,6 +1117,28 @@ const PPSRItem: React.FC<PPSRItemProps> = React.memo(({ label, passed }) => (
       color={passed ? Colors.success : Colors.error}
     />
     <Text variant="body" weight="medium">{label}</Text>
+  </View>
+));
+
+interface PPSRCheckItemProps { 
+  icon: keyof typeof Ionicons.glyphMap; 
+  label: string; 
+  passed: boolean;
+  iconColor?: string;
+}
+const PPSRCheckItem: React.FC<PPSRCheckItemProps> = React.memo(({ icon, label, passed, iconColor = Colors.primary }) => (
+  <View style={styles.ppsrCheckRow}>
+    <View style={styles.ppsrCheckIconContainer}>
+      <Ionicons name={icon} size={16} color={iconColor} />
+    </View>
+    <Text variant="bodySmall" weight="medium" style={{ flex: 1 }}>
+      {label}
+    </Text>
+    <Ionicons
+      name={passed ? 'checkmark-circle' : 'close-circle'}
+      size={18}
+      color={passed ? Colors.success : Colors.error}
+    />
   </View>
 ));
 
@@ -1275,6 +1402,40 @@ const styles = StyleSheet.create({
   ppsrContent: {
     gap: Spacing.md,
   },
+  ppsrStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    marginBottom: Spacing.sm,
+  },
+  ppsrStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.success + '15',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: BorderRadius.full,
+  },
+  ppsrDetailsContainer: {
+    backgroundColor: Colors.surface,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.xs,
+  },
+  ppsrCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+  },
+  ppsrCheckIconContainer: {
+    width: 20,
+    alignItems: 'center',
+  },
   ppsrStatus: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1293,6 +1454,64 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+  ppsrCertificate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    marginTop: Spacing.xs,
+  },
+  // Write-Off Warning Banner
+  writeOffWarningBanner: {
+    backgroundColor: Colors.warning + '08',
+    borderWidth: 1,
+    borderColor: Colors.warning + '30',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  writeOffWarningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  writeOffWarningText: {
+    lineHeight: 20,
+  },
+  writeOffInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: Colors.warning + '15',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
+  },
+  // Seller's Write-Off Message
+  sellerMessageBox: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.textBrand + '30',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  sellerMessageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  sellerMessageText: {
+    lineHeight: 20,
+    paddingTop: Spacing.xs,
   },
 
   // Condition Content
@@ -1442,6 +1661,42 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
+  // Write-Off Alert Banner (Above Bottom Bar)
+  writeOffAlertBanner: {
+    position: 'absolute',
+    bottom: 70, // Above bottom bar
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.warning + '15',
+    borderTopWidth: 2,
+    borderTopColor: Colors.warning,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    ...Shadows.md,
+  },
+  writeOffAlertContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  writeOffAlertTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  writeOffAlertButton: {
+    backgroundColor: Colors.warning + '20',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.warning + '40',
+  },
+
   // Error State
   errorContainer: {
     flex: 1,
@@ -1550,6 +1805,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.md,
+  },
+  modalWriteOffWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: Colors.warning + '12',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.warning + '30',
   },
   offerInfoText: {
     flex: 1,

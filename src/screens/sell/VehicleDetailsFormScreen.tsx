@@ -319,8 +319,8 @@ export const VehicleDetailsFormScreen: React.FC<VehicleDetailsFormScreenProps> =
 
         <Spacer size="sm" />
 
-        {/* Technical Specifications Accordion */}
-        <Accordion title="Technical Specifications" icon="settings-outline" defaultExpanded={false}>
+        {/* Specifications Accordion */}
+        <Accordion title="Specifications" icon="settings-outline" defaultExpanded={false}>
           <View style={styles.formSection}>
             {/* Two Column Grid */}
             <View style={styles.twoColumnGrid}>
