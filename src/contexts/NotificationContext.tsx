@@ -328,8 +328,8 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [state, setState] = useState<NotificationContextState>({
-    notifications: __DEV__ ? MOCK_NOTIFICATIONS : [],
-    isLoading: true,
+    notifications: MOCK_NOTIFICATIONS, // Always start with mock data
+    isLoading: false,
     filter: 'all',
   });
 
@@ -343,16 +343,30 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
    */
   const loadData = useCallback(async () => {
     try {
+      // In development mode, always use mock data
+      if (__DEV__) {
+        // Clear any stored data and use fresh mock data
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        setState(prev => ({
+          ...prev,
+          notifications: MOCK_NOTIFICATIONS,
+          isLoading: false,
+        }));
+        console.log('[NotificationContext] Loaded mock notifications:', MOCK_NOTIFICATIONS.length);
+        return;
+      }
+
+      // In production, load from storage
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         setState(prev => ({
           ...prev,
-          notifications: parsed.notifications || prev.notifications,
+          notifications: parsed.notifications || [],
           isLoading: false,
         }));
       } else {
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState(prev => ({ ...prev, notifications: [], isLoading: false }));
       }
     } catch (error) {
       console.error('[NotificationContext] Error loading data:', error);

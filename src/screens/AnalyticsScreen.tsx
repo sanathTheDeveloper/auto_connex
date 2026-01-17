@@ -207,8 +207,10 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
 
   // Calculate chart width - responsive to viewport
   const maxWidth = Platform.OS === 'web' ? Math.min(480, viewport.width) : viewport.width;
-  const horizontalPadding = Spacing.md * 2; // Account for card padding and margins
-  const chartWidth = maxWidth - horizontalPadding - (Spacing.md * 2);
+  // Account for: container margins (Spacing.md * 2) + card padding (Spacing.sm * 2 for mobile)
+  const containerMargins = Spacing.md * 2;
+  const cardPadding = Platform.OS === 'web' ? Spacing.md * 2 : Spacing.sm * 2;
+  const chartWidth = Math.max(maxWidth - containerMargins - cardPadding - 40, 260); // Min 260px width
 
   // Handle viewport changes
   useEffect(() => {
@@ -467,13 +469,6 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
           <View style={styles.headerActions} />
         </View>
 
-        {/* Subtitle */}
-        <View style={styles.subtitleContainer}>
-          <Text variant="bodySmall" style={styles.subtitle}>
-            Track your sales performance and revenue trends
-          </Text>
-        </View>
-
         <Spacer size="md" />
 
         {/* Period Selector Slider - Draggable Line */}
@@ -533,8 +528,8 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
                   },
                 ],
               }}
-              width={Math.max(chartWidth, 280)}
-              height={viewport.width <= 375 ? 200 : 220}
+              width={chartWidth}
+              height={viewport.width <= 375 ? 180 : 200}
               chartConfig={{
                 backgroundColor: Colors.white,
                 backgroundGradientFrom: Colors.white,
@@ -707,6 +702,7 @@ const styles = StyleSheet.create({
     maxWidth: Platform.OS === 'web' ? 480 : undefined,
     alignSelf: Platform.OS === 'web' ? 'center' : undefined,
     width: '100%',
+    overflow: 'hidden',
   },
   scrollView: {
     flex: 1,
@@ -746,7 +742,7 @@ const styles = StyleSheet.create({
 
   // Subtitle
   subtitleContainer: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.xs,
     backgroundColor: Colors.white,
@@ -754,10 +750,10 @@ const styles = StyleSheet.create({
   subtitle: {
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
     fontSize: Platform.select({
       web: 14,
-      default: 13,
+      default: 12,
     }),
     letterSpacing: 0.1,
   },
@@ -891,6 +887,7 @@ const styles = StyleSheet.create({
       web: Spacing.lg,
       default: Spacing.md,
     }),
+    paddingVertical: Spacing.md,
     marginHorizontal: Spacing.md,
     alignItems: 'center',
     shadowColor: '#000',
@@ -903,12 +900,16 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    fontSize: Platform.select({
+      web: 11,
+      default: 10,
+    }),
   },
   heroValue: {
     color: Colors.text,
     fontSize: Platform.select({
       web: 40,
-      default: 36,
+      default: 32,
     }),
   },
   changeRow: {
@@ -966,6 +967,8 @@ const styles = StyleSheet.create({
   // Chart Card - iOS card style
   chartContainer: {
     marginHorizontal: Spacing.md,
+    width: Platform.OS === 'web' ? undefined : '100%',
+    alignSelf: 'stretch',
   },
   chartWrapper: {
     backgroundColor: Colors.white,
@@ -974,12 +977,17 @@ const styles = StyleSheet.create({
       web: Spacing.md,
       default: Spacing.sm,
     }),
+    paddingHorizontal: Platform.select({
+      web: Spacing.md,
+      default: Spacing.xs,
+    }),
     paddingVertical: Spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+    overflow: 'hidden',
   },
   dataPointTooltip: {
     position: 'absolute',
@@ -1006,6 +1014,10 @@ const styles = StyleSheet.create({
   },
   chart: {
     marginVertical: Spacing.xs,
+    marginLeft: Platform.select({
+      web: 0,
+      default: -8,
+    }),
     borderRadius: BorderRadius.md,
   },
   chartHint: {
@@ -1021,26 +1033,22 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     marginHorizontal: Spacing.md,
   },
   metricCard: {
     flex: 1,
-    minWidth: Platform.select({
-      web: 100,
-      default: 95,
-    }),
-    maxWidth: Platform.select({
-      web: '31%',
-      default: '31%',
-    }),
+    minWidth: 95,
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     padding: Platform.select({
       web: Spacing.md,
+      default: Spacing.xs,
+    }),
+    paddingVertical: Platform.select({
+      web: Spacing.md,
       default: Spacing.sm,
     }),
-    paddingVertical: Spacing.md,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1081,6 +1089,7 @@ const styles = StyleSheet.create({
       web: Spacing.md,
       default: Spacing.sm,
     }),
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     marginHorizontal: Spacing.md,
     shadowColor: '#000',
