@@ -9,6 +9,7 @@ import ConversationListScreen from '../screens/ConversationListScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import { SplashScreen, OnboardingScreen, WelcomeScreen, SignupScreen } from '../screens/auth';
 import { Colors } from '../constants/theme';
+import DealerListingsScreen from '../screens/DealerListingsScreen';
 
 // Sell Flow Screens
 import {
@@ -61,6 +62,7 @@ export type RootStackParamList = {
   DesignSystem: undefined;
   VehicleDetails: { vehicleId: string };
   SavedVehicles: undefined;
+  DealerListings: { dealerName: string };
   ConversationList: undefined;
   Messages: {
     vehicleId?: string;
@@ -178,6 +180,17 @@ export default function Navigation() {
           component={SavedVehiclesScreen}
           options={{
             title: 'Favorites',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+
+        {/* Dealer Listings Screen */}
+        <Stack.Screen
+          name="DealerListings"
+          component={DealerListingsScreen}
+          options={{
+            title: 'Dealer Listings',
             headerShown: false,
             animation: 'slide_from_right',
           }}

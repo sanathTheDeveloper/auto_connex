@@ -15,6 +15,9 @@ export { default as FilterModal } from './FilterModal';
 export type { FilterModalProps, FilterOptions } from './FilterModal';
 export { DEFAULT_FILTERS } from './FilterModal';
 
+export { SortModal, DEFAULT_SORT_OPTIONS } from './SortModal';
+export type { SortModalProps, SortOption, SortOptionConfig } from './SortModal';
+
 export { default as PaymentModal } from './PaymentModal';
 export type { PaymentModalProps, PaymentData, VehicleInfo } from './PaymentModal';
 

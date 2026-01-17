@@ -16,6 +16,7 @@ import {
 import Navigation from './src/navigation';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { FavoritesProvider } from './src/contexts/FavoritesContext';
+import { FavoriteDealersProvider } from './src/contexts/FavoriteDealersContext';
 import { SellProvider } from './src/contexts/SellContext';
 import { MyListingsProvider } from './src/contexts/MyListingsContext';
 import { PurchasesOffersProvider } from './src/contexts/PurchasesOffersContext';
@@ -77,14 +78,16 @@ export default function App() {
     <PurchasesOffersProvider>
       <AuthProvider>
         <FavoritesProvider>
-          <SellProvider>
-            <MyListingsProvider>
-              <View style={styles.appContainer}>
-                <Navigation />
-                <StatusBar style="auto" />
-              </View>
-            </MyListingsProvider>
-          </SellProvider>
+          <FavoriteDealersProvider>
+            <SellProvider>
+              <MyListingsProvider>
+                <View style={styles.appContainer}>
+                  <Navigation />
+                  <StatusBar style="auto" />
+                </View>
+              </MyListingsProvider>
+            </SellProvider>
+          </FavoriteDealersProvider>
         </FavoritesProvider>
       </AuthProvider>
     </PurchasesOffersProvider>

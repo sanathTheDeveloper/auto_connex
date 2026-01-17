@@ -137,6 +137,7 @@ interface VehicleCardProps {
   onFavoritePress: () => void;
   onMessagePress: () => void;
   onSharePress: () => void;
+  onDealerPress?: () => void;
 }
 
 const VehicleCard: React.FC<VehicleCardProps> = ({
@@ -145,7 +146,8 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   isFavorite,
   onFavoritePress,
   onMessagePress,
-  onSharePress
+  onSharePress,
+  onDealerPress
 }) => (
   <TouchableOpacity
     style={styles.vehicleCard}
@@ -193,7 +195,11 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
           {vehicle.suburb}, {vehicle.state}
         </Text>
         <View style={styles.dotSeparator} />
-        <Text variant="caption" style={styles.dealerName}>{vehicle.dealerName}</Text>
+        <TouchableOpacity onPress={onDealerPress} activeOpacity={0.7}>
+          <Text variant="caption" style={styles.dealerNameClickable}>
+            {vehicle.dealerName} · <Text style={styles.viewAllText}>View all</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Specs Row - includes all badges */}
@@ -460,6 +466,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               onFavoritePress={() => toggleFavorite(vehicle.id)}
               onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
               onSharePress={() => console.log('Share vehicle:', vehicle.id)}
+              onDealerPress={() => navigation.navigate('DealerListings', { dealerName: vehicle.dealerName })}
             />
           ))
         ) : (
@@ -603,6 +610,16 @@ const styles = StyleSheet.create({
   dealerName: {
     color: Colors.secondary,
     fontWeight: '600',
+  },
+  dealerNameClickable: {
+    color: Colors.secondary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  viewAllText: {
+    color: Colors.textMuted,
+    fontWeight: '400',
+    textDecorationLine: 'none',
   },
   specsRow: {
     flexDirection: 'row',

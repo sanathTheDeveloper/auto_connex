@@ -961,3 +961,58 @@ export const formatFullPrice = (price: number): string => {
 export const formatMileage = (mileage: number): string => {
   return `${mileage.toLocaleString('en-AU')} km`;
 };
+
+/**
+ * Get all vehicles by dealer name
+ */
+export const getVehiclesByDealer = (dealerName: string): Vehicle[] => {
+  return VEHICLES.filter(vehicle => vehicle.dealerName === dealerName);
+};
+
+/**
+ * Dealer info interface
+ */
+export interface DealerInfo {
+  dealerName: string;
+  businessName: string;
+  memberSince: string;
+  totalVehicles: number;
+  verified: boolean;
+  state: string;
+}
+
+/**
+ * Get dealer information by dealer name
+ */
+export const getDealerInfo = (dealerName: string): DealerInfo | null => {
+  const dealerVehicles = getVehiclesByDealer(dealerName);
+  
+  if (dealerVehicles.length === 0) {
+    return null;
+  }
+
+  const firstVehicle = dealerVehicles[0];
+  
+  // Mock member since dates based on dealer name for consistency
+  const memberSinceDates: Record<string, string> = {
+    'AutoKing_99': 'Jan 2024',
+    'WheelDealer_X': 'Mar 2024',
+    'CarPro_Elite': 'Feb 2024',
+    'MotorMaverick': 'May 2024',
+    'DriveMaster_AU': 'Jun 2024',
+    'SpeedTrader_77': 'Apr 2024',
+    'VehicleVault': 'Jul 2024',
+    'GearHead_Pro': 'Aug 2024',
+    'TurboTrader_X': 'Sep 2024',
+    'AutoElite_Pro': 'Oct 2024',
+  };
+
+  return {
+    dealerName: firstVehicle.dealerName,
+    businessName: firstVehicle.dealer,
+    memberSince: memberSinceDates[dealerName] || 'Jan 2024',
+    totalVehicles: dealerVehicles.length,
+    verified: firstVehicle.verified,
+    state: firstVehicle.state,
+  };
+};
