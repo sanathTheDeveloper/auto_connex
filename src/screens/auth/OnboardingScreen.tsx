@@ -72,8 +72,8 @@ const SLIDES = [
       />
     ),
     gradientColors: [Colors.primary, Colors.tealLight] as [string, string],
-    heading: 'Reach Dealers Nationwide',
-    body: 'Connect with thousands of verified dealers across Australia instantly. Your inventory, seen by the right buyers.',
+    heading: 'Reach Dealers & Wholesalers',
+    body: 'Connect with thousands of verified dealers and wholesalers across Australia instantly. Your inventory, seen by the right buyers.',
   },
   {
     id: 2,
@@ -97,7 +97,7 @@ const SLIDES = [
     ),
     gradientColors: [Colors.success, Colors.tealMedium] as [string, string],
     heading: 'Sell Faster, Earn Better',
-    body: 'Turn inventory into cash quicker with nationwide reach. More buyers viewing your stock means better offers.',
+    body: 'Get better sales with nationwide reach. More buyers means stronger offers for your stock.',
   },
 ];
 

@@ -79,7 +79,7 @@ export const ReviewPublishScreen: React.FC<ReviewPublishScreenProps> = ({ naviga
   // Responsive values
   const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
 
-  const { vehicleDetails, photos, conditionReport, afterMarketExtras, writeOff, pricing, pickupLocation } =
+  const { vehicleDetails, photos, conditionReport, afterMarketExtras, writeOff, ppsrCheck, pricing, pickupLocation } =
     listingData;
 
   // Handle publish
@@ -356,23 +356,103 @@ export const ReviewPublishScreen: React.FC<ReviewPublishScreenProps> = ({ naviga
 
         <Spacer size="md" />
 
-        {/* Write-Off Notice */}
-        {writeOff.isWriteOff && (
-          <>
-            <View style={styles.writeOffBanner}>
-              <Ionicons name="alert-circle" size={20} color={Colors.warning} />
-              <View style={styles.writeOffContent}>
-                <Text variant="caption" weight="semibold" style={{ color: Colors.warning }}>
-                  Repairable Write-Off
-                </Text>
-                <Text variant="caption" color="textMuted" numberOfLines={1}>
-                  {writeOff.explanation}
-                </Text>
-              </View>
+        {/* PPSR Check Section */}
+        <TouchableOpacity
+          style={styles.sectionCard}
+          onPress={() => navigation.navigate('Pricing', { fromReview: true })}
+          activeOpacity={0.7}
+        >
+          <View style={styles.sectionRow}>
+            <View style={styles.sectionLeft}>
+              <Ionicons name="shield-checkmark" size={18} color={Colors.text} />
+              <Text variant="bodySmall" weight="semibold">PPSR Check</Text>
             </View>
-            <Spacer size="md" />
-          </>
-        )}
+            <View style={styles.sectionRight}>
+              {ppsrCheck.isCleared ? (
+                <View style={styles.ppsrStatusBadge}>
+                  <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
+                  <Text variant="caption" weight="semibold" style={{ color: Colors.success }}>
+                    Cleared
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.ppsrStatusBadgeWarning}>
+                  <Ionicons name="alert-circle" size={14} color={Colors.warning} />
+                  <Text variant="caption" weight="semibold" style={{ color: Colors.warning }}>
+                    Not Cleared
+                  </Text>
+                </View>
+              )}
+              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+            </View>
+          </View>
+
+          {/* PPSR Details - Show when cleared */}
+          {ppsrCheck.isCleared && (
+            <>
+              <Spacer size="sm" />
+              <View style={styles.ppsrDetailsContainer}>
+                <View style={styles.ppsrDetailRow}>
+                  <Ionicons 
+                    name={ppsrCheck.moneyOwing ? "checkmark-circle" : "close-circle"} 
+                    size={14} 
+                    color={ppsrCheck.moneyOwing ? Colors.success : Colors.error} 
+                  />
+                  <Text variant="caption" color="textMuted">
+                    {ppsrCheck.moneyOwing ? "No Money Owing" : "Money Owing"}
+                  </Text>
+                </View>
+                <View style={styles.ppsrDetailRow}>
+                  <Ionicons 
+                    name={ppsrCheck.stolen ? "checkmark-circle" : "close-circle"} 
+                    size={14} 
+                    color={ppsrCheck.stolen ? Colors.success : Colors.error} 
+                  />
+                  <Text variant="caption" color="textMuted">
+                    {ppsrCheck.stolen ? "Not Stolen" : "Reported Stolen"}
+                  </Text>
+                </View>
+                <View style={styles.ppsrDetailRow}>
+                  <Ionicons 
+                    name={ppsrCheck.writtenOff ? "checkmark-circle" : "close-circle"} 
+                    size={14} 
+                    color={ppsrCheck.writtenOff ? Colors.success : Colors.error} 
+                  />
+                  <Text variant="caption" color="textMuted">
+                    {ppsrCheck.writtenOff ? "Not Written Off" : "Written Off"}
+                  </Text>
+                </View>
+                <View style={styles.ppsrDetailRow}>
+                  <Ionicons 
+                    name={ppsrCheck.validRegistration ? "checkmark-circle" : "close-circle"} 
+                    size={14} 
+                    color={ppsrCheck.validRegistration ? Colors.success : Colors.error} 
+                  />
+                  <Text variant="caption" color="textMuted">
+                    {ppsrCheck.validRegistration ? "Valid Registration" : "Invalid Registration"}
+                  </Text>
+                </View>
+
+                {/* Write-Off Explanation - Show if vehicle is a write-off */}
+                {writeOff.isWriteOff && (
+                  <View style={styles.writeOffInlineContainer}>
+                    <View style={styles.writeOffInlineHeader}>
+                      <Ionicons name="information-circle" size={14} color={Colors.warning} />
+                      <Text variant="caption" weight="semibold" style={{ color: Colors.warning }}>
+                        Repairable Write-Off Details
+                      </Text>
+                    </View>
+                    <Text variant="caption" color="textSecondary" style={styles.writeOffExplanationText}>
+                      {writeOff.explanation}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <Spacer size="md" />
 
         {/* Location */}
         <TouchableOpacity
@@ -705,6 +785,58 @@ const styles = StyleSheet.create({
   },
   writeOffContent: {
     flex: 1,
+  },
+
+  // PPSR Status Badges
+  ppsrStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.success + '15',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  ppsrStatusBadgeWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.warning + '15',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  ppsrDetailsContainer: {
+    gap: Spacing.xs,
+    backgroundColor: Colors.background,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  ppsrDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+
+  // Write-Off Inline (within PPSR)
+  writeOffInlineContainer: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.warning + '30',
+    backgroundColor: Colors.warning + '08',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  writeOffInlineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  writeOffExplanationText: {
+    lineHeight: 16,
+    paddingLeft: 20, // Indent to align with header text
   },
 
   // Terms

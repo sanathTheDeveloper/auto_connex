@@ -86,16 +86,12 @@ export const Input: React.FC<InputProps> = ({
     ? Colors.error
     : isFocused
     ? Colors.primary
-    : Platform.OS === 'android' ? Colors.border : Colors.borderLight;
-
-  const backgroundColor = Platform.OS === 'android'
-    ? Colors.background
-    : (isFocused ? Colors.background : Colors.surface);
+    : Colors.border;
 
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
-        <Text variant="caption" weight="regular" color="text" style={styles.label}>
+        <Text variant="bodySmall" style={styles.label}>
           {label}
         </Text>
       )}
@@ -104,8 +100,7 @@ export const Input: React.FC<InputProps> = ({
         styles.inputContainer,
         {
           borderColor,
-          backgroundColor,
-          borderWidth: Platform.OS === 'android' ? 1.5 : (isFocused ? 2 : 1),
+          borderWidth: isFocused ? 2 : 1.5,
         }
       ]}>
         {leftIcon && (
@@ -165,16 +160,18 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
-    marginBottom: Spacing.sm,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderRadius: Platform.OS === 'android' ? BorderRadius.md : BorderRadius.lg,
-    backgroundColor: Colors.background,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
-    minHeight: Platform.OS === 'android' ? 48 : 44,
+    minHeight: 48,
   },
   input: {
     flex: 1,

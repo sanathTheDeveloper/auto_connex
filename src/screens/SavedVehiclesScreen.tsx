@@ -1,11 +1,12 @@
 /**
  * SavedVehiclesScreen Component
  *
- * Displays all favorited vehicles from the user's favorites.
- * Uses the FavoritesContext to get and manage favorites.
+ * Displays favorited vehicles and favorite dealers with tab switcher.
+ * Uses the FavoritesContext and FavoriteDealersContext to manage favorites.
+ * Features animated tab switching similar to WelcomeScreen.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,6 +18,7 @@ import {
   ImageBackground,
   Dimensions,
   ScaledSize,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -44,10 +46,13 @@ import {
   getVehicleBackgroundImage,
   formatFullPrice,
   formatMileage,
+  getDealerInfo,
+  getVehiclesByDealer,
 } from '../data/vehicles';
 
 // Context
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useFavoriteDealers } from '../contexts/FavoriteDealersContext';
 
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
@@ -57,6 +62,8 @@ type SavedVehiclesScreenNavigationProp = NativeStackNavigationProp<RootStackPara
 interface SavedVehiclesScreenProps {
   navigation: SavedVehiclesScreenNavigationProp;
 }
+
+type TabType = 'vehicles' | 'dealers';
 
 /**
  * Compact spec item for vehicle details
@@ -229,14 +236,113 @@ const EmptyState: React.FC<{ onBrowsePress: () => void }> = ({ onBrowsePress }) 
   </View>
 );
 
+/**
+ * Empty state for dealers
+ */
+const EmptyDealersState: React.FC<{ onBrowsePress: () => void }> = ({ onBrowsePress }) => (
+  <View style={styles.emptyState}>
+    <View style={styles.emptyIconContainer}>
+      <Ionicons name="business-outline" size={64} color={Colors.textMuted} />
+    </View>
+    <Spacer size="lg" />
+    <Text variant="h4" weight="semibold" color="text" align="center">
+      No Favorite Dealers
+    </Text>
+    <Spacer size="sm" />
+    <Text variant="body" color="textMuted" align="center">
+      Save dealers to quickly access their inventory and track new listings
+    </Text>
+    <Spacer size="xl" />
+    <TouchableOpacity style={styles.browseButton} onPress={onBrowsePress} activeOpacity={0.8}>
+      <Ionicons name="search-outline" size={20} color={Colors.white} />
+      <Text variant="bodySmall" weight="semibold" style={styles.browseButtonText}>
+        Browse Dealers
+      </Text>
+    </TouchableOpacity>
+  </View>
+);
+
+/**
+ * Dealer Card component
+ */
+interface DealerCardProps {
+  dealerName: string;
+  onPress: () => void;
+  onRemovePress: () => void;
+}
+
+const DealerCard: React.FC<DealerCardProps> = ({ dealerName, onPress, onRemovePress }) => {
+  const dealerInfo = getDealerInfo(dealerName);
+  const dealerVehicles = getVehiclesByDealer(dealerName);
+  
+  if (!dealerInfo) return null;
+
+  return (
+    <TouchableOpacity style={styles.dealerCard} onPress={onPress} activeOpacity={0.98}>
+      <View style={styles.dealerCardHeader}>
+        <View style={styles.dealerIconContainer}>
+          <Ionicons name="business" size={24} color={Colors.primary} />
+        </View>
+        <View style={styles.dealerInfoContainer}>
+          <View style={styles.dealerNameRow}>
+            <Text variant="body" weight="bold" style={styles.dealerNameText}>
+              {dealerName}
+            </Text>
+            {dealerInfo.verified && (
+              <Image source={VERIFIED_BADGE} style={styles.dealerBadge} />
+            )}
+          </View>
+          <Text variant="caption" color="textMuted">
+            Member since {dealerInfo.memberSince}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.dealerRemoveButton}
+          onPress={onRemovePress}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="heart" size={20} color={Colors.accent} />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.dealerCardFooter}>
+        <View style={styles.dealerStat}>
+          <Ionicons name="car-outline" size={16} color={Colors.textMuted} />
+          <Text variant="caption" color="textMuted">
+            {dealerInfo.totalVehicles} vehicles
+          </Text>
+        </View>
+        <View style={styles.dealerViewButton}>
+          <Text variant="caption" weight="semibold" style={styles.viewInventoryText}>
+            View Inventory
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 export default function SavedVehiclesScreen({ navigation }: SavedVehiclesScreenProps) {
-  const { favorites, toggleFavorite, getFavoriteCount } = useFavorites();
+  const [activeTab, setActiveTab] = useState<TabType>('vehicles');
   const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
+  const [containerWidth, setContainerWidth] = useState(() => 
+    Platform.OS === 'web' ? Math.min(480, Dimensions.get('window').width) : Dimensions.get('window').width
+  );
+
+  // Animation values
+  const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
+  const contentFadeAnim = useRef(new Animated.Value(1)).current;
+  const contentSlideAnim = useRef(new Animated.Value(0)).current;
+
+  const { favorites, toggleFavorite, getFavoriteCount } = useFavorites();
+  const { favoriteDealers, toggleFavoriteDealer, getFavoriteDealerCount } = useFavoriteDealers();
 
   // Listen for viewport changes (for web browser resize/inspect mode)
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }: { window: ScaledSize }) => {
       setViewportWidth(window.width);
+      setContainerWidth(Platform.OS === 'web' ? Math.min(480, window.width) : window.width);
     });
     return () => subscription?.remove();
   }, []);
@@ -244,13 +350,73 @@ export default function SavedVehiclesScreen({ navigation }: SavedVehiclesScreenP
   // Responsive values
   const responsivePadding = getResponsiveSpacing('lg', viewportWidth);
   const responsiveGap = getResponsiveSpacing('md', viewportWidth);
+  const spacingXl = getResponsiveSpacing('xl', viewportWidth);
+  const spacingXs = getResponsiveSpacing('xs', viewportWidth);
 
-  // Get saved vehicles from VEHICLES data
+  // Get saved vehicles and dealers
   const savedVehicles = VEHICLES.filter(vehicle => favorites.has(vehicle.id));
   const savedCount = getFavoriteCount();
+  const dealerCount = getFavoriteDealerCount();
+
+  // Get dealer names array
+  const favoriteDealerNames = Array.from(favoriteDealers);
+
+  // Handle tab change with animation
+  const handleTabChange = useCallback((tab: TabType) => {
+    if (tab === activeTab) return;
+
+    const isGoingRight = tab === 'dealers';
+
+    // Animate out
+    Animated.parallel([
+      Animated.timing(contentFadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentSlideAnim, {
+        toValue: isGoingRight ? -20 : 20,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setActiveTab(tab);
+      contentSlideAnim.setValue(isGoingRight ? 20 : -20);
+
+      // Animate in
+      Animated.parallel([
+        Animated.timing(contentFadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(contentSlideAnim, {
+          toValue: 0,
+          tension: 120,
+          friction: 14,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+
+    // Animate tab indicator
+    Animated.spring(tabIndicatorAnim, {
+      toValue: tab === 'vehicles' ? 0 : 1,
+      tension: 120,
+      friction: 14,
+      useNativeDriver: false,
+    }).start();
+  }, [activeTab, contentFadeAnim, contentSlideAnim, tabIndicatorAnim]);
 
   const handleBack = () => navigation.goBack();
   const handleBrowse = () => navigation.navigate('Home');
+
+  // Tab indicator position
+  const tabWidth = (containerWidth - spacingXl * 2 - spacingXs * 2 - 8) / 2;
+  const indicatorTranslateX = tabIndicatorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, tabWidth],
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -260,38 +426,138 @@ export default function SavedVehiclesScreen({ navigation }: SavedVehiclesScreenP
           <Ionicons name="chevron-back" size={24} color={Colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text variant="h4" weight="bold">Favorites</Text>
-          {savedCount > 0 && (
-            <View style={styles.countBadge}>
-              <Text variant="caption" style={styles.countBadgeText}>{savedCount}</Text>
-            </View>
-          )}
+          <Text variant="h3" weight="bold">Favorites</Text>
         </View>
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Content */}
-      {savedVehicles.length > 0 ? (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {savedVehicles.map((vehicle) => (
-            <SavedVehicleCard
-              key={vehicle.id}
-              vehicle={vehicle}
-              onPress={() => navigation.navigate('VehicleDetails', { vehicleId: vehicle.id })}
-              onRemovePress={() => toggleFavorite(vehicle.id)}
-              onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
-              onSharePress={() => console.log('Share vehicle:', vehicle.id)}
+      {/* Tab Switcher */}
+      <View style={[styles.tabSection, { paddingHorizontal: responsivePadding }]}>
+        <View style={styles.tabContainer}>
+          <View style={styles.tabBackground}>
+            <Animated.View
+              style={[
+                styles.tabIndicator,
+                {
+                  width: tabWidth,
+                  transform: [{ translateX: indicatorTranslateX }],
+                }
+              ]}
             />
-          ))}
-          <Spacer size="xl" />
-        </ScrollView>
-      ) : (
-        <EmptyState onBrowsePress={handleBrowse} />
-      )}
+
+            <TouchableOpacity
+              style={styles.tab}
+              onPress={() => handleTabChange('vehicles')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="car-sport"
+                size={16}
+                color={activeTab === 'vehicles' ? '#1A1A1A' : Colors.text}
+                style={styles.tabIcon}
+              />
+              <Text
+                variant="bodySmall"
+                weight="semibold"
+                style={activeTab === 'vehicles' ? styles.tabTextActive : styles.tabText}
+              >
+                Vehicles
+              </Text>
+              {savedCount > 0 && (
+                <View style={[styles.tabBadge, activeTab === 'vehicles' && styles.tabBadgeActive]}>
+                  <Text variant="label" style={activeTab === 'vehicles' ? styles.tabBadgeTextActive : styles.tabBadgeText}>
+                    {savedCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tab}
+              onPress={() => handleTabChange('dealers')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="business"
+                size={16}
+                color={activeTab === 'dealers' ? '#1A1A1A' : Colors.text}
+                style={styles.tabIcon}
+              />
+              <Text
+                variant="bodySmall"
+                weight="semibold"
+                style={activeTab === 'dealers' ? styles.tabTextActive : styles.tabText}
+              >
+                Dealers
+              </Text>
+              {dealerCount > 0 && (
+                <View style={[styles.tabBadge, activeTab === 'dealers' && styles.tabBadgeActive]}>
+                  <Text variant="label" style={activeTab === 'dealers' ? styles.tabBadgeTextActive : styles.tabBadgeText}>
+                    {dealerCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Animated Content */}
+      <Animated.View
+        style={[
+          styles.contentContainer,
+          {
+            opacity: contentFadeAnim,
+            transform: [{ translateX: contentSlideAnim }],
+          }
+        ]}
+      >
+        {activeTab === 'vehicles' ? (
+          savedVehicles.length > 0 ? (
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {savedVehicles.map((vehicle) => (
+                <SavedVehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  onPress={() => navigation.navigate('VehicleDetails', { vehicleId: vehicle.id })}
+                  onRemovePress={() => toggleFavorite(vehicle.id)}
+                  onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
+                  onSharePress={() => {
+                    // TODO: Implement share functionality
+                  }}
+                />
+              ))}
+              <Spacer size="xl" />
+            </ScrollView>
+          ) : (
+            <EmptyState onBrowsePress={handleBrowse} />
+          )
+        ) : (
+          favoriteDealerNames.length > 0 ? (
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {favoriteDealerNames.map((dealerName) => (
+                <DealerCard
+                  key={dealerName}
+                  dealerName={dealerName}
+                  onPress={() => navigation.navigate('DealerListings', { dealerName })}
+                  onRemovePress={() => toggleFavoriteDealer(dealerName)}
+                />
+              ))}
+              <Spacer size="xl" />
+            </ScrollView>
+          ) : (
+            <EmptyDealersState onBrowsePress={handleBrowse} />
+          )
+        )}
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -326,22 +592,83 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  countBadge: {
-    backgroundColor: Colors.accent,
-    minWidth: 24,
-    height: 24,
+  headerSpacer: {
+    width: 40,
+  },
+
+  // Tab Styles (matching WelcomeScreen)
+  tabSection: {
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  tabContainer: {
+    paddingHorizontal: Spacing.xs,
+  },
+  tabBackground: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: BorderRadius.lg,
+    padding: 3,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  tabIndicator: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    bottom: 3,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xs + 2,
+    zIndex: 1,
+    gap: 4,
+  },
+  tabIcon: {
+    marginRight: 2,
+  },
+  tabText: {
+    color: Colors.text,
+  },
+  tabTextActive: {
+    color: '#1A1A1A',
+  },
+  tabBadge: {
+    backgroundColor: Colors.accent + '20',
+    minWidth: 18,
+    height: 18,
     borderRadius: BorderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
+    marginLeft: 2,
   },
-  countBadgeText: {
-    color: Colors.white,
-    fontWeight: '600',
-    fontSize: 12,
+  tabBadgeActive: {
+    backgroundColor: 'rgba(26,26,26,0.15)',
   },
-  headerSpacer: {
-    width: 40,
+  tabBadgeText: {
+    color: Colors.accent,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  tabBadgeTextActive: {
+    color: '#1A1A1A',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  // Content Container
+  contentContainer: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
@@ -349,6 +676,80 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: Spacing.md,
     paddingBottom: Spacing['3xl'],
+  },
+
+  // Dealer Card Styles
+  dealerCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  dealerCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  dealerIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary + '12',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dealerInfoContainer: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  dealerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dealerNameText: {
+    color: Colors.text,
+  },
+  dealerBadge: {
+    width: 16,
+    height: 16,
+  },
+  dealerRemoveButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.accent + '12',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dealerCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  dealerStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dealerViewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewInventoryText: {
+    color: Colors.primary,
   },
 
   // Vehicle Card Styles (matching HomeScreen)

@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image, Platform, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
 
@@ -28,6 +28,8 @@ export interface HeaderProps {
   onMenuPress?: () => void;
   /** Callback when notification icon is pressed */
   onNotificationPress?: () => void;
+  /** Unread notification count for badge */
+  notificationCount?: number;
 }
 
 // ============================================================================
@@ -37,6 +39,7 @@ export interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   onMenuPress,
   onNotificationPress,
+  notificationCount,
 }) => {
   return (
     <View style={styles.container}>
@@ -56,14 +59,25 @@ export const Header: React.FC<HeaderProps> = ({
           <Image source={LOGO_LOCKUP} style={styles.logoLockup} resizeMode="contain" />
         </View>
 
-        {/* Right: Notification */}
+        {/* Right: Notification with Badge */}
         <TouchableOpacity
           style={styles.headerIconButton}
           onPress={onNotificationPress}
           accessibilityLabel="View notifications"
           accessibilityRole="button"
         >
-          <Ionicons name="notifications-outline" size={22} color={Colors.black} />
+          <View>
+            <Ionicons name="notifications-outline" size={22} color={Colors.black} />
+            {notificationCount !== undefined && notificationCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <View style={styles.notificationBadgeInner}>
+                  <Text style={styles.notificationBadgeText}>
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -106,6 +120,28 @@ const styles = StyleSheet.create({
     width: 120,
     height: 36,
     tintColor: Colors.black,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  notificationBadgeInner: {
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
 

@@ -19,6 +19,7 @@ export interface PPSRDetails {
     writtenOff: boolean;
     validRegistration: boolean;
   };
+  writeOffMessage?: string; // Seller's explanation for write-off status
 }
 
 export interface ConditionReport {
@@ -350,41 +351,49 @@ export const VEHICLES: Vehicle[] = [
     dealerName: 'WheelDealer_X',
     sellerType: 'Wholesaler',
     verified: true,
-    hasLogbook: false,
+    hasLogbook: true,
     featured: false,
     imageKey: 'honda-accord',
     backgroundImageIndex: 2,
-    images: ['honda-accord', 'toyota-camry', 'bmw-3series'],
+    images: ['honda-accord', 'toyota-camry', 'bmw-3series', 'honda-accord'],
     registration: 'XYZ-789',
-    askingPrice: 28900,
+    askingPrice: 30400, // Trade price ($27,200) + Extras ($2,700) + inspection ($500) = $30,400
     ppsr: {
       status: 'clear',
       checkDate: '2025-12-08',
-      certificateNumber: '987654321',
+      certificateNumber: 'PPSR987654321',
       details: {
         moneyOwing: false,
         stolen: false,
-        writtenOff: false,
+        writtenOff: true,
         validRegistration: true,
       },
+      writeOffMessage: 'This vehicle was involved in a minor hail damage incident in 2021. All repairs were completed by Honda-certified technicians at an authorized service center. The vehicle has passed all Victorian roadworthy inspections and WOVR assessments. Complete repair documentation and inspection certificates are available. Vehicle drives perfectly with no mechanical issues.',
     },
     conditionReport: {
       pros: [
-        'Full logbook service history',
-        'Non-smoking vehicle',
-        'Premium sound system',
-        'Recent brake service',
+        'Full Honda service history with stamped logbook',
+        'Non-smoking vehicle, single owner',
+        'Premium sound system with 10 speakers',
+        'Recent major service completed (Dec 2025)',
+        'New Michelin tires (less than 2,000km)',
+        'Factory warranty transferable until June 2026',
+        'All recall work completed and documented',
+        'Climate control serviced and recharged',
       ],
       cons: [
-        'Minor stone chips on windscreen',
-        'Light scratches on rear bumper',
+        'Minor stone chips on windscreen (common wear)',
+        'Light scratches on rear bumper from parking',
+        'Driver seat bolster shows slight wear',
+        'Small paint touch-up on front bumper',
       ],
     },
-    afterMarketExtras: ['Apple CarPlay', 'Blind Spot Monitoring', 'Heated Seats'],
+    afterMarketExtras: ['Apple CarPlay', 'Blind Spot Monitoring', 'Heated Seats', 'Dash Camera'],
     afterMarketExtrasDetailed: [
-      { name: 'Apple CarPlay', cost: 650, category: 'Electronics' },
-      { name: 'Blind Spot Monitoring', cost: 1100, category: 'Safety' },
-      { name: 'Heated Seats', cost: 950, category: 'Comfort' },
+      { name: 'Apple CarPlay & Android Auto', cost: 650, category: 'Electronics' },
+      { name: 'Blind Spot Monitoring System', cost: 1100, category: 'Safety' },
+      { name: 'Heated Front Seats', cost: 950, category: 'Comfort' },
+      { name: 'Front & Rear Dash Camera', cost: 400, category: 'Electronics' },
     ],
     sellerDetails: {
       abn: '98 765 432 109',
@@ -417,9 +426,64 @@ export const VEHICLES: Vehicle[] = [
     sellerType: 'Dealer',
     verified: true,
     hasLogbook: true,
-    featured: false,
+    featured: true,
     imageKey: 'mazda-cx5',
     backgroundImageIndex: 3,
+    images: ['mazda-cx5', 'hyundai-tucson', 'kia-sportage', 'mazda-cx5'],
+    registration: 'QLD-456',
+    askingPrice: 41350, // Trade price ($36,200) + Extras ($4,650) + detailing ($500) = $41,350
+    ppsr: {
+      status: 'clear',
+      checkDate: '2026-01-05',
+      certificateNumber: 'PPSR445566778',
+      details: {
+        moneyOwing: false,
+        stolen: false,
+        writtenOff: true,
+        validRegistration: true,
+      },
+      writeOffMessage: 'Vehicle was declared a statutory write-off by insurance in June 2023 due to flood water damage (water level reached door sills during Brisbane floods). Comprehensive restoration completed by Mazda Australia authorized repairer including: complete interior replacement, full electrical system inspection and replacement, engine and transmission serviced, all safety systems tested and recertified. Passed Queensland Transport WOVR inspection with no defects. Vehicle comes with 12-month mechanical warranty. Drives and performs like new.',
+    },
+    conditionReport: {
+      pros: [
+        'Comprehensive flood damage restoration completed',
+        'Brand new interior (seats, carpet, dashboard)',
+        'Complete electrical system replaced and certified',
+        'Engine and transmission professionally serviced',
+        'All safety systems tested and functioning perfectly',
+        '12-month comprehensive mechanical warranty included',
+        'Queensland Transport WOVR certificate - no defects',
+        'Full Mazda service history since restoration',
+        'Fresh premium paint protection applied',
+        'New tires - Bridgestone Alenza (less than 500km)',
+      ],
+      cons: [
+        'Insurance history shows previous flood damage (fully disclosed)',
+        'Some buyers may prefer non-write-off vehicles',
+        'Resale value may be affected by write-off status',
+      ],
+    },
+    afterMarketExtras: [
+      'Premium Sound System',
+      '360° Camera',
+      'Adaptive Cruise Control',
+      'Leather Interior',
+      'Sunroof',
+      'Tow Package',
+    ],
+    afterMarketExtrasDetailed: [
+      { name: 'Bose Premium Sound System', cost: 1200, category: 'Electronics' },
+      { name: '360° Surround View Camera', cost: 850, category: 'Safety' },
+      { name: 'Adaptive Cruise Control', cost: 1100, category: 'Safety' },
+      { name: 'Nappa Leather Interior Package', cost: 1800, category: 'Comfort' },
+      { name: 'Panoramic Sunroof', cost: 1500, category: 'Comfort' },
+      { name: 'Heavy Duty Tow Package (2000kg)', cost: 950, category: 'Exterior' },
+    ],
+    sellerDetails: {
+      abn: '55 123 456 789',
+      memberSince: '2018',
+      rating: 4.9,
+    },
   },
   {
     id: '4',
@@ -449,6 +513,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'ford-ranger',
     backgroundImageIndex: 4,
+    registration: 'BRQ-742',
   },
   {
     id: '5',
@@ -478,6 +543,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'hyundai-tucson',
     backgroundImageIndex: 5,
+    registration: '1YB4GP',
   },
   {
     id: '6',
@@ -507,6 +573,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'tesla-model3',
     backgroundImageIndex: 6,
+    registration: '789XYZ',
   },
   {
     id: '7',
@@ -536,6 +603,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'bmw-3series',
     backgroundImageIndex: 7,
+    registration: 'DXM-19K',
   },
   {
     id: '8',
@@ -565,6 +633,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'mercedes-cclass',
     backgroundImageIndex: 8,
+    registration: 'WXY-987',
   },
   {
     id: '9',
@@ -594,6 +663,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'audi-a4',
     backgroundImageIndex: 9,
+    registration: '234JKL',
   },
   {
     id: '10',
@@ -623,6 +693,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'volkswagen-golf',
     backgroundImageIndex: 10,
+    registration: 'HVT-234',
   },
   {
     id: '11',
@@ -652,6 +723,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'porsche-911',
     backgroundImageIndex: 11,
+    registration: '2FR9XP',
   },
   {
     id: '12',
@@ -681,6 +753,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'lexus-rx',
     backgroundImageIndex: 12,
+    registration: '567MNO',
   },
   {
     id: '13',
@@ -710,6 +783,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'subaru-outback',
     backgroundImageIndex: 13,
+    registration: 'FGH-567',
   },
   {
     id: '14',
@@ -739,6 +813,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'kia-sportage',
     backgroundImageIndex: 14,
+    registration: '3TK8LM',
   },
   {
     id: '15',
@@ -768,6 +843,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'nissan-xtrail',
     backgroundImageIndex: 15,
+    registration: '890PQR',
   },
   {
     id: '16',
@@ -797,6 +873,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'jeep-wrangler',
     backgroundImageIndex: 16,
+    registration: 'KLM-890',
   },
   {
     id: '17',
@@ -826,6 +903,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'range-rover',
     backgroundImageIndex: 17,
+    registration: '4RV2QS',
   },
   {
     id: '18',
@@ -855,6 +933,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'mustang-gt',
     backgroundImageIndex: 18,
+    registration: '912STU',
   },
   {
     id: '19',
@@ -884,6 +963,7 @@ export const VEHICLES: Vehicle[] = [
     featured: false,
     imageKey: 'chevrolet-camaro',
     backgroundImageIndex: 19,
+    registration: 'NOP-123',
   },
   {
     id: '20',
@@ -913,6 +993,7 @@ export const VEHICLES: Vehicle[] = [
     featured: true,
     imageKey: 'lamborghini-huracan',
     backgroundImageIndex: 20,
+    registration: '5LH7WN',
   },
 ];
 
@@ -942,4 +1023,59 @@ export const formatFullPrice = (price: number): string => {
  */
 export const formatMileage = (mileage: number): string => {
   return `${mileage.toLocaleString('en-AU')} km`;
+};
+
+/**
+ * Get all vehicles by dealer name
+ */
+export const getVehiclesByDealer = (dealerName: string): Vehicle[] => {
+  return VEHICLES.filter(vehicle => vehicle.dealerName === dealerName);
+};
+
+/**
+ * Dealer info interface
+ */
+export interface DealerInfo {
+  dealerName: string;
+  businessName: string;
+  memberSince: string;
+  totalVehicles: number;
+  verified: boolean;
+  state: string;
+}
+
+/**
+ * Get dealer information by dealer name
+ */
+export const getDealerInfo = (dealerName: string): DealerInfo | null => {
+  const dealerVehicles = getVehiclesByDealer(dealerName);
+  
+  if (dealerVehicles.length === 0) {
+    return null;
+  }
+
+  const firstVehicle = dealerVehicles[0];
+  
+  // Mock member since dates based on dealer name for consistency
+  const memberSinceDates: Record<string, string> = {
+    'AutoKing_99': 'Jan 2024',
+    'WheelDealer_X': 'Mar 2024',
+    'CarPro_Elite': 'Feb 2024',
+    'MotorMaverick': 'May 2024',
+    'DriveMaster_AU': 'Jun 2024',
+    'SpeedTrader_77': 'Apr 2024',
+    'VehicleVault': 'Jul 2024',
+    'GearHead_Pro': 'Aug 2024',
+    'TurboTrader_X': 'Sep 2024',
+    'AutoElite_Pro': 'Oct 2024',
+  };
+
+  return {
+    dealerName: firstVehicle.dealerName,
+    businessName: firstVehicle.dealer,
+    memberSince: memberSinceDates[dealerName] || 'Jan 2024',
+    totalVehicles: dealerVehicles.length,
+    verified: firstVehicle.verified,
+    state: firstVehicle.state,
+  };
 };

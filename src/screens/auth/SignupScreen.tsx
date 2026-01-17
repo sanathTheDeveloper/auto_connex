@@ -30,6 +30,8 @@ import {
   PhoneInput,
   EmailInput,
   ABNInput,
+  validateAustralianPhone,
+  validateEmail,
 } from '../../design-system/molecules/auth';
 import { Colors, Spacing, SpacingMobile, BorderRadius, Typography, responsive } from '../../design-system/primitives';
 import { useAuth, SignupData } from '../../contexts/AuthContext';
@@ -209,8 +211,27 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
    * Validate Step 1: Contact Info
    */
   const validateStep1 = (): boolean => {
-    // Validation removed - allow any input
-    return true;
+    const errors: FormErrors = {};
+
+    // Validate email
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      errors.email = emailError;
+    }
+
+    // Validate phone
+    const phoneError = validateAustralianPhone(formData.phone);
+    if (phoneError) {
+      errors.phone = phoneError;
+    }
+
+    // Validate full name (basic check)
+    if (!formData.fullName.trim()) {
+      errors.fullName = 'Full name is required';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   /**

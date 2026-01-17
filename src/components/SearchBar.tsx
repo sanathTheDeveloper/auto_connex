@@ -14,8 +14,8 @@
  * />
  */
 
-import React from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, TextInput, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../design-system/atoms/Text';
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../design-system/primitives';
@@ -38,6 +38,10 @@ export interface SearchBarProps {
   onFilterPress?: () => void;
   /** Whether to show the filter button */
   showFilterButton?: boolean;
+  /** Callback when sort button is pressed */
+  onSortPress?: () => void;
+  /** Whether to show the sort button */
+  showSortButton?: boolean;
 }
 
 // ============================================================================
@@ -51,7 +55,45 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   activeFilterCount = 0,
   onFilterPress,
   showFilterButton = true,
+  onSortPress,
+  showSortButton = false,
 }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const buttonOpacity = useRef(new Animated.Value(1)).current;
+  const buttonWidth = useRef(new Animated.Value(44)).current;
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    Animated.parallel([
+      Animated.timing(buttonOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonWidth, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    Animated.parallel([
+      Animated.timing(buttonOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonWidth, {
+        toValue: 44,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
@@ -62,6 +104,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           placeholderTextColor={Colors.textMuted}
           value={value}
           onChangeText={onChangeText}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
         {value.length > 0 && (
           <TouchableOpacity onPress={() => onChangeText('')}>
@@ -69,20 +113,59 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </TouchableOpacity>
         )}
       </View>
-      {showFilterButton && (
-        <TouchableOpacity
-          style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
-          onPress={onFilterPress}
+      {showSortButton && (
+        <Animated.View
+          style={[
+            styles.buttonWrapper,
+            {
+              opacity: buttonOpacity,
+              width: buttonWidth,
+              marginLeft: buttonWidth.interpolate({
+                inputRange: [0, 44],
+                outputRange: [0, Spacing.xs],
+              }),
+            },
+          ]}
+          pointerEvents={isFocused ? 'none' : 'auto'}
         >
-          <Ionicons name="options-outline" size={18} color={Colors.black} />
-          {activeFilterCount > 0 && (
-            <View style={styles.filterBadge}>
-              <Text variant="label" style={styles.filterBadgeText}>
-                {activeFilterCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.sortButton}
+            onPress={onSortPress}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="funnel" size={15} color={Colors.black} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+      {showFilterButton && (
+        <Animated.View
+          style={[
+            styles.buttonWrapper,
+            {
+              opacity: buttonOpacity,
+              width: buttonWidth,
+              marginLeft: buttonWidth.interpolate({
+                inputRange: [0, 44],
+                outputRange: [0, Spacing.xs],
+              }),
+            },
+          ]}
+          pointerEvents={isFocused ? 'none' : 'auto'}
+        >
+          <TouchableOpacity
+            style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
+            onPress={onFilterPress}
+          >
+            <Ionicons name="options-outline" size={18} color={Colors.black} />
+            {activeFilterCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text variant="label" style={styles.filterBadgeText}>
+                  {activeFilterCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
       )}
     </View>
   );
@@ -116,6 +199,18 @@ const styles = StyleSheet.create({
     color: Colors.text,
     paddingVertical: 2,
     fontFamily: Typography.fontFamily.vesperLibre,
+  },
+  buttonWrapper: {
+    overflow: 'hidden',
+  },
+  sortButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.sm,
   },
   filterButton: {
     width: 44,

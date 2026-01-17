@@ -12,7 +12,7 @@
  * <Stack.Screen name="Home" component={HomeScreen} />
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -30,9 +30,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation';
 
 // Components
-import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS, WeeklyPurchaseProgress, SearchBar } from '../components';
+import { Header, DrawerMenu, FilterModal, DEFAULT_FILTERS, WeeklyPurchaseProgress, SearchBar, SortModal } from '../components';
 import { LicenseVerificationBanner } from '../components/LicenseVerificationBanner';
-import type { FilterOptions } from '../components';
+import type { FilterOptions, SortOption } from '../components';
 
 // Design System
 import { Text } from '../design-system/atoms/Text';
@@ -61,6 +61,7 @@ import {
 
 // Context
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 // Assets
 const VERIFIED_BADGE = require('../../assets/icons/verified-badge.png');
@@ -137,6 +138,7 @@ interface VehicleCardProps {
   onFavoritePress: () => void;
   onMessagePress: () => void;
   onSharePress: () => void;
+  onDealerPress?: () => void;
 }
 
 const VehicleCard: React.FC<VehicleCardProps> = ({
@@ -145,7 +147,8 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   isFavorite,
   onFavoritePress,
   onMessagePress,
-  onSharePress
+  onSharePress,
+  onDealerPress
 }) => (
   <TouchableOpacity
     style={styles.vehicleCard}
@@ -193,7 +196,11 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
           {vehicle.suburb}, {vehicle.state}
         </Text>
         <View style={styles.dotSeparator} />
-        <Text variant="caption" style={styles.dealerName}>{vehicle.dealerName}</Text>
+        <TouchableOpacity onPress={onDealerPress} activeOpacity={0.7}>
+          <Text variant="caption" style={styles.dealerNameClickable}>
+            {vehicle.dealerName}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Specs Row - includes all badges */}
@@ -262,7 +269,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   // Track viewport for responsive updates
@@ -288,60 +297,89 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // Favorites from shared context (persisted)
   const { toggleFavorite, isFavorite } = useFavorites();
 
+  // Notifications context for badge count
+  const { getUnreadCount } = useNotifications();
+
   // Scroll tracking for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Filter vehicles based on search query and filters
-  const filteredVehicles = VEHICLES.filter((vehicle) => {
-    // Text search
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        vehicle.make.toLowerCase().includes(query) ||
-        vehicle.model.toLowerCase().includes(query) ||
-        vehicle.location.toLowerCase().includes(query) ||
-        vehicle.suburb.toLowerCase().includes(query) ||
-        vehicle.dealerName.toLowerCase().includes(query);
-      if (!matchesSearch) return false;
+  // Filter and sort vehicles based on search query, filters, and sort option
+  const filteredVehicles = useMemo(() => {
+    let vehicles = VEHICLES.filter((vehicle) => {
+      // Text search
+      if (searchQuery.trim() !== '') {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch =
+          vehicle.make.toLowerCase().includes(query) ||
+          vehicle.model.toLowerCase().includes(query) ||
+          vehicle.location.toLowerCase().includes(query) ||
+          vehicle.suburb.toLowerCase().includes(query) ||
+          vehicle.dealerName.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      // Make filter
+      if (filters.make.length > 0 && !filters.make.includes(vehicle.make)) {
+        return false;
+      }
+
+      // State filter
+      if (filters.state.length > 0 && !filters.state.includes(vehicle.state)) {
+        return false;
+      }
+
+      // Transmission filter
+      if (filters.transmission.length > 0 && !filters.transmission.includes(vehicle.transmission)) {
+        return false;
+      }
+
+      // Fuel type filter
+      if (filters.fuelType.length > 0 && !filters.fuelType.includes(vehicle.fuelType)) {
+        return false;
+      }
+
+      // Condition filter
+      if (filters.condition.length > 0 && !filters.condition.includes(vehicle.condition)) {
+        return false;
+      }
+
+      // Price range filter
+      if (vehicle.price < filters.priceRange[0] || vehicle.price > filters.priceRange[1]) {
+        return false;
+      }
+
+      // Verified only filter
+      if (filters.verifiedOnly && !vehicle.verified) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Apply sort
+    switch (sortOption) {
+      case 'price-asc':
+        vehicles.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        vehicles.sort((a, b) => b.price - a.price);
+        break;
+      case 'newest':
+        vehicles.sort((a, b) => b.year - a.year);
+        break;
+      case 'oldest':
+        vehicles.sort((a, b) => a.year - b.year);
+        break;
+      case 'mileage-asc':
+        vehicles.sort((a, b) => a.mileage - b.mileage);
+        break;
+      case 'mileage-desc':
+        vehicles.sort((a, b) => b.mileage - a.mileage);
+        break;
     }
 
-    // Make filter
-    if (filters.make.length > 0 && !filters.make.includes(vehicle.make)) {
-      return false;
-    }
-
-    // State filter
-    if (filters.state.length > 0 && !filters.state.includes(vehicle.state)) {
-      return false;
-    }
-
-    // Transmission filter
-    if (filters.transmission.length > 0 && !filters.transmission.includes(vehicle.transmission)) {
-      return false;
-    }
-
-    // Fuel type filter
-    if (filters.fuelType.length > 0 && !filters.fuelType.includes(vehicle.fuelType)) {
-      return false;
-    }
-
-    // Condition filter
-    if (filters.condition.length > 0 && !filters.condition.includes(vehicle.condition)) {
-      return false;
-    }
-
-    // Price range filter
-    if (vehicle.price < filters.priceRange[0] || vehicle.price > filters.priceRange[1]) {
-      return false;
-    }
-
-    // Verified only filter
-    if (filters.verifiedOnly && !vehicle.verified) {
-      return false;
-    }
-
-    return true;
-  });
+    return vehicles;
+  }, [searchQuery, filters, sortOption]);
 
   // Count active filters
   const activeFilterCount = () => {
@@ -361,7 +399,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       {/* Header with solid Primary color - Collapses on scroll */}
       <Header
         onMenuPress={() => setIsMenuOpen(true)}
-        onNotificationPress={() => console.log('Notifications pressed')}
+        onNotificationPress={() => navigation.navigate('Notifications')}
+        notificationCount={getUnreadCount()}
       />
 
       {/* License Verification Banner - Dismissible */}
@@ -384,10 +423,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             navigation.navigate('RegoLookup');
           } else if (screen === 'MyListings') {
             navigation.navigate('MyListings');
+          } else if (screen === 'PurchasesOffers') {
+            navigation.navigate('PurchasesOffers');
+          } else if (screen === 'Analytics') {
+            navigation.navigate('Analytics');
+          } else if (screen === 'Account') {
+            navigation.navigate('Account');
           } else if (screen === 'Home') {
             // Already on Home
-          } else {
-            console.log('Navigate to:', screen);
           }
         }}
         userName="John Dealer"
@@ -403,6 +446,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         initialFilters={filters}
         notificationsEnabled={notificationsEnabled}
         onToggleNotifications={setNotificationsEnabled}
+      />
+
+      {/* Sort Modal */}
+      <SortModal
+        isOpen={isSortOpen}
+        onClose={() => setIsSortOpen(false)}
+        onApply={setSortOption}
+        currentSort={sortOption}
       />
 
       <Animated.ScrollView
@@ -422,13 +473,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
         <Spacer size="lg" />
 
-        {/* Search Bar with Filter */}
+        {/* Search Bar with Filter and Sort */}
         <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search vehicles, dealers..."
           activeFilterCount={activeFilterCount()}
           onFilterPress={() => setIsFilterOpen(true)}
+          showSortButton={true}
+          onSortPress={() => setIsSortOpen(true)}
         />
 
         <Spacer size="md" />
@@ -455,7 +508,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               isFavorite={isFavorite(vehicle.id)}
               onFavoritePress={() => toggleFavorite(vehicle.id)}
               onMessagePress={() => navigation.navigate('Messages', { vehicleId: vehicle.id })}
-              onSharePress={() => console.log('Share vehicle:', vehicle.id)}
+              onSharePress={() => {
+                // TODO: Implement share functionality
+              }}
+              onDealerPress={() => navigation.navigate('DealerListings', { dealerName: vehicle.dealerName })}
             />
           ))
         ) : (
@@ -599,6 +655,11 @@ const styles = StyleSheet.create({
   dealerName: {
     color: Colors.secondary,
     fontWeight: '600',
+  },
+  dealerNameClickable: {
+    color: Colors.secondary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   specsRow: {
     flexDirection: 'row',

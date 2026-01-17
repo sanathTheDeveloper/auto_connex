@@ -59,7 +59,6 @@ export interface SubscriptionCardProps {
   onPaymentSuccess: (paymentData: PaymentData) => void;
   amount: number;
   vehicleInfo?: VehicleInfo;
-  title?: string;
   actionType: 'purchase' | 'offer';
 }
 
@@ -103,6 +102,28 @@ const formatPrice = (price: number): string => {
   return `$${price.toLocaleString()}`;
 };
 
+/**
+ * Calculate the next settlement day (every 7 days from a fixed anchor)
+ * Returns the day name and days remaining
+ */
+const getSettlementInfo = (): { dayName: string; daysRemaining: number } => {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+  // Settlement day is every Monday (day 1)
+  // Calculate days until next Monday
+  let daysUntilMonday = (1 - dayOfWeek + 7) % 7;
+  if (daysUntilMonday === 0) daysUntilMonday = 7; // If today is Monday, next settlement is next Monday
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const settlementDayIndex = (dayOfWeek + daysUntilMonday) % 7;
+
+  return {
+    dayName: days[settlementDayIndex],
+    daysRemaining: daysUntilMonday,
+  };
+};
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -126,6 +147,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const transactionFee = useMemo(() => calculateTransactionFee(amount), [amount]);
   const totalPayable = transactionFee;
   const cardType = detectCardType(cardNumber);
+  const settlementInfo = useMemo(() => getSettlementInfo(), []);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(600)).current;
@@ -333,7 +355,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             <Spacer size="md" />
 
             <Text variant="h3" weight="bold" align="center" style={styles.successTitle}>
-              Payment Successful!
+              Fee Confirmed!
             </Text>
 
             <Spacer size="sm" />
@@ -341,7 +363,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             {/* Amount Display */}
             <View style={styles.successAmountContainer}>
               <Text variant="caption" color="textMuted" align="center">
-                Transaction Fee Paid
+                Transaction Fee
               </Text>
               <Text variant="h2" weight="bold" style={styles.successAmount}>
                 {formatPrice(transactionFee)}
@@ -354,10 +376,10 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             <View style={styles.successInfoCard}>
               <View style={styles.successInfoRow}>
                 <View style={styles.successInfoIconCircle}>
-                  <Ionicons name="car-sport" size={16} color={Colors.primary} />
+                  <Ionicons name="chatbubbles" size={16} color={Colors.primary} />
                 </View>
                 <Text variant="bodySmall" color="textSecondary" style={styles.successInfoText}>
-                  You can now proceed with the vehicle transaction
+                  You're all set! Start negotiating and close the deal. Good luck!
                 </Text>
               </View>
             </View>
@@ -390,14 +412,14 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
               <View style={styles.header}>
                 <View style={styles.headerTitleRow}>
                   <View style={styles.headerIconCircle}>
-                    <Ionicons name="card-outline" size={20} color={Colors.primary} />
+                    <Ionicons name="link-outline" size={20} color={Colors.primary} />
                   </View>
                   <View style={styles.headerTextContainer}>
                     <Text variant="h4" weight="bold">
-                      {actionType === 'purchase' ? 'Complete Purchase' : 'Submit Offer'}
+                      {actionType === 'purchase' ? 'Connect to Buy' : 'Connect to Offer'}
                     </Text>
                     <Text variant="caption" color="textSecondary">
-                      Secure payment processing
+                      Platform fee to start negotiating
                     </Text>
                   </View>
                 </View>
@@ -486,14 +508,16 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
 
                   <View style={styles.escrowBanner}>
                     <View style={styles.escrowIconCircle}>
-                      <Ionicons name="shield-checkmark" size={16} color={Colors.success} />
+                      <Ionicons name="time-outline" size={16} color={Colors.success} />
                     </View>
                     <View style={styles.escrowTextContainer}>
                       <Text variant="bodySmall" weight="semibold" color="text">
-                        7-Day Escrow Protection
+                        Weekly Settlement - {settlementInfo.dayName}
                       </Text>
                       <Text variant="caption" color="textSecondary" style={styles.escrowDescription}>
-                        Payment held securely until transaction complete
+                        {settlementInfo.daysRemaining === 1
+                          ? 'Your fee will be collected tomorrow along with all weekly transactions'
+                          : `Your fee will be collected in ${settlementInfo.daysRemaining} days. We batch all transaction fees weekly for your convenience.`}
                       </Text>
                     </View>
                   </View>
@@ -632,7 +656,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                   loading={isProcessing}
                   disabled={isProcessing}
                 >
-                  {isProcessing ? 'Processing...' : `Pay ${formatPrice(totalPayable)}`}
+                  {isProcessing ? 'Processing...' : `Confirm ${formatPrice(totalPayable)} Fee`}
                 </Button>
               </View>
             </Animated.View>

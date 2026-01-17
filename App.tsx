@@ -16,8 +16,11 @@ import {
 import Navigation from './src/navigation';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { FavoritesProvider } from './src/contexts/FavoritesContext';
+import { FavoriteDealersProvider } from './src/contexts/FavoriteDealersContext';
 import { SellProvider } from './src/contexts/SellContext';
 import { MyListingsProvider } from './src/contexts/MyListingsContext';
+import { PurchasesOffersProvider } from './src/contexts/PurchasesOffersContext';
+import { NotificationProvider } from './src/contexts/NotificationContext';
 import { Colors, Spacing } from './src/constants/theme';
 import { Text } from './src/design-system';
 
@@ -73,18 +76,24 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <FavoritesProvider>
-        <SellProvider>
-          <MyListingsProvider>
-            <View style={styles.appContainer}>
-              <Navigation />
-              <StatusBar style="auto" />
-            </View>
-          </MyListingsProvider>
-        </SellProvider>
-      </FavoritesProvider>
-    </AuthProvider>
+    <PurchasesOffersProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <FavoritesProvider>
+            <FavoriteDealersProvider>
+              <SellProvider>
+                <MyListingsProvider>
+                  <View style={styles.appContainer}>
+                    <Navigation />
+                    <StatusBar style="auto" />
+                  </View>
+                </MyListingsProvider>
+              </SellProvider>
+            </FavoriteDealersProvider>
+          </FavoritesProvider>
+        </AuthProvider>
+      </NotificationProvider>
+    </PurchasesOffersProvider>
   );
 }
 

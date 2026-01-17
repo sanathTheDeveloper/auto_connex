@@ -87,6 +87,18 @@ export interface PickupLocation {
 }
 
 /**
+ * PPSR check details
+ */
+export interface PPSRCheckDetails {
+  isCleared: boolean;
+  moneyOwing: boolean;
+  stolen: boolean;
+  writtenOff: boolean;
+  validRegistration: boolean;
+  checkDate?: string;
+}
+
+/**
  * Complete sell listing data
  */
 export interface SellListingData {
@@ -102,8 +114,9 @@ export interface SellListingData {
   // Step 4: After market extras
   afterMarketExtras: AfterMarketExtra[];
 
-  // Step 5: Pricing (includes write-off question)
+  // Step 5: Pricing (includes write-off question and PPSR)
   writeOff: WriteOffDetails;
+  ppsrCheck: PPSRCheckDetails;
   pricing: PricingDetails;
   pickupLocation: PickupLocation;
 }
@@ -145,6 +158,7 @@ interface SellContextActions {
   setConditionReport: (report: ConditionReport) => void;
   setAfterMarketExtras: (extras: AfterMarketExtra[]) => void;
   setWriteOff: (writeOff: WriteOffDetails) => void;
+  setPPSRCheck: (ppsrCheck: PPSRCheckDetails) => void;
   setPricing: (pricing: PricingDetails) => void;
   setPickupLocation: (location: PickupLocation) => void;
 
@@ -175,6 +189,14 @@ const initialListingData: SellListingData = {
   writeOff: {
     isWriteOff: false,
     explanation: undefined,
+  },
+  ppsrCheck: {
+    isCleared: false,
+    moneyOwing: false,
+    stolen: false,
+    writtenOff: false,
+    validRegistration: false,
+    checkDate: undefined,
   },
   pricing: {
     askingPrice: 0,
@@ -336,6 +358,14 @@ export const SellProvider: React.FC<SellProviderProps> = ({ children }) => {
     }));
   }, []);
 
+  const setPPSRCheck = useCallback((ppsrCheck: PPSRCheckDetails) => {
+    setState((prev) => ({
+      ...prev,
+      listingData: { ...prev.listingData, ppsrCheck },
+      isDirty: true,
+    }));
+  }, []);
+
   const setPricing = useCallback((pricing: PricingDetails) => {
     setState((prev) => ({
       ...prev,
@@ -435,6 +465,7 @@ export const SellProvider: React.FC<SellProviderProps> = ({ children }) => {
     setConditionReport,
     setAfterMarketExtras,
     setWriteOff,
+    setPPSRCheck,
     setPricing,
     setPickupLocation,
     saveDraft,
