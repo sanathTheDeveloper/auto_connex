@@ -173,7 +173,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
       offerId: 'offer-recv-1',
       offerAmount: 35000,
       dealerName: 'City Motors',
-      vehicleInfo: { year: 2023, make: 'Toyota', model: 'Camry' },
+      vehicleInfo: { year: 2023, make: 'Toyota', model: 'Camry', registration: 'ABC-123' },
     },
   },
   {
@@ -189,7 +189,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     },
     metadata: {
       vehicleId: '2',
-      vehicleInfo: { year: 2022, make: 'Honda', model: 'Accord' },
+      vehicleInfo: { year: 2022, make: 'Honda', model: 'Accord', registration: 'XYZ-789' },
       priceChange: { oldPrice: 32000, newPrice: 28900 },
     },
   },
@@ -207,7 +207,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     metadata: {
       offerId: 'offer-sent-2',
       offerAmount: 27000,
-      vehicleInfo: { year: 2022, make: 'Honda', model: 'Accord' },
+      vehicleInfo: { year: 2022, make: 'Honda', model: 'Accord', registration: 'DEF-456' },
     },
   },
   {
@@ -223,7 +223,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     },
     metadata: {
       vehicleId: '3',
-      vehicleInfo: { year: 2023, make: 'Mazda', model: 'CX-5' },
+      vehicleInfo: { year: 2023, make: 'Mazda', model: 'CX-5', registration: 'GHI-012' },
       searchCriteria: 'SUV under $40k',
     },
   },
@@ -239,7 +239,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
       params: undefined,
     },
     metadata: {
-      vehicleInfo: { year: 2022, make: 'Honda', model: 'Accord' },
+      vehicleInfo: { year: 2022, make: 'Honda', model: 'Accord', registration: 'JKL-345' },
     },
   },
   {
@@ -297,7 +297,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
       offerId: 'offer-sent-1',
       offerAmount: 36500,
       dealerName: 'Luxury Auto Group',
-      vehicleInfo: { year: 2023, make: 'Toyota', model: 'Camry' },
+      vehicleInfo: { year: 2023, make: 'Toyota', model: 'Camry', registration: 'MNO-678' },
     },
   },
   {
@@ -312,7 +312,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
       params: undefined,
     },
     metadata: {
-      vehicleInfo: { year: 2022, make: 'Honda', model: 'Accord' },
+      vehicleInfo: { year: 2022, make: 'Honda', model: 'Accord', registration: 'PQR-901' },
       offerAmount: 28900,
     },
   },

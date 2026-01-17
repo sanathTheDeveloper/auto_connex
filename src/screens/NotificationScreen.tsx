@@ -216,6 +216,14 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                     {notification.metadata.vehicleInfo.year} {notification.metadata.vehicleInfo.make} {notification.metadata.vehicleInfo.model}
                   </Text>
                 </View>
+                {notification.metadata.vehicleInfo.registration && (
+                  <View style={styles.regoPill}>
+                    <Ionicons name="card-outline" size={11} color={Colors.primary} />
+                    <Text style={styles.regoText}>
+                      {notification.metadata.vehicleInfo.registration}
+                    </Text>
+                  </View>
+                )}
                 {notification.metadata.priceChange && (
                   <View style={styles.pricePill}>
                     <Ionicons name="arrow-down" size={10} color={Colors.success} />
@@ -293,7 +301,7 @@ export const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigati
           activeOpacity={0.6}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-back" size={28} color={Colors.primary} />
+          <Ionicons name="chevron-back" size={28} color={Colors.text} />
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
@@ -569,6 +577,22 @@ const styles = StyleSheet.create({
   },
   vehicleText: {
     fontSize: 11,
+  },
+  regoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary + '12',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    gap: 3,
+    borderWidth: 1,
+    borderColor: Colors.primary + '25',
+  },
+  regoText: {
+    color: Colors.primary,
+    fontSize: 11,
+    fontWeight: '600',
   },
   pricePill: {
     flexDirection: 'row',
