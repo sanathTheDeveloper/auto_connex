@@ -425,6 +425,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             navigation.navigate('MyListings');
           } else if (screen === 'PurchasesOffers') {
             navigation.navigate('PurchasesOffers');
+          } else if (screen === 'Analytics') {
+            navigation.navigate('Analytics');
           } else if (screen === 'Account') {
             navigation.navigate('Account');
           } else if (screen === 'Home') {

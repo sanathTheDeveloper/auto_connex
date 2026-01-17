@@ -46,6 +46,9 @@ import {
   DisputeResolutionScreen,
 } from '../screens/account';
 
+// Analytics Screen
+import AnalyticsScreen from '../screens/AnalyticsScreen';
+
 /**
  * Navigation Setup
  * 
@@ -94,6 +97,9 @@ export type RootStackParamList = {
 
   // Notifications
   Notifications: undefined;
+
+  // Analytics
+  Analytics: undefined;
 
   // Account & Settings Screens
   Account: undefined;
@@ -324,6 +330,17 @@ export default function Navigation() {
           component={NotificationScreen}
           options={{
             title: 'Notifications',
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+
+        {/* Analytics Screen */}
+        <Stack.Screen
+          name="Analytics"
+          component={AnalyticsScreen}
+          options={{
+            title: 'Analytics Dashboard',
             headerShown: false,
             animation: 'slide_from_right',
           }}
