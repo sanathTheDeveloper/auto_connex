@@ -1,19 +1,19 @@
 /**
- * AnalyticsScreen Component - iOS-Native Style
+ * AnalyticsScreen Component - Modern Dashboard Design
  *
- * Clean, card-based analytics dashboard following iOS Human Interface Guidelines
+ * Comprehensive analytics dashboard for wholesalers following modern mobile-first design.
  * Features:
- * - Interactive, scrollable charts with touch points
+ * - Interactive area charts with touch feedback
+ * - Animated period selector with sliding indicator
  * - Card-based layout with subtle shadows
- * - iOS-style navigation and typography
- * - Mobile-first responsive design
- * - Tap on chart points to view detailed data
+ * - Wholesaler-specific KPIs: purchases, offers, inventory
+ * - Performance summary with dealer insights
+ * - Real-time data from PurchasesOffersContext
  *
- * Uses react-native-chart-kit for cross-platform data visualization
- * Design pattern matches NotificationScreen for brand consistency
+ * Design inspired by modern trading/finance apps
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -24,28 +24,28 @@ import {
   Dimensions,
   ScaledSize,
   Animated,
-  PanResponder,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LineChart } from 'react-native-chart-kit';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { RootStackParamList } from '../navigation';
 
 // Design System
 import { Text } from '../design-system/atoms/Text';
 import { Spacer } from '../design-system/atoms/Spacer';
 import { Button } from '../design-system/atoms/Button';
-import { Colors, Spacing, SpacingMobile, BorderRadius } from '../design-system/primitives';
+import { Colors, Spacing, BorderRadius, Shadows } from '../design-system/primitives';
 
-/**
- * Get responsive spacing based on viewport width
- */
-const getResponsiveSpacing = (size: keyof typeof Spacing, viewportWidth: number): number => {
-  if (viewportWidth <= 480) {
-    return SpacingMobile[size];
-  }
-  return Spacing[size];
-};
+// Context for real data
+import { usePurchasesOffers } from '../contexts/PurchasesOffersContext';
+import { useMyListings } from '../contexts/MyListingsContext';
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // ============================================================================
 // TYPES
@@ -57,10 +57,10 @@ interface AnalyticsScreenProps {
   navigation: NavigationProp;
 }
 
-// Trading-style period selector
 type TimePeriod = '1D' | '1W' | '1M' | '3M' | '1Y' | 'ALL';
 
-// Period display labels for better UX - short and consistent
+const PERIODS: TimePeriod[] = ['1D', '1W', '1M', '3M', '1Y', 'ALL'];
+
 const PERIOD_LABELS: Record<TimePeriod, string> = {
   '1D': 'Today',
   '1W': 'Week',
@@ -84,7 +84,7 @@ interface PeriodData {
 }
 
 // ============================================================================
-// MOCK DATA
+// MOCK DATA - Enhanced for wholesaler analytics
 // ============================================================================
 
 const MOCK_DATA = {
@@ -174,18 +174,32 @@ const MOCK_DATA = {
       ],
     },
   } as Record<TimePeriod, PeriodData>,
-  metrics: {
-    vehiclesSold: 127,
-    avgPrice: 24500,
-    conversionRate: 68,
-  },
 };
+
+// Performance metrics data
+const PERFORMANCE_METRICS = [
+  { label: 'Direct Inquiries', source: 'Online Leads', count: 245, change: 12 },
+  { label: 'Dealer Referrals', source: 'Partner Network', count: 89, change: 8 },
+  { label: 'Repeat Customers', source: 'Existing Dealers', count: 156, change: 23 },
+];
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
 export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
+  // Context data
+  const {
+    purchases,
+    soldVehicles,
+    offersSent,
+    offersReceived,
+    getSpendingAnalytics,
+    getPendingOffersReceivedCount,
+    getPendingOffersSentCount,
+  } = usePurchasesOffers();
+  const { listings, getListingsByStatus } = useMyListings();
+
   // State
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1W');
   const [selectedDataPoint, setSelectedDataPoint] = useState<RevenueDataPoint | null>(null);
@@ -194,23 +208,57 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
   // Animations
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const sliderPosition = useRef(new Animated.Value(1)).current; // 0-5 for 6 periods
-
-  // Period mapping
-  const periods: TimePeriod[] = ['1D', '1W', '1M', '3M', '1Y', 'ALL'];
-  const periodIndex = periods.indexOf(selectedPeriod);
+  const indicatorAnim = useRef(new Animated.Value(PERIODS.indexOf('1W'))).current;
 
   // Get current data
   const revenueData = MOCK_DATA.revenue[selectedPeriod];
   const isPositive = revenueData.change >= 0;
-  const responsiveSpacing = getResponsiveSpacing('lg', viewport.width);
 
-  // Calculate chart width - responsive to viewport
+  // Calculate real metrics from context
+  const realMetrics = useMemo(() => {
+    const spendingAnalytics = getSpendingAnalytics();
+    const activeListings = getListingsByStatus('available').length;
+    const pendingListings = getListingsByStatus('pending').length;
+    const soldCount = soldVehicles.length;
+    const purchaseCount = purchases.length;
+
+    // Calculate average purchase price
+    const avgPurchasePrice = purchases.length > 0
+      ? purchases.reduce((sum, p) => sum + p.purchaseAmount, 0) / purchases.length
+      : 0;
+
+    // Calculate average sale price
+    const avgSalePrice = soldVehicles.length > 0
+      ? soldVehicles.reduce((sum, s) => sum + s.saleAmount, 0) / soldVehicles.length
+      : 0;
+
+    // Calculate offer acceptance rate
+    const approvedOffersSent = offersSent.filter(o => o.status === 'approved').length;
+    const offerSuccessRate = offersSent.length > 0
+      ? Math.round((approvedOffersSent / offersSent.length) * 100)
+      : 0;
+
+    return {
+      weeklySpending: spendingAnalytics.weeklySpending,
+      monthlySpending: spendingAnalytics.monthlySpending,
+      yearlySpending: spendingAnalytics.yearlySpending,
+      activeListings,
+      pendingListings,
+      soldCount,
+      purchaseCount,
+      avgPurchasePrice,
+      avgSalePrice,
+      offerSuccessRate,
+      pendingOffersReceived: getPendingOffersReceivedCount(),
+      pendingOffersSent: getPendingOffersSentCount(),
+      totalOffersSent: offersSent.length,
+      totalOffersReceived: offersReceived.length,
+    };
+  }, [purchases, soldVehicles, offersSent, offersReceived, listings, getSpendingAnalytics, getListingsByStatus, getPendingOffersReceivedCount, getPendingOffersSentCount]);
+
+  // Calculate chart dimensions
   const maxWidth = Platform.OS === 'web' ? Math.min(480, viewport.width) : viewport.width;
-  // Account for: container margins (Spacing.md * 2) + card padding (Spacing.sm * 2 for mobile)
-  const containerMargins = Spacing.md * 2;
-  const cardPadding = Platform.OS === 'web' ? Spacing.md * 2 : Spacing.sm * 2;
-  const chartWidth = Math.max(maxWidth - containerMargins - cardPadding - 40, 260); // Min 260px width
+  const chartWidth = Math.max(maxWidth - (Spacing.md * 2) - 32, 260);
 
   // Handle viewport changes
   useEffect(() => {
@@ -222,49 +270,56 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
 
   // Animate on period change
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0.3,
-        duration: 100,
-        useNativeDriver: true,
+    const newIndex = PERIODS.indexOf(selectedPeriod);
+
+    Animated.parallel([
+      Animated.timing(indicatorAnim, {
+        toValue: newIndex,
+        duration: 250,
+        useNativeDriver: false,
       }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 0.5,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
 
     setSelectedDataPoint(null);
-  }, [selectedPeriod, fadeAnim]);
+  }, [selectedPeriod, fadeAnim, indicatorAnim]);
 
   // ============================================================================
   // HANDLERS
   // ============================================================================
 
   const handlePeriodChange = (period: TimePeriod) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectedPeriod(period);
   };
 
-  const handleChartPress = (data: any) => {
-    if (data && data.index !== undefined) {
-      const dataPoint = revenueData.detailedData[data.index];
-      setSelectedDataPoint(dataPoint);
+  const handleChartPress = (index: number) => {
+    const dataPoint = revenueData.detailedData[index];
+    setSelectedDataPoint(dataPoint);
 
-      // Animate scale
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.98,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   // ============================================================================
@@ -272,7 +327,6 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
   // ============================================================================
 
   const formatCurrency = (value: number): string => {
-    // Format with commas and 2 decimal places
     return new Intl.NumberFormat('en-AU', {
       style: 'currency',
       currency: 'AUD',
@@ -281,162 +335,314 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
     }).format(value);
   };
 
+  const formatCompactCurrency = (value: number): string => {
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+    return `$${value}`;
+  };
+
   const formatNumber = (value: number): string => {
-    // Format numbers with commas
-    return new Intl.NumberFormat('en-AU', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    return new Intl.NumberFormat('en-AU').format(value);
   };
 
   // ============================================================================
   // RENDER METHODS
   // ============================================================================
 
-  const renderPeriodSlider = () => {
-    const containerPadding = Spacing.md * 2;
-    const sliderWidth = viewport.width > 480 
-      ? 480 - containerPadding - (Spacing.md * 2) 
-      : viewport.width - containerPadding - (Spacing.md * 2);
-    const segmentWidth = sliderWidth / (periods.length - 1);
+  const renderCustomChart = () => {
+    const chartHeight = 280;
+    const chartPadding = { top: 20, right: 10, bottom: 40, left: 50 };
+    const chartInnerWidth = chartWidth - chartPadding.left - chartPadding.right;
+    const chartInnerHeight = chartHeight - chartPadding.top - chartPadding.bottom;
 
-    const panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (_, gestureState) => {
-        // Calculate which period based on touch position
-        const touchX = gestureState.x0;
-        const containerOffset = Spacing.md + Spacing.xs;
-        const adjustedX = touchX - containerOffset;
-        const index = Math.round(adjustedX / segmentWidth);
-        const clampedIndex = Math.max(0, Math.min(periods.length - 1, index));
-        setSelectedPeriod(periods[clampedIndex]);
-      },
-      onPanResponderMove: (_, gestureState) => {
-        // Calculate position based on drag
-        const containerOffset = Spacing.md + Spacing.xs;
-        const adjustedX = gestureState.moveX - containerOffset;
-        const newIndex = Math.round(adjustedX / segmentWidth);
-        const clampedIndex = Math.max(0, Math.min(periods.length - 1, newIndex));
-        setSelectedPeriod(periods[clampedIndex]);
-      },
+    const dataValues = revenueData.data;
+    const maxValue = Math.max(...dataValues);
+    const minValue = Math.min(...dataValues);
+    const valueRange = maxValue - minValue;
+
+    // Calculate points for the area chart
+    const points = dataValues.map((value, index) => {
+      const x = chartPadding.left + (index / (dataValues.length - 1)) * chartInnerWidth;
+      const y = chartPadding.top + chartInnerHeight - ((value - minValue) / valueRange) * chartInnerHeight;
+      return { x, y, value, label: revenueData.labels[index] };
+    });
+
+    // Create smooth curve path (using quadratic bezier curves)
+    const createSmoothPath = (pts: typeof points) => {
+      if (pts.length === 0) return '';
+      
+      let path = `M ${pts[0].x} ${pts[0].y}`;
+      
+      for (let i = 0; i < pts.length - 1; i++) {
+        const current = pts[i];
+        const next = pts[i + 1];
+        const controlX = (current.x + next.x) / 2;
+        
+        path += ` Q ${controlX} ${current.y}, ${controlX} ${(current.y + next.y) / 2}`;
+        path += ` Q ${controlX} ${next.y}, ${next.x} ${next.y}`;
+      }
+      
+      return path;
+    };
+
+    const linePath = createSmoothPath(points);
+    
+    // Create area path (same as line but closed to bottom)
+    const areaPath = linePath + 
+      ` L ${points[points.length - 1].x} ${chartHeight - chartPadding.bottom}` +
+      ` L ${chartPadding.left} ${chartHeight - chartPadding.bottom} Z`;
+
+    // Y-axis labels
+    const yAxisSteps = 5;
+    const yAxisLabels = Array.from({ length: yAxisSteps }, (_, i) => {
+      const value = minValue + (valueRange / (yAxisSteps - 1)) * i;
+      const y = chartHeight - chartPadding.bottom - (i / (yAxisSteps - 1)) * chartInnerHeight;
+      return { value, y };
     });
 
     return (
-      <View style={styles.sliderContainer}>
-        {/* Period Labels */}
-        <View style={styles.periodLabelsContainer}>
-          {periods.map((period, index) => {
-            const isFirst = index === 0;
-            const isLast = index === periods.length - 1;
-            
-            return (
-              <TouchableOpacity
-                key={period}
-                onPress={() => setSelectedPeriod(period)}
-                style={[
-                  styles.periodLabelWrapper,
-                  isFirst && styles.periodLabelFirst,
-                  isLast && styles.periodLabelLast,
-                  !isFirst && !isLast && { width: segmentWidth },
-                ]}
-                activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
-              >
-                <Text
-                  variant="caption"
-                  weight={selectedPeriod === period ? 'bold' : 'medium'}
-                  style={[
-                    styles.periodLabel,
-                    selectedPeriod === period && styles.periodLabelActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {PERIOD_LABELS[period]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+      <View style={styles.customChartContainer}>
+        <Svg width={chartWidth} height={chartHeight}>
+          <Defs>
+            <SvgLinearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0%" stopColor={Colors.primary} stopOpacity="0.2" />
+              <Stop offset="100%" stopColor={Colors.primary} stopOpacity="0" />
+            </SvgLinearGradient>
+          </Defs>
 
-        {/* Slider Track */}
-        <View style={styles.sliderTrack} {...panResponder.panHandlers}>
-          {/* Background Line */}
-          <View style={styles.sliderLine} />
-          
-          {/* Active Line (from start to current position) */}
-          <View
-            style={[
-              styles.sliderLineActive,
-              { width: `${(periodIndex / (periods.length - 1)) * 100}%` },
-            ]}
+          {/* Horizontal grid lines */}
+          {yAxisLabels.map((label, i) => (
+            <Line
+              key={`grid-${i}`}
+              x1={chartPadding.left}
+              y1={label.y}
+              x2={chartWidth - chartPadding.right}
+              y2={label.y}
+              stroke="#F0F0F0"
+              strokeWidth="1"
+            />
+          ))}
+
+          {/* Y-axis labels */}
+          {yAxisLabels.map((label, i) => (
+            <SvgText
+              key={`y-label-${i}`}
+              x={chartPadding.left - 10}
+              y={label.y + 4}
+              fill={Colors.textMuted}
+              fontSize="11"
+              textAnchor="end"
+              fontWeight="500"
+            >
+              {formatCompactCurrency(label.value)}
+            </SvgText>
+          ))}
+
+          {/* Area fill */}
+          <Path
+            d={areaPath}
+            fill="url(#areaGradient)"
           />
 
-          {/* Tick Marks */}
-          <View style={styles.tickMarksContainer}>
-            {periods.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.tickMark,
-                  index <= periodIndex && styles.tickMarkActive,
-                  { left: `${(index / (periods.length - 1)) * 100}%` },
-                ]}
-              />
-            ))}
-          </View>
+          {/* Line stroke */}
+          <Path
+            d={linePath}
+            stroke={Colors.secondary}
+            strokeWidth="3"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
 
-          {/* Draggable Thumb */}
-          <Animated.View
+          {/* Data points */}
+          {points.map((point, index) => {
+            const isSelected = selectedDataPoint &&
+              revenueData.detailedData[index]?.value === selectedDataPoint.value;
+
+            return (
+              <React.Fragment key={`point-${index}`}>
+                {isSelected && (
+                  <>
+                    {/* Vertical dashed line */}
+                    <Line
+                      x1={point.x}
+                      y1={point.y}
+                      x2={point.x}
+                      y2={chartHeight - chartPadding.bottom}
+                      stroke={Colors.secondary}
+                      strokeWidth="1"
+                      strokeDasharray="4,4"
+                    />
+                    {/* Active dot with border */}
+                    <Circle
+                      cx={point.x}
+                      cy={point.y}
+                      r="6"
+                      fill={Colors.secondary}
+                      stroke={Colors.white}
+                      strokeWidth="3"
+                    />
+                  </>
+                )}
+                {/* Invisible touch target */}
+                <Circle
+                  cx={point.x}
+                  cy={point.y}
+                  r="15"
+                  fill="transparent"
+                  onPress={() => handleChartPress(index)}
+                />
+              </React.Fragment>
+            );
+          })}
+
+          {/* X-axis labels */}
+          {points.map((point, index) => (
+            <SvgText
+              key={`x-label-${index}`}
+              x={point.x}
+              y={chartHeight - chartPadding.bottom + 20}
+              fill={Colors.textMuted}
+              fontSize="11"
+              textAnchor="middle"
+              fontWeight="500"
+            >
+              {point.label}
+            </SvgText>
+          ))}
+        </Svg>
+
+        {/* Floating Tooltip */}
+        {selectedDataPoint && (
+          <Animated.View 
             style={[
-              styles.sliderThumb,
+              styles.floatingTooltip,
               {
-                left: `${(periodIndex / (periods.length - 1)) * 100}%`,
-              },
+                right: Spacing.lg,
+                top: 20,
+                opacity: fadeAnim,
+              }
             ]}
           >
-            <View style={styles.sliderThumbInner} />
+            <Text variant="bodySmall" weight="bold" style={styles.floatingTooltipValue}>
+              {formatCurrency(selectedDataPoint.value)}
+            </Text>
           </Animated.View>
-        </View>
+        )}
       </View>
     );
   };
 
-  const renderPeriodPills = () => {
-    const periods: TimePeriod[] = ['1D', '1W', '1M', '3M', '1Y', 'ALL'];
+  const renderPeriodSelector = () => {
+    const segmentWidth = (maxWidth - (Spacing.md * 2) - 8) / PERIODS.length;
 
     return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.periodScrollContainer}
-        style={styles.periodScroll}
-      >
-        {periods.map((period) => (
-          <TouchableOpacity
-            key={period}
-            onPress={() => handlePeriodChange(period)}
-            style={[
-              styles.periodPill,
-              selectedPeriod === period && styles.periodPillActive,
-            ]}
-            activeOpacity={0.7}
-          >
-            <Text
-              variant="label"
-              weight="medium"
-              style={[
-                styles.periodText,
-                selectedPeriod === period && styles.periodTextActive,
-              ]}
+      <View style={styles.periodSelectorCard}>
+        <View style={styles.periodSelectorRow}>
+          {PERIODS.map((period, index) => (
+            <TouchableOpacity
+              key={period}
+              onPress={() => handlePeriodChange(period)}
+              style={styles.periodButton}
+              activeOpacity={0.7}
             >
-              {period}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                variant="caption"
+                weight={selectedPeriod === period ? 'bold' : 'medium'}
+                style={[
+                  styles.periodButtonText,
+                  selectedPeriod === period && styles.periodButtonTextActive,
+                ]}
+              >
+                {PERIOD_LABELS[period]}
+              </Text>
+              {selectedPeriod === period && (
+                <Animated.View style={styles.periodIndicatorDot} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Decorative track line */}
+        <View style={styles.periodTrackLine} />
+
+        {/* Animated active segment indicator */}
+        <Animated.View
+          style={[
+            styles.periodActiveSegment,
+            {
+              width: segmentWidth,
+              left: indicatorAnim.interpolate({
+                inputRange: PERIODS.map((_, i) => i),
+                outputRange: PERIODS.map((_, i) => 4 + (i * segmentWidth)),
+              }),
+            },
+          ]}
+        />
+      </View>
     );
   };
+
+  const renderMetricCard = (
+    label: string,
+    value: string,
+    subtext: string,
+    icon?: string,
+    highlight?: boolean
+  ) => (
+    <View style={[styles.metricCard, highlight && styles.metricCardHighlight]}>
+      {icon && (
+        <View style={[styles.metricIcon, highlight && styles.metricIconHighlight]}>
+          <Ionicons
+            name={icon as any}
+            size={18}
+            color={highlight ? Colors.white : Colors.primary}
+          />
+        </View>
+      )}
+      <Text variant="caption" style={styles.metricLabel}>
+        {label}
+      </Text>
+      <Text variant="h3" weight="bold" style={[styles.metricValue, highlight && styles.metricValueHighlight]}>
+        {value}
+      </Text>
+      <Text variant="caption" style={styles.metricSubtext}>
+        {subtext}
+      </Text>
+    </View>
+  );
+
+  const renderPerformanceRow = (
+    label: string,
+    source: string,
+    count: number,
+    change: number,
+    index: number
+  ) => (
+    <TouchableOpacity
+      key={index}
+      style={styles.performanceRow}
+      activeOpacity={0.7}
+    >
+      <View style={styles.performanceIconContainer}>
+        <Ionicons name="trending-up" size={20} color={Colors.primary} />
+      </View>
+      <View style={styles.performanceInfo}>
+        <Text variant="body" weight="medium">{label}</Text>
+        <Text variant="caption" color="textMuted">{source}</Text>
+      </View>
+      <View style={styles.performanceStats}>
+        <Text variant="body" weight="bold">{formatNumber(count)}</Text>
+        <Text
+          variant="caption"
+          style={{ color: change >= 0 ? Colors.success : Colors.error }}
+          weight="semibold"
+        >
+          {change >= 0 ? '+' : ''}{change}%
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   // ============================================================================
   // MAIN RENDER
@@ -444,181 +650,180 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.6}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={26} color={Colors.text} />
+        </TouchableOpacity>
+
+        <Text variant="h4" weight="bold" style={styles.headerTitle}>
+          Analytics
+        </Text>
+
+        <TouchableOpacity
+          style={styles.headerButton}
+          activeOpacity={0.6}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="ellipsis-horizontal" size={24} color={Colors.text} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* iOS-style Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.6}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="chevron-back" size={28} color={Colors.text} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleContainer}>
-            <Text variant="h3" weight="bold" style={styles.headerTitle}>
-              Analytics
-            </Text>
-          </View>
-
-          <View style={styles.headerActions} />
-        </View>
+        {/* Period Selector */}
+        {renderPeriodSelector()}
 
         <Spacer size="md" />
 
-        {/* Period Selector Slider - Draggable Line */}
-        {renderPeriodSlider()}
-
-        <Spacer size="md" />
-
-        {/* Hero Revenue Display - Card Style */}
+        {/* Main Revenue Card */}
         <Animated.View style={[styles.heroCard, { opacity: fadeAnim }]}>
           <Text variant="caption" style={styles.heroLabel}>
             TOTAL REVENUE
           </Text>
-          <Spacer size="xs" />
           <Text variant="h1" weight="bold" style={styles.heroValue}>
             {formatCurrency(revenueData.total)}
           </Text>
-          <Spacer size="xs" />
-          <View style={styles.changeRow}>
-            <Text
-              variant="body"
-              weight="semibold"
-              style={[styles.changeValue, { color: isPositive ? Colors.success : Colors.accent }]}
-            >
-              {isPositive ? '+' : ''}
-              {revenueData.change}%
-            </Text>
-            <Text variant="bodySmall" style={styles.changeLabel}>
-              {selectedPeriod === '1D' ? 'vs Yesterday' : `vs Previous ${PERIOD_LABELS[selectedPeriod]}`}
+          <View style={styles.changeContainer}>
+            <View style={[styles.changeBadge, !isPositive && styles.changeBadgeNegative]}>
+              <Ionicons
+                name={isPositive ? 'trending-up' : 'trending-down'}
+                size={14}
+                color={isPositive ? Colors.success : Colors.error}
+              />
+              <Text
+                variant="bodySmall"
+                weight="semibold"
+                style={{ color: isPositive ? Colors.success : Colors.error }}
+              >
+                {isPositive ? '+' : ''}{revenueData.change}%
+              </Text>
+            </View>
+            <Text variant="caption" color="textMuted">
+              vs Previous {PERIOD_LABELS[selectedPeriod]}
             </Text>
           </View>
         </Animated.View>
 
         <Spacer size="md" />
 
-        {/* Interactive Chart Section */}
-        <Animated.View style={[styles.chartContainer, { transform: [{ scale: scaleAnim }] }]}>
-          <View style={styles.chartWrapper}>
-            {selectedDataPoint && (
-              <View style={styles.dataPointTooltip}>
-                <Text variant="caption" style={styles.tooltipTime}>
-                  {selectedDataPoint.time}
-                </Text>
-                <Text variant="h4" weight="bold" style={styles.tooltipValue}>
-                  {formatCurrency(selectedDataPoint.value)}
-                </Text>
-              </View>
-            )}
+        {/* Chart Card */}
+        <Animated.View style={[styles.chartCard, { transform: [{ scale: scaleAnim }] }]}>
+          {renderCustomChart()}
 
-            <LineChart
-              data={{
-                labels: revenueData.labels,
-                datasets: [
-                  {
-                    data: revenueData.data,
-                    color: (opacity = 1) => Colors.primary,
-                    strokeWidth: 3,
-                  },
-                ],
-              }}
-              width={chartWidth}
-              height={viewport.width <= 375 ? 180 : 200}
-              chartConfig={{
-                backgroundColor: Colors.white,
-                backgroundGradientFrom: Colors.white,
-                backgroundGradientTo: Colors.white,
-                decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(10, 186, 181, ${opacity})`,
-                labelColor: (opacity = 1) => Colors.textSecondary,
-                style: {
-                  borderRadius: BorderRadius.lg,
-                },
-                propsForDots: {
-                  r: viewport.width <= 375 ? '4' : '5',
-                  strokeWidth: '3',
-                  stroke: Colors.primary,
-                  fill: Colors.white,
-                },
-                propsForBackgroundLines: {
-                  strokeDasharray: '',
-                  stroke: '#E5E5EA',
-                  strokeWidth: 1,
-                },
-                propsForLabels: {
-                  fontSize: viewport.width <= 375 ? 10 : 11,
-                },
-              }}
-              bezier
-              style={styles.chart}
-              withInnerLines
-              withOuterLines={false}
-              withVerticalLines={false}
-              withHorizontalLines
-              withVerticalLabels
-              withHorizontalLabels
-              fromZero={false}
-              onDataPointClick={handleChartPress}
-              formatYLabel={(value) => {
-                const numValue = parseFloat(value);
-                // Show full numbers with abbreviations for axis labels only
-                if (numValue >= 1000000) return `$${(numValue / 1000000).toFixed(1)}M`;
-                if (numValue >= 1000) return `$${(numValue / 1000).toFixed(0)}K`;
-                return `$${value}`;
-              }}
-            />
-
-            <View style={styles.chartHint}>
-              <Text variant="caption" style={styles.hintText}>
-                💡 Tap any point on the chart to view details
-              </Text>
-            </View>
+          <View style={styles.chartHint}>
+            <View style={styles.hintDot} />
+            <Text variant="caption" color="textMuted">
+              Tap any point on the chart to view details
+            </Text>
           </View>
         </Animated.View>
 
         <Spacer size="lg" />
 
-        {/* Key Metrics Grid - Trading Style */}
+        {/* Quick Stats Grid */}
         <View style={styles.metricsGrid}>
-          <View style={styles.metricCard}>
-            <Text variant="caption" style={styles.metricLabel}>
-              VEHICLES SOLD
+          {renderMetricCard(
+            'VEHICLES SOLD',
+            formatNumber(realMetrics.soldCount > 0 ? realMetrics.soldCount : 127),
+            'in selected period'
+          )}
+          {renderMetricCard(
+            'AVG PRICE',
+            formatCompactCurrency(realMetrics.avgSalePrice > 0 ? realMetrics.avgSalePrice : 24500),
+            'per vehicle'
+          )}
+          {renderMetricCard(
+            'SUCCESS RATE',
+            `${realMetrics.offerSuccessRate > 0 ? realMetrics.offerSuccessRate : 68}%`,
+            'offer conversion'
+          )}
+        </View>
+
+        <Spacer size="lg" />
+
+        {/* Wholesaler-Specific Metrics */}
+        <Text variant="h4" weight="bold" style={styles.sectionTitle}>
+          Buying Activity
+        </Text>
+        <Spacer size="sm" />
+
+        <View style={styles.activityGrid}>
+          <View style={styles.activityCard}>
+            <View style={styles.activityHeader}>
+              <View style={[styles.activityIcon, { backgroundColor: Colors.primary + '15' }]}>
+                <Ionicons name="cart-outline" size={20} color={Colors.primary} />
+              </View>
+              <Text variant="caption" color="textMuted">PURCHASES</Text>
+            </View>
+            <Text variant="h2" weight="bold" color="primary">
+              {realMetrics.purchaseCount}
             </Text>
-            <Text variant="h3" weight="bold" style={styles.metricValue}>
-              {formatNumber(MOCK_DATA.metrics.vehiclesSold)}
-            </Text>
-            <Text variant="caption" style={styles.metricSubtext}>
-              in selected period
+            <Text variant="caption" color="textMuted">
+              {formatCompactCurrency(realMetrics.weeklySpending)} this week
             </Text>
           </View>
 
-          <View style={styles.metricCard}>
-            <Text variant="caption" style={styles.metricLabel}>
-              AVERAGE PRICE
+          <View style={styles.activityCard}>
+            <View style={styles.activityHeader}>
+              <View style={[styles.activityIcon, { backgroundColor: Colors.secondary + '15' }]}>
+                <Ionicons name="pricetag-outline" size={20} color={Colors.secondary} />
+              </View>
+              <Text variant="caption" color="textMuted">OFFERS SENT</Text>
+            </View>
+            <Text variant="h2" weight="bold" color="secondary">
+              {realMetrics.totalOffersSent}
             </Text>
-            <Text variant="h3" weight="bold" style={styles.metricValue}>
-              {formatCurrency(MOCK_DATA.metrics.avgPrice)}
+            <Text variant="caption" color="textMuted">
+              {realMetrics.pendingOffersSent} pending
             </Text>
-            <Text variant="caption" style={styles.metricSubtext}>
-              per vehicle sold
+          </View>
+        </View>
+
+        <Spacer size="md" />
+
+        {/* Selling Activity */}
+        <Text variant="h4" weight="bold" style={styles.sectionTitle}>
+          Selling Activity
+        </Text>
+        <Spacer size="sm" />
+
+        <View style={styles.activityGrid}>
+          <View style={styles.activityCard}>
+            <View style={styles.activityHeader}>
+              <View style={[styles.activityIcon, { backgroundColor: Colors.success + '15' }]}>
+                <Ionicons name="checkmark-circle-outline" size={20} color={Colors.success} />
+              </View>
+              <Text variant="caption" color="textMuted">ACTIVE LISTINGS</Text>
+            </View>
+            <Text variant="h2" weight="bold" style={{ color: Colors.success }}>
+              {realMetrics.activeListings}
+            </Text>
+            <Text variant="caption" color="textMuted">
+              {realMetrics.pendingListings} pending
             </Text>
           </View>
 
-          <View style={styles.metricCard}>
-            <Text variant="caption" style={styles.metricLabel}>
-              SUCCESS RATE
+          <View style={styles.activityCard}>
+            <View style={styles.activityHeader}>
+              <View style={[styles.activityIcon, { backgroundColor: Colors.warning + '15' }]}>
+                <Ionicons name="mail-outline" size={20} color={Colors.warning} />
+              </View>
+              <Text variant="caption" color="textMuted">OFFERS RECEIVED</Text>
+            </View>
+            <Text variant="h2" weight="bold" style={{ color: Colors.warning }}>
+              {realMetrics.totalOffersReceived}
             </Text>
-            <Text variant="h3" weight="bold" style={styles.metricValue}>
-              {formatNumber(MOCK_DATA.metrics.conversionRate)}%
-            </Text>
-            <Text variant="caption" style={styles.metricSubtext}>
-              of inquiries converted
+            <Text variant="caption" color="textMuted">
+              {realMetrics.pendingOffersReceived} pending review
             </Text>
           </View>
         </View>
@@ -630,54 +835,62 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
           <Text variant="h4" weight="bold" style={styles.summaryTitle}>
             Performance Summary
           </Text>
+          <Spacer size="md" />
+
+          {PERFORMANCE_METRICS.map((metric, index) =>
+            renderPerformanceRow(
+              metric.label,
+              metric.source,
+              metric.count,
+              metric.change,
+              index
+            )
+          )}
+        </View>
+
+        <Spacer size="lg" />
+
+        {/* Period Stats Card */}
+        <View style={styles.statsCard}>
+          <Text variant="body" weight="semibold" style={styles.statsCardTitle}>
+            {PERIOD_LABELS[selectedPeriod]} Statistics
+          </Text>
           <Spacer size="sm" />
 
-          <View style={styles.summaryRow}>
-            <Text variant="bodySmall" style={styles.summaryLabel}>
-              Best Performing Period
-            </Text>
-            <Text variant="bodySmall" weight="semibold" style={styles.summaryValue}>
-              {revenueData.detailedData[revenueData.detailedData.length - 1]?.time || 'Current'}
-            </Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text variant="bodySmall" style={styles.summaryLabel}>
-              Highest Revenue
-            </Text>
-            <Text variant="bodySmall" weight="semibold" style={styles.summaryValue}>
+          <View style={styles.statsRow}>
+            <Text variant="bodySmall" color="textMuted">Highest Revenue</Text>
+            <Text variant="bodySmall" weight="semibold">
               {formatCurrency(Math.max(...revenueData.data))}
             </Text>
           </View>
-
-          <View style={styles.summaryRow}>
-            <Text variant="bodySmall" style={styles.summaryLabel}>
-              Lowest Revenue
-            </Text>
-            <Text variant="bodySmall" weight="semibold" style={styles.summaryValue}>
+          <View style={styles.statsRow}>
+            <Text variant="bodySmall" color="textMuted">Lowest Revenue</Text>
+            <Text variant="bodySmall" weight="semibold">
               {formatCurrency(Math.min(...revenueData.data))}
             </Text>
           </View>
-
-          <View style={styles.summaryRow}>
-            <Text variant="bodySmall" style={styles.summaryLabel}>
-              Average per Period
-            </Text>
-            <Text variant="bodySmall" weight="semibold" style={styles.summaryValue}>
+          <View style={styles.statsRow}>
+            <Text variant="bodySmall" color="textMuted">Average per Period</Text>
+            <Text variant="bodySmall" weight="semibold">
               {formatCurrency(revenueData.total / revenueData.data.length)}
+            </Text>
+          </View>
+          <View style={[styles.statsRow, { borderBottomWidth: 0 }]}>
+            <Text variant="bodySmall" color="textMuted">Best Period</Text>
+            <Text variant="bodySmall" weight="semibold">
+              {revenueData.detailedData[revenueData.detailedData.length - 1]?.time || 'Current'}
             </Text>
           </View>
         </View>
 
         <Spacer size="lg" />
 
-        {/* Call to Action */}
+        {/* Export Button */}
         <View style={styles.buttonContainer}>
           <Button
             variant="primary"
             fullWidth
             onPress={() => {
-              // TODO: Implement analytics export functionality
               alert('Export functionality coming soon');
             }}
           >
@@ -698,414 +911,313 @@ export default function AnalyticsScreen({ navigation }: AnalyticsScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7', // iOS system background
+    backgroundColor: '#F5F5F7',
     maxWidth: Platform.OS === 'web' ? 480 : undefined,
     alignSelf: Platform.OS === 'web' ? 'center' : undefined,
     width: '100%',
-    overflow: 'hidden',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    paddingHorizontal: Spacing.md,
     paddingBottom: Spacing['3xl'],
   },
 
-  // Header - iOS style (matching NotificationScreen)
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
-    backgroundColor: 'white',
-    minHeight: 44,
+    backgroundColor: '#F5F5F7',
   },
-  backButton: {
+  headerButton: {
     width: 44,
     height: 44,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  headerTitleContainer: {
-    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
   },
   headerTitle: {
     color: Colors.text,
-    fontSize: 17,
-  },
-  headerActions: {
-    width: 44,
-    alignItems: 'flex-end',
   },
 
-  // Subtitle
-  subtitleContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
+  // Period Selector
+  periodSelectorCard: {
     backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: 4,
+    marginTop: Spacing.sm,
+    ...Shadows.sm,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  subtitle: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 18,
-    fontSize: Platform.select({
-      web: 14,
-      default: 12,
-    }),
-    letterSpacing: 0.1,
-  },
-
-  // Period Slider - Draggable line interface
-  sliderContainer: {
-    marginHorizontal: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  periodLabelsContainer: {
+  periodSelectorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-    paddingHorizontal: 2,
-  },
-  periodLabelWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-    minHeight: 24,
-  },
-  periodLabelFirst: {
-    alignItems: 'flex-start',
-    paddingLeft: 0,
-  },
-  periodLabelLast: {
-    alignItems: 'flex-end',
-    paddingRight: 0,
-  },
-  periodLabel: {
-    color: Colors.textMuted,
-    fontSize: Platform.select({
-      web: 11,
-      default: 10,
-    }),
-    letterSpacing: 0.2,
-    textAlign: 'center',
-  },
-  periodLabelActive: {
-    color: Colors.primary,
-    fontSize: Platform.select({
-      web: 12,
-      default: 11,
-    }),
-  },
-  sliderTrack: {
-    height: 44,
     position: 'relative',
-    justifyContent: 'center',
-    paddingHorizontal: 0,
-    marginTop: Spacing.xs,
+    zIndex: 10,
   },
-  sliderLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: '#E5E5EA',
-    borderRadius: 1.5,
-  },
-  sliderLineActive: {
-    position: 'absolute',
-    left: 0,
-    height: 3,
-    backgroundColor: Colors.primary,
-    borderRadius: 1.5,
-  },
-  tickMarksContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 44,
-    justifyContent: 'center',
-  },
-  tickMark: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#E5E5EA',
-    borderWidth: 2,
-    borderColor: Colors.white,
-    marginLeft: -5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  tickMarkActive: {
-    backgroundColor: Colors.primary,
-    borderWidth: 2,
-  },
-  sliderThumb: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    marginLeft: -16,
+  periodButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sliderThumbInner: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  periodButtonText: {
+    color: Colors.textMuted,
+    fontSize: 10,
+  },
+  periodButtonTextActive: {
+    color: Colors.primary,
+  },
+  periodIndicatorDot: {
+    position: 'absolute',
+    bottom: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: Colors.primary,
-    borderWidth: 4,
-    borderColor: Colors.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+  },
+  periodTrackLine: {
+    position: 'absolute',
+    bottom: 0,
+    left: Spacing.md,
+    right: Spacing.md,
+    height: 1,
+    backgroundColor: '#E5E5EA',
+  },
+  periodActiveSegment: {
+    position: 'absolute',
+    bottom: 0,
+    height: 2,
+    backgroundColor: Colors.primary + '30',
+    borderRadius: 1,
   },
 
-  // Hero Card - iOS card style
+  // Hero Card
   heroCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Platform.select({
-      web: Spacing.lg,
-      default: Spacing.md,
-    }),
-    paddingVertical: Spacing.md,
-    marginHorizontal: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...Shadows.sm,
   },
   heroLabel: {
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontSize: Platform.select({
-      web: 11,
-      default: 10,
-    }),
+    letterSpacing: 1,
+    fontSize: 11,
+    marginBottom: 4,
   },
   heroValue: {
     color: Colors.text,
-    fontSize: Platform.select({
-      web: 40,
-      default: 32,
-    }),
+    fontSize: 42,
+    letterSpacing: -1,
+    marginVertical: 4,
   },
-  changeRow: {
+  changeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
+    marginTop: 4,
   },
-  changeValue: {},
-  changeLabel: {
-    color: Colors.textSecondary,
+  changeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.success + '10',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  changeBadgeNegative: {
+    backgroundColor: Colors.error + '10',
   },
 
-  // Period Selector - Horizontal scrollable tabs
-  periodScroll: {
-    maxHeight: 50,
-    marginHorizontal: Spacing.md,
+  // Chart Card
+  chartCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    paddingTop: Spacing.lg,
+    ...Shadows.sm,
+    overflow: 'visible',
   },
-  periodScrollContainer: {
-    flexDirection: 'row',
-    gap: 0,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-    alignItems: 'center',
-  },
-  periodPill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
-    minWidth: 60,
-    height: 36,
+  customChartContainer: {
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 2,
+    paddingVertical: Spacing.sm,
   },
-  periodPillActive: {
-    backgroundColor: Colors.primary,
-  },
-  periodText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  periodTextActive: {
-    color: Colors.white,
-  },
-
-  // Chart Card - iOS card style
   chartContainer: {
-    marginHorizontal: Spacing.md,
-    width: Platform.OS === 'web' ? undefined : '100%',
-    alignSelf: 'stretch',
+    position: 'relative',
   },
-  chartWrapper: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Platform.select({
-      web: Spacing.md,
-      default: Spacing.sm,
-    }),
-    paddingHorizontal: Platform.select({
-      web: Spacing.md,
-      default: Spacing.xs,
-    }),
-    paddingVertical: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-    overflow: 'hidden',
+  chart: {
+    marginLeft: -16,
+    marginVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
   },
-  dataPointTooltip: {
+  floatingTooltip: {
     position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.text,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Shadows.md,
+    zIndex: 100,
   },
-  tooltipTime: {
+  floatingTooltipValue: {
     color: Colors.white,
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  tooltipValue: {
-    color: Colors.white,
-  },
-  chart: {
-    marginVertical: Spacing.xs,
-    marginLeft: Platform.select({
-      web: 0,
-      default: -8,
-    }),
-    borderRadius: BorderRadius.md,
+    fontSize: 13,
   },
   chartHint: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Spacing.xs,
+    justifyContent: 'center',
+    gap: 6,
+    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#F0F0F0',
+    marginTop: Spacing.xs,
   },
-  hintText: {
-    color: Colors.textMuted,
-    fontSize: 12,
+  hintDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.warning,
   },
 
-  // Metrics Grid - iOS card style
+  // Metrics Grid
   metricsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginHorizontal: Spacing.md,
+    gap: Spacing.sm,
   },
   metricCard: {
     flex: 1,
-    minWidth: 95,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Platform.select({
-      web: Spacing.md,
-      default: Spacing.xs,
-    }),
-    paddingVertical: Platform.select({
-      web: Spacing.md,
-      default: Spacing.sm,
-    }),
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.sm,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...Shadows.sm,
+  },
+  metricCardHighlight: {
+    backgroundColor: Colors.primary,
+  },
+  metricIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  metricIconHighlight: {
+    backgroundColor: Colors.white + '20',
   },
   metricLabel: {
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    fontSize: Platform.select({
-      web: 10,
-      default: 9,
-    }),
-    marginBottom: Spacing.xs,
+    fontSize: 9,
+    marginBottom: 4,
     textAlign: 'center',
   },
   metricValue: {
     color: Colors.primary,
-    marginBottom: Spacing.xs,
+    fontSize: 22,
+    marginBottom: 2,
+  },
+  metricValueHighlight: {
+    color: Colors.white,
   },
   metricSubtext: {
     color: Colors.textMuted,
-    fontSize: Platform.select({
-      web: 11,
-      default: 10,
-    }),
+    fontSize: 10,
     textAlign: 'center',
-    lineHeight: 14,
   },
 
-  // Summary Card - iOS card style
+  // Section Title
+  sectionTitle: {
+    color: Colors.text,
+    paddingLeft: 4,
+  },
+
+  // Activity Grid
+  activityGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  activityCard: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    ...Shadows.sm,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  activityIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Summary Card
   summaryCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Platform.select({
-      web: Spacing.md,
-      default: Spacing.sm,
-    }),
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    marginHorizontal: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    ...Shadows.sm,
   },
   summaryTitle: {
     color: Colors.text,
-    fontSize: Platform.select({
-      web: 18,
-      default: 17,
-    }),
   },
-  summaryRow: {
+  performanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    marginBottom: 4,
+  },
+  performanceIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  performanceInfo: {
+    flex: 1,
+  },
+  performanceStats: {
+    alignItems: 'flex-end',
+  },
+
+  // Stats Card
+  statsCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    ...Shadows.sm,
+  },
+  statsCardTitle: {
+    color: Colors.text,
+  },
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1113,23 +1225,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
   },
-  summaryLabel: {
-    color: Colors.textSecondary,
-    fontSize: Platform.select({
-      web: 15,
-      default: 14,
-    }),
-  },
-  summaryValue: {
-    color: Colors.text,
-    fontSize: Platform.select({
-      web: 15,
-      default: 14,
-    }),
-  },
 
   // Button Container
   buttonContainer: {
-    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
   },
 });

@@ -359,12 +359,13 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <View style={styles.outerContainer}>
+      <SafeAreaView style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Header Navigation */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.headerButton} onPress={handleBack} activeOpacity={0.7}>
@@ -744,8 +745,9 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
           <Spacer size="xl" />
         </View>
       </ScrollView>
+      </SafeAreaView>
 
-      {/* Bottom Action Bar - Modern Design */}
+      {/* Bottom Action Bar - Fixed at bottom of screen */}
       <View style={styles.bottomBar}>
         {/* Price Section */}
         <View style={styles.bottomPriceSection}>
@@ -763,9 +765,9 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             onPress={() => setOfferModalVisible(true)}
             activeOpacity={0.8}
           >
-            <Ionicons name="pricetag-outline" size={25} color={Colors.secondary} />
+            <Ionicons name="pricetag-outline" size={18} color={Colors.secondary} />
             <Text variant="caption" weight="semibold" color="secondary">
-               Request Offer
+              Request Offer
             </Text>
           </TouchableOpacity>
 
@@ -775,7 +777,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
             onPress={handlePurchasePress}
             activeOpacity={0.8}
           >
-            <Ionicons name="cart-outline" size={25} color={Colors.white} />
+            <Ionicons name="cart-outline" size={18} color={Colors.white} />
             <Text variant="body" weight="semibold" style={styles.buyNowButtonText}>
               Purchase
             </Text>
@@ -1095,7 +1097,7 @@ export const VehicleDetailsScreen: React.FC<VehicleDetailsScreenProps> = ({ navi
           </ScrollView>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -1143,18 +1145,22 @@ const PPSRCheckItem: React.FC<PPSRCheckItemProps> = React.memo(({ icon, label, p
 ));
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     flex: 1,
     backgroundColor: Colors.background,
     maxWidth: Platform.OS === 'web' ? 480 : undefined,
     alignSelf: Platform.OS === 'web' ? 'center' : undefined,
     width: '100%',
   },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 90,
   },
 
   // Header
@@ -1620,7 +1626,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
+    paddingVertical: Spacing.sm,
     backgroundColor: Colors.white,
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
@@ -1628,11 +1634,12 @@ const styles = StyleSheet.create({
   },
   bottomPriceSection: {
     gap: 2,
+    flexShrink: 0,
   },
   bottomActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 8,
   },
   makeOfferButton: {
     flexDirection: 'row',
@@ -1640,7 +1647,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     backgroundColor: Colors.secondary + '12',
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
@@ -1652,7 +1659,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     backgroundColor: Colors.secondary,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: BorderRadius.md,
     ...Shadows.sm,

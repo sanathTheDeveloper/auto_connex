@@ -368,11 +368,12 @@ interface PurchasesOffersProviderProps {
 }
 
 export const PurchasesOffersProvider: React.FC<PurchasesOffersProviderProps> = ({ children }) => {
+  // Always initialize with demo data for prototype/demo purposes
   const [state, setState] = useState<PurchasesOffersContextState>({
-    offersSent: __DEV__ ? MOCK_OFFERS_SENT : [],
-    offersReceived: __DEV__ ? MOCK_OFFERS_RECEIVED : [],
-    purchases: __DEV__ ? MOCK_PURCHASES : [],
-    soldVehicles: __DEV__ ? MOCK_SOLD_VEHICLES : [],
+    offersSent: MOCK_OFFERS_SENT,
+    offersReceived: MOCK_OFFERS_RECEIVED,
+    purchases: MOCK_PURCHASES,
+    soldVehicles: MOCK_SOLD_VEHICLES,
     isLoading: true,
   });
 
