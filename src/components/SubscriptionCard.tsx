@@ -355,7 +355,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             <Spacer size="md" />
 
             <Text variant="h3" weight="bold" align="center" style={styles.successTitle}>
-              Fee Confirmed!
+              Payment Details Confirmed!
             </Text>
 
             <Spacer size="sm" />
@@ -432,6 +432,32 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
+                {/* 7-Day Account Banner - Prominent positioning at top */}
+                <View style={styles.accountBanner}>
+                  <View style={styles.accountBannerIconContainer}>
+                    <View style={styles.accountBannerIconCircle}>
+                      <Ionicons name="calendar-outline" size={20} color={Colors.black} />
+                    </View>
+                  </View>
+                  <View style={styles.accountBannerContent}>
+                    <View style={styles.accountBannerHeader}>
+                      <Text variant="bodySmall" weight="bold" style={styles.accountBannerTitle}>
+                        7-Day Account
+                      </Text>
+                      <View style={styles.accountBannerBadge}>
+                        <Text variant="caption" weight="semibold" style={styles.accountBannerBadgeText}>
+                          {settlementInfo.daysRemaining === 1 ? 'Tomorrow' : `${settlementInfo.daysRemaining} days`}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text variant="caption" color="textSecondary" style={styles.accountBannerDescription}>
+                      {settlementInfo.daysRemaining === 1
+                        ? 'Your fee will be settled on our next 7-day billing cycle tomorrow.'
+                        : `Fees are collected every 7 days. Your next settlement is in ${settlementInfo.daysRemaining} days.`}
+                    </Text>
+                  </View>
+                </View>
+
                 {/* Vehicle Info Card */}
                 {vehicleInfo && (
                   <View style={styles.vehicleCard}>
@@ -499,27 +525,13 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
 
                 {/* Transaction Fee Display */}
                 <View style={styles.feeDisplayCard}>
-                  <View style={styles.feeRow}>
-                    <Text variant="body" color="textSecondary">Transaction Fee</Text>
-                    <Text variant="h3" weight="bold" style={styles.feeAmount}>
+                  <View style={styles.feeRowCentered}>
+                    <Text variant="caption" color="textMuted" style={styles.feeLabel}>
+                      Transaction Fee
+                    </Text>
+                    <Text variant="h2" weight="bold" style={styles.feeAmountLarge}>
                       {formatPrice(totalPayable)}
                     </Text>
-                  </View>
-
-                  <View style={styles.escrowBanner}>
-                    <View style={styles.escrowIconCircle}>
-                      <Ionicons name="time-outline" size={16} color={Colors.success} />
-                    </View>
-                    <View style={styles.escrowTextContainer}>
-                      <Text variant="bodySmall" weight="semibold" color="text">
-                        Weekly Settlement - {settlementInfo.dayName}
-                      </Text>
-                      <Text variant="caption" color="textSecondary" style={styles.escrowDescription}>
-                        {settlementInfo.daysRemaining === 1
-                          ? 'Your fee will be collected tomorrow along with all weekly transactions'
-                          : `Your fee will be collected in ${settlementInfo.daysRemaining} days. We batch all transaction fees weekly for your convenience.`}
-                      </Text>
-                    </View>
                   </View>
                 </View>
 
@@ -740,6 +752,55 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
 
+  // 7-Day Account Banner (Prominent at top)
+  accountBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
+    ...Shadows.md,
+  },
+  accountBannerIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountBannerIconCircle: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  accountBannerContent: {
+    flex: 1,
+  },
+  accountBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  accountBannerTitle: {
+    color: Colors.black,
+    fontSize: 16,
+  },
+  accountBannerBadge: {
+    backgroundColor: Colors.greyscale300 + '95',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  accountBannerBadgeText: {
+    color: Colors.black,
+    fontSize: 11,
+  },
+  accountBannerDescription: {
+    color: Colors.black + 'CC',
+    lineHeight: 18,
+  },
+
   // Vehicle Card
   vehicleCard: {
     backgroundColor: Colors.backgroundAlt,
@@ -788,44 +849,24 @@ const styles = StyleSheet.create({
 
   // Fee Display Card
   feeDisplayCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.greyscale300,
-  },
-  feeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
   },
-  feeAmount: {
-    color: Colors.text,
-  },
-  escrowBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    backgroundColor: Colors.success + '08',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-  },
-  escrowIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.success + '15',
+  feeRowCentered: {
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  escrowTextContainer: {
-    flex: 1,
+  feeLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
   },
-  escrowDescription: {
-    marginTop: 2,
-    lineHeight: 16,
+  feeAmountLarge: {
+    color: Colors.text,
+    fontSize: 36,
   },
 
   // Payment Form

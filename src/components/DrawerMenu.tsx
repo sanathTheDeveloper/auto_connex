@@ -34,7 +34,7 @@ import { useFavorites } from '../contexts/FavoritesContext';
 import { usePurchasesOffers } from '../contexts/PurchasesOffersContext';
 
 // Assets
-const APP_ICON = require('../../assets/logos/app-icon-teal.png');
+const APP_ICON = require('../../assets/icon.png');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
@@ -255,7 +255,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
         <View style={styles.header}>
           {/* Close Button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.7}>
-            <Ionicons name="close" size={22} color={Colors.text} />
+            <Ionicons name="close" size={18} color={Colors.text} />
           </TouchableOpacity>
 
           {/* User Profile Section */}
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 20 : 10,
     paddingBottom: Spacing.xl,
     paddingHorizontal: Spacing.lg,
     position: 'relative',
@@ -394,10 +394,10 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 46 : 32,
+    top: Platform.OS === 'ios' ? 26 : 12,
     right: Spacing.md,
-    width: 32,
-    height: 32,
+    width: 22,
+    height: 22,
     borderRadius: BorderRadius.full,
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
     justifyContent: 'center',
@@ -417,8 +417,6 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.white,
   },
   userInfo: {
     flex: 1,

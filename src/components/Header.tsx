@@ -18,6 +18,7 @@ import { Colors, Spacing, BorderRadius } from '../constants/theme';
 
 // Assets
 const LOGO_LOCKUP = require('../../assets/logos/logo-lockup-teal.png');
+const APP_ICON = require('../../assets/icon.png');
 
 // ============================================================================
 // TYPES
@@ -54,8 +55,9 @@ export const Header: React.FC<HeaderProps> = ({
           <Ionicons name="menu-outline" size={24} color={Colors.black} />
         </TouchableOpacity>
 
-        {/* Center: Brand - Logo Lockup only */}
+        {/* Center: Brand - Icon + Logo Lockup */}
         <View style={styles.headerBrand}>
+          <Image source={APP_ICON} style={styles.appIcon} resizeMode="contain" />
           <Image source={LOGO_LOCKUP} style={styles.logoLockup} resizeMode="contain" />
         </View>
 
@@ -111,10 +113,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerBrand: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
     paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  appIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.sm,
   },
   logoLockup: {
     width: 120,

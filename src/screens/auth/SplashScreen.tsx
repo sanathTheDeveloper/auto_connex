@@ -16,7 +16,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Image, Animated, Platform, Dimensions, ScaledSize } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Spacer } from '../../design-system';
 import { Colors, Spacing, SpacingMobile } from '../../design-system/primitives';
 
 /**
@@ -81,24 +80,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
   // Calculate responsive values
   const isMobileViewport = viewportWidth <= 480;
   const paddingHorizontal = getResponsiveSpacing('xl', viewportWidth);
-  const iconSize = isMobileViewport ? 100 : 120;
-  const logoHeight = isMobileViewport ? 60 : 70;
+  const logoHeight = isMobileViewport ? 80 : 100;
 
   return (
     <SafeAreaView style={[styles.container, { paddingHorizontal }]}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        {/* App Icon */}
+        {/* Full Logo Lockup (Icon + Brand Name + Tagline) */}
         <Image
-          source={require('../../../assets/logos/app-icon-teal.png')}
-          style={[styles.appIcon, { width: iconSize, height: iconSize }]}
-          resizeMode="contain"
-        />
-
-        <Spacer size="xl" />
-
-        {/* Logo Lockup (Brand Name + Tagline) */}
-        <Image
-          source={require('../../../assets/logos/logo-lockup-teal.png')}
+          source={require('../../../assets/logosv2/Group 1000004570.png')}
           style={[styles.logoLockup, { height: logoHeight }]}
           resizeMode="contain"
         />
@@ -122,9 +111,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-  },
-  appIcon: {
-    // width and height applied dynamically for responsive behavior
   },
   logoLockup: {
     width: '85%',

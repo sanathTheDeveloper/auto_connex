@@ -125,7 +125,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ visible, onDismiss }
       <StatusBar barStyle="dark-content" />
       
       {/* White Background */}
-      <View style={[styles.whiteBackground, { width: dimensions.width, height: dimensions.height }]}>
+      <View style={[ { width: dimensions.width, height: dimensions.height }]}>
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
           {/* App Icon/Logo */}
           <Animated.View
@@ -137,7 +137,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ visible, onDismiss }
             ]}
           >
             <Image
-              source={require('../../../assets/logos/app-icon-teal.png')}
+              source={require('../../../assets/logos/logo-teal.png')}
               style={styles.appIcon}
               resizeMode="contain"
             />
@@ -167,10 +167,6 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ visible, onDismiss }
 };
 
 const styles = StyleSheet.create({
-  whiteBackground: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -180,11 +176,6 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
   },
   appIcon: {
     width: 140,
