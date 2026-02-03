@@ -18,7 +18,7 @@ import { Colors, Spacing, BorderRadius } from '../constants/theme';
 
 // Assets
 const LOGO_LOCKUP = require('../../assets/logos/logo-lockup-teal.png');
-const APP_ICON = require('../../assets/icon.png');
+const APP_ICON = require('../../assets/splash-icon.png');
 
 // ============================================================================
 // TYPES

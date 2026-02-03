@@ -34,7 +34,7 @@ import { useFavorites } from '../contexts/FavoritesContext';
 import { usePurchasesOffers } from '../contexts/PurchasesOffersContext';
 
 // Assets
-const APP_ICON = require('../../assets/icon.png');
+const APP_ICON = require('../../assets/splash-icon.png');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);

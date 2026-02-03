@@ -44,6 +44,9 @@ export interface UserProfile {
   // Payment info
   paymentMethodAdded: boolean;
   
+  // Data sharing consent
+  consentToShareDetails: boolean;
+  
   // Timestamps
   createdAt: string;
   lastLoginAt: string;
@@ -177,6 +180,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         paymentMethodAdded: true, // Mock payment added
         
+        consentToShareDetails: false, // Will be set during payment/offer
+        
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString(),
       };
@@ -203,12 +208,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Mock user data
       const mockUser: UserProfile = {
         id: 'user_mock_001',
-        userType: 'dealer',
+        userType: 'wholesaler', // Changed to wholesaler to test consent checkbox
         
         fullName: 'John Smith',
         email: email,
         phone: '0412 345 678',
-        accountName: 'DealerPro_42',
+        accountName: 'WholesalePro_42',
         
         abn: '12 345 678 901',
         businessName: 'Smith Motors Pty Ltd',
@@ -227,6 +232,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         phoneVerified: true,
         
         paymentMethodAdded: true,
+        
+        consentToShareDetails: false,
         
         createdAt: '2025-01-01T00:00:00.000Z',
         lastLoginAt: new Date().toISOString(),

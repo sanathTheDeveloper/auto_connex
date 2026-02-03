@@ -75,7 +75,7 @@ const ROLE_DATA = {
     features: [
       { icon: 'search-outline' as const, title: 'Nationwide Discovery', desc: 'Search inventory by make, model, year or location across all states' },
       { icon: 'checkmark-circle-outline' as const, title: 'Verified Sellers', desc: 'Only deal with ABN-verified wholesalers with transparent business credentials' },
-      { icon: 'calendar-outline' as const, title: '7-Day Payment Terms', desc: 'Buy now and settle within 7 days flexible payment terms that work for your cash flow' },
+      { icon: 'calendar-outline' as const, title: '7-Day Account', desc: 'Purchase vehicles and settle your account within 7 days flexible terms designed for your cash flow' },
       { icon: 'notifications-outline' as const, title: 'Auto-Match Alerts', desc: 'Set criteria and get notified when matching stock is listed' },
       { icon: 'chatbubbles-outline' as const, title: 'Direct Negotiation', desc: 'Message wholesalers directly and negotiate deals in-app' },
     ],

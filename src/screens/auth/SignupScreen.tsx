@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions, Image, ScaledSize } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Dimensions, Image, ScaledSize, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,6 +38,7 @@ import { useAuth, SignupData } from '../../contexts/AuthContext';
 import { lookupABN } from '../../services/mockAPI';
 import { AUSTRALIAN_STATES } from '../../data/australia';
 import { WelcomeModal } from './WelcomeModal';
+import { TermsConditionsModal } from './TermsConditionsModal';
 
 /**
  * Get responsive spacing based on viewport width
@@ -129,6 +130,8 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
   const [isVerifying, setIsVerifying] = useState(false);
   const [isABNVerified, setIsABNVerified] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -668,6 +671,33 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
             Verification takes 1-2 business days. Once approved, you'll receive a verified badge. You can trade on the platform in the meantime.
           </Text>
         </View>
+
+        <Spacer size="lg" />
+
+        {/* Terms & Conditions Checkbox */}
+        <TouchableOpacity
+          style={styles.checkboxContainer}
+          onPress={() => setTermsAccepted(!termsAccepted)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+            {termsAccepted && (
+              <Text style={styles.checkmark}>✓</Text>
+            )}
+          </View>
+          <Text variant="caption" style={styles.checkboxText}>
+            I agree to the{' '}
+            <Text
+              variant="caption"
+              weight="semibold"
+              style={styles.termsLink}
+              onPress={() => setShowTermsModal(true)}
+            >
+              Terms & Conditions
+            </Text>
+            {' '}and consent to Auto Connex storing my business information
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -692,9 +722,12 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
   );
 
   // Calculate responsive spacing values
-  const spacingMd = getResponsiveSpacing('md', viewportWidth);
-  const spacing3xl = getResponsiveSpacing('3xl', viewportWidth);
-  const spacingXs = getResponsiveSpacing('xs', viewportWidth);
+  const isSmallScreen = viewportWidth < 375;
+  const isMobileWeb = Platform.OS === 'web' && viewportWidth <= 480;
+  
+  const spacingHorizontal = isSmallScreen ? SpacingMobile.sm : getResponsiveSpacing('md', viewportWidth);
+  const spacingTop = isSmallScreen ? SpacingMobile.lg : getResponsiveSpacing('2xl', viewportWidth);
+  const spacingBottom = isSmallScreen ? SpacingMobile.xs : getResponsiveSpacing('xs', viewportWidth);
 
   return (
     <View style={styles.container}>
@@ -702,17 +735,27 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingHorizontal: spacingMd, paddingTop: spacing3xl, paddingBottom: spacingXs }
+              { 
+                paddingHorizontal: spacingHorizontal, 
+                paddingTop: spacingTop, 
+                paddingBottom: spacingBottom 
+              }
             ]}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Centered Card Container */}
-            <View style={styles.cardContainer}>
+            <View style={[
+              styles.cardContainer,
+              isSmallScreen && styles.cardContainerSmall,
+              isMobileWeb && styles.cardContainerWeb
+            ]}>
               {/* Card Content */}
               <View style={styles.cardContent}>
                 {/* Progress Indicator */}
@@ -725,12 +768,15 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
               </View>
 
               {/* Action Buttons - Pinned to bottom */}
-              <View style={styles.actions}>
+              <View style={[
+                styles.actions,
+                isSmallScreen && styles.actionsSmall
+              ]}>
                 {currentStep > 1 ? (
                   <>
                     <Button
                       variant="outline"
-                      size="md"
+                      size={isSmallScreen ? 'sm' : 'md'}
                       onPress={handleBack}
                       style={styles.backButton}
                     >
@@ -739,11 +785,11 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
 
                     <Button
                       variant="primary"
-                      size="md"
+                      size={isSmallScreen ? 'sm' : 'md'}
                       onPress={handleNext}
                       loading={isLoading}
                       style={styles.nextButton}
-                      disabled={currentStep === 2 && !isABNVerified}
+                      disabled={(currentStep === 2 && !isABNVerified) || (currentStep === 3 && !termsAccepted)}
                     >
                       {currentStep === 3 ? 'Register' : 'Continue'}
                     </Button>
@@ -751,7 +797,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
                 ) : (
                   <Button
                     variant="primary"
-                    size="md"
+                    size={isSmallScreen ? 'sm' : 'md'}
                     fullWidth
                     onPress={handleNext}
                     loading={isLoading}
@@ -762,13 +808,15 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
               </View>
             </View>
 
-            {/* Background Image - positioned bottom left */}
-            <View style={styles.bottomImageContainer}>
-              <Image
-                source={require('../../../assets/images/singup-backgroundimage.png')}
-                style={styles.bottomImage}
-              />
-            </View>
+            {/* Background Image - positioned bottom left - only show on larger screens */}
+            {!isSmallScreen && (
+              <View style={styles.bottomImageContainer}>
+                <Image
+                  source={require('../../../assets/images/singup-backgroundimage.png')}
+                  style={styles.bottomImage}
+                />
+              </View>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
 
@@ -779,6 +827,13 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation, route })
             setShowSuccessModal(false);
             navigation.replace('Home');
           }}
+        />
+
+        {/* Terms & Conditions Modal */}
+        <TermsConditionsModal
+          visible={showTermsModal}
+          onClose={() => setShowTermsModal(false)}
+          onAccept={() => setTermsAccepted(true)}
         />
       </SafeAreaView>
     </View>
@@ -804,6 +859,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    minHeight: '100%',
     // paddingHorizontal, paddingTop, paddingBottom applied dynamically
   },
   cardContainer: {
@@ -821,6 +877,16 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  cardContainerSmall: {
+    paddingHorizontal: SpacingMobile.sm,
+    paddingTop: SpacingMobile.md,
+    paddingBottom: SpacingMobile.sm,
+    borderRadius: 12,
+    maxWidth: '100%',
+  },
+  cardContainerWeb: {
+    maxWidth: Platform.OS === 'web' ? 440 : 400,
+  },
   cardContent: {
     overflow: 'hidden',
   },
@@ -830,6 +896,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   progressDot: {
     width: 8,
@@ -838,7 +905,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.greyscale300,
   },
   progressDotActive: {
-    width: 32,
+    width: 28,
     backgroundColor: Colors.primary,
   },
   progressDotComplete: {
@@ -847,12 +914,14 @@ const styles = StyleSheet.create({
   stepTitle: {
     textAlign: 'center',
     marginBottom: 4,
+    fontSize: responsive.getFontSize('3xl'),
   },
   stepSubtitle: {
     color: Colors.greyscale700,
     opacity: 0.85,
     lineHeight: 20,
     textAlign: 'center',
+    fontSize: responsive.getFontSize('sm'),
   },
   consentText: {
     lineHeight: 24,
@@ -872,6 +941,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.sm,
   },
+  actionsSmall: {
+    gap: SpacingMobile.xs,
+    marginTop: SpacingMobile.sm,
+    paddingTop: SpacingMobile.xs,
+  },
   backButton: {
     flex: 1,
   },
@@ -886,20 +960,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success + '10',
     borderRadius: 100,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     alignSelf: 'center',
+    maxWidth: '95%',
+    flexWrap: 'wrap',
   },
   verificationIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: Colors.success,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   verificationIcon: {
     fontSize: responsive.getFontSize('lg'),
@@ -920,22 +997,22 @@ const styles = StyleSheet.create({
   },
   detailsHeader: {
     backgroundColor: Colors.backgroundAlt,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: SpacingMobile.md,
+    paddingVertical: SpacingMobile.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.greyscale300 + '60',
   },
   detailsHeaderText: {
     color: Colors.text,
     letterSpacing: -0.3,
-    // fontSize handled by Text variant h4
+    fontSize: responsive.getFontSize('xl'),
   },
   detailsDivider: {
     height: 0,
   },
   detailsContent: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
+    padding: SpacingMobile.md,
+    gap: SpacingMobile.sm,
   },
   detailsLabel: {
     letterSpacing: 0.5,
@@ -948,7 +1025,7 @@ const styles = StyleSheet.create({
   },
   detailsRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: SpacingMobile.sm,
   },
   detailRowHalf: {
     flex: 1,
@@ -959,10 +1036,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     opacity: 0.5,
+    fontSize: responsive.getFontSize('xs'),
   },
   detailValue: {
     color: Colors.text,
-    lineHeight: 18,
+    lineHeight: 17,
+    fontSize: responsive.getFontSize('sm'),
   },
   // License Step Styles
   helperText: {
@@ -1062,22 +1141,25 @@ const styles = StyleSheet.create({
   // Verification Banner
   verificationBannerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+    alignItems: 'flex-start',
+    gap: SpacingMobile.sm,
     backgroundColor: Colors.backgroundAlt,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    padding: SpacingMobile.md,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   verifiedBadgeImage: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
+    flexShrink: 0,
+    marginTop: 2,
   },
   verificationBannerText: {
     flex: 1,
     color: Colors.textSecondary,
     lineHeight: 18,
+    fontSize: responsive.getFontSize('sm'),
   },
   // Bottom Background Image - positioned bottom left
   bottomImageContainer: {
@@ -1085,16 +1167,54 @@ const styles = StyleSheet.create({
     marginTop: -105,
     marginHorizontal: -Spacing.md,
     flex: 1,
-    minHeight: 300,
+    minHeight: 280,
     zIndex: -1,
   },
   bottomImage: {
     width: '100%',
-    height: 300,
+    height: 280,
     resizeMode: 'contain',
     position: 'absolute',
     left: -10,
     bottom: 0,
+  },
+  // Checkbox Styles
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SpacingMobile.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: Colors.greyscale300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    marginTop: 3,
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  checkmark: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: 'bold',
+    lineHeight: 14,
+  },
+  checkboxText: {
+    flex: 1,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+    fontSize: responsive.getFontSize('sm'),
+  },
+  termsLink: {
+    color: Colors.primary,
+    textDecorationLine: 'underline',
   },
 });
 

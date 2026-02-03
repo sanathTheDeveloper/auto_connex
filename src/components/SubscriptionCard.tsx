@@ -27,6 +27,8 @@ import { Text } from '../design-system/atoms/Text';
 import { Button } from '../design-system/atoms/Button';
 import { Spacer } from '../design-system/atoms/Spacer';
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../design-system/primitives';
+import { TermsConditionsModal } from '../screens/auth/TermsConditionsModal';
+import { useAuth } from '../contexts/AuthContext';
 
 // ============================================================================
 // TYPES
@@ -41,6 +43,7 @@ export interface PaymentData {
   cardType: string;
   transactionFee: number;
   vehiclePrice: number;
+  consentToShareDetails: boolean;
 }
 
 export interface VehicleInfo {
@@ -136,18 +139,33 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   vehicleInfo,
   actionType,
 }) => {
+  const { user, updateProfile } = useAuth();
+  
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [saveCard, setSaveCard] = useState(false);
+  const [consentToShareDetails, setConsentToShareDetails] = useState(user?.consentToShareDetails || false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const transactionFee = useMemo(() => calculateTransactionFee(amount), [amount]);
   const totalPayable = transactionFee;
   const cardType = detectCardType(cardNumber);
   const settlementInfo = useMemo(() => getSettlementInfo(), []);
+
+  // Check if form is complete (payment fields only, consent checked on submit)
+  const isFormComplete = useMemo(() => {
+    const cleanedCard = cardNumber.replace(/\s/g, '');
+    const cleanedExpiry = expiryDate.replace('/', '');
+    return (
+      cleanedCard.length >= 15 &&
+      cleanedExpiry.length === 4 &&
+      cvv.length >= 3
+    );
+  }, [cardNumber, expiryDate, cvv]);
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(600)).current;
@@ -261,11 +279,22 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       setError('Please enter a valid CVV');
       return;
     }
+    
+    // Skip consent validation - allow payment without consent
+    // if (!consentToShareDetails) {
+    //   setError('You must consent to share your details to proceed');
+    //   return;
+    // }
 
     setError('');
     setIsProcessing(true);
 
     await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Update user profile with consent
+    if (consentToShareDetails && user) {
+      await updateProfile({ consentToShareDetails: true });
+    }
 
     setIsProcessing(false);
     setShowSuccess(true);
@@ -280,6 +309,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         cardType,
         transactionFee,
         vehiclePrice: amount,
+        consentToShareDetails,
       };
       onPaymentSuccess(paymentData);
       resetForm();
@@ -291,6 +321,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     setExpiryDate('');
     setCvv('');
     setSaveCard(false);
+    setConsentToShareDetails(user?.consentToShareDetails || false);
     setShowSuccess(false);
     setError('');
   };
@@ -622,18 +653,48 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                     </View>
                   </View>
 
-                  {/* Error Message */}
-                  {error && (
-                    <Animated.View
-                      style={[
-                        styles.errorBanner,
-                        { transform: [{ translateX: errorShakeAnim }] },
-                      ]}
-                    >
-                      <Ionicons name="alert-circle" size={16} color={Colors.accent} />
-                      <Text variant="caption" style={styles.errorText}>{error}</Text>
-                    </Animated.View>
+                  {/* Information Sharing Consent - Only for purchase actions (not offers) */}
+                  {actionType === 'purchase' && (
+                    <View style={styles.consentSection}>
+                      <TouchableOpacity
+                        style={styles.consentRow}
+                        onPress={() => setConsentToShareDetails(!consentToShareDetails)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.checkbox, consentToShareDetails && styles.checkboxChecked]}>
+                          {consentToShareDetails && <Ionicons name="checkmark" size={14} color={Colors.white} />}
+                        </View>
+                        <View style={styles.consentTextContainer}>
+                          <Text variant="bodySmall" style={styles.consentText}>
+                            I consent to sharing my business details with the {user?.userType === 'dealer' ? 'buyer' : 'seller'} for invoicing.{' '}
+                            <Text
+                              variant="bodySmall"
+                              weight="semibold"
+                              style={styles.termsLink}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                setShowTermsModal(true);
+                              }}
+                            >
+                              Terms & Conditions
+                            </Text>
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                      
+                      <Spacer size="sm" />
+                      
+                      {/* Info Banner */}
+                      <View style={styles.infoBanner}>
+                        <Ionicons name="shield-checkmark" size={16} color={Colors.success} />
+                        <Text variant="caption" color="textMuted" style={styles.infoBannerText}>
+                          Shared only after deal confirmation
+                        </Text>
+                      </View>
+                    </View>
                   )}
+
+                  <Spacer size="md" />
 
                   {/* Save Card Toggle */}
                   <TouchableOpacity
@@ -666,7 +727,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                   fullWidth
                   onPress={validateAndPay}
                   loading={isProcessing}
-                  disabled={isProcessing}
+                  disabled={isProcessing || !isFormComplete}
                 >
                   {isProcessing ? 'Processing...' : `Confirm ${formatPrice(totalPayable)} Fee`}
                 </Button>
@@ -675,6 +736,16 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           </TouchableWithoutFeedback>
         </Animated.View>
       </TouchableWithoutFeedback>
+      
+      {/* Terms & Conditions Modal */}
+      <TermsConditionsModal
+        visible={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        onAccept={() => {
+          setConsentToShareDetails(true);
+          setShowTermsModal(false);
+        }}
+      />
     </Modal>
   );
 };
@@ -935,6 +1006,22 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.xs,
   },
+  
+  // Checkbox (shared for consent and save card)
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: Colors.borderDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
   checkboxCircle: {
     width: 20,
     height: 20,
@@ -1092,6 +1179,41 @@ const styles = StyleSheet.create({
   successInfoText: {
     flex: 1,
     lineHeight: 18,
+  },
+
+  // Consent Section
+  consentSection: {
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+  },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  consentTextContainer: {
+    flex: 1,
+  },
+  consentText: {
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: Colors.primary,
+    textDecorationLine: 'underline',
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.success + '10',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+  },
+  infoBannerText: {
+    flex: 1,
+    lineHeight: 16,
   },
 });
 

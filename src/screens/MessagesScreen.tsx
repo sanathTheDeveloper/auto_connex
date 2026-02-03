@@ -28,6 +28,7 @@ import {
   ImageBackground,
   ScaledSize,
   Animated,
+  Share,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,6 +42,9 @@ import { SubscriptionCard } from '../components/SubscriptionCard';
 // Design System
 import { Text, Spacer } from '../design-system';
 import { Colors, Spacing, SpacingMobile, BorderRadius, Shadows, responsive } from '../design-system/primitives';
+
+// Context
+import { useAuth } from '../contexts/AuthContext';
 
 // Data
 import {
@@ -106,6 +110,12 @@ interface Message {
     vehicleId?: string;
     buyerEmail?: string;
     buyerName?: string;
+    buyerPhone?: string;
+    buyerABN?: string;
+    buyerBusinessName?: string;
+    buyerState?: string;
+    buyerPostcode?: string;
+    consentGiven?: boolean;
   };
 }
 
@@ -168,6 +178,7 @@ const MOCK_BUYER = {
 
 export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, route }) => {
   const scrollViewRef = useRef<ScrollView>(null);
+  const { user } = useAuth();
 
   // Track viewport width for responsive sizing
   const [viewportWidth, setViewportWidth] = useState(() => Dimensions.get('window').width);
@@ -225,10 +236,9 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
   // Negotiation tracking
   const [negotiationRound, setNegotiationRound] = useState(0);
   const MAX_NEGOTIATION_ROUNDS = 2;
-
-  // Toast state for copy feedback
-  const [showCopyToast, setShowCopyToast] = useState(false);
-  const toastSlideAnim = useRef(new Animated.Value(0)).current; // Start at resting position
+  
+  // Buyer details section toggle
+  const [buyerDetailsExpanded, setBuyerDetailsExpanded] = useState(true);
 
   // Animation refs for Deal Confirmed card
   const dealCardFadeAnim = useRef(new Animated.Value(0)).current;
@@ -557,8 +567,14 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
           sender: 'system',
           data: {
             amount: paymentAmount,
-            buyerEmail: MOCK_BUYER.email,
-            buyerName: MOCK_BUYER.name,
+            buyerEmail: user?.email || MOCK_BUYER.email,
+            buyerName: user?.fullName || MOCK_BUYER.name,
+            buyerPhone: user?.phone,
+            buyerABN: user?.abn,
+            buyerBusinessName: user?.businessName,
+            buyerState: user?.state,
+            buyerPostcode: user?.postcode,
+            consentGiven: user?.consentToShareDetails || false,
           },
         });
       }, 600);
@@ -579,8 +595,14 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
           sender: 'system',
           data: {
             amount: paymentAmount,
-            buyerEmail: MOCK_BUYER.email,
-            buyerName: MOCK_BUYER.name,
+            buyerEmail: user?.email || MOCK_BUYER.email,
+            buyerName: user?.fullName || MOCK_BUYER.name,
+            buyerPhone: user?.phone,
+            buyerABN: user?.abn,
+            buyerBusinessName: user?.businessName,
+            buyerState: user?.state,
+            buyerPostcode: user?.postcode,
+            consentGiven: user?.consentToShareDetails || false,
           },
         });
       }, 600);
@@ -697,28 +719,64 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
 
     // Deal Confirmed Card - Role-based views for buyer and wholesaler
     if (message.type === 'deal_confirmed' && message.data?.buyerEmail) {
+      
+      // Share buyer details via native share sheet
+      const handleShareDetails = async () => {
+        const details = `🚗 BUYER INVOICE DETAILS
+━━━━━━━━━━━━━━━━━━━━━
+${message.data!.buyerName || 'N/A'}
+✉️ ${message.data!.buyerEmail || 'N/A'}
+${message.data!.buyerPhone ? `📱 ${message.data!.buyerPhone}` : ''}
+
+💼 ABN: ${message.data!.buyerABN || 'N/A'}
+🏢 ${message.data!.buyerBusinessName || 'N/A'}
+📍 ${message.data!.buyerState || ''} ${message.data!.buyerPostcode || ''}
+
+🚘 Vehicle: ${vehicle.year} ${vehicle.make} ${vehicle.model}
+💰 Agreed Price: ${message.data!.amount ? formatFullPrice(message.data!.amount) : 'N/A'}
+📅 ${formatTime(message.timestamp)}`;
+        
+        try {
+          await Share.share({
+            message: details,
+            title: 'Buyer Invoice Details',
+          });
+        } catch (error) {
+          console.log('Share error:', error);
+        }
+      };
+
+      // Copy all details to clipboard (silent - no toast)
+      const handleCopyAllDetails = async () => {
+        const details = `BUYER INVOICE DETAILS
+━━━━━━━━━━━━━━━━━━━━━
+Name: ${message.data!.buyerName || 'N/A'}
+Email: ${message.data!.buyerEmail || 'N/A'}
+Phone: ${message.data!.buyerPhone || 'N/A'}
+
+ABN: ${message.data!.buyerABN || 'N/A'}
+Business Name: ${message.data!.buyerBusinessName || 'N/A'}
+Location: ${message.data!.buyerState || ''} ${message.data!.buyerPostcode || ''}
+
+Vehicle: ${vehicle.year} ${vehicle.make} ${vehicle.model}
+Agreed Price: ${message.data!.amount ? formatFullPrice(message.data!.amount) : 'N/A'}
+Date: ${formatTime(message.timestamp)}`;
+        
+        await Clipboard.setStringAsync(details);
+      };
+
+      // Copy email only (silent - no toast)
       const handleCopyEmail = async () => {
         await Clipboard.setStringAsync(message.data!.buyerEmail!);
-        setShowCopyToast(true);
-        
-        // Animate toast from below input bar upward
-        Animated.sequence([
-          Animated.spring(toastSlideAnim, {
-            toValue: -150, // Slide up 150px above resting position
-            useNativeDriver: true,
-            tension: 60,
-            friction: 8,
-          }),
-          Animated.delay(2000),
-          Animated.timing(toastSlideAnim, {
-            toValue: 0, // Slide back down to resting position (below screen)
-            duration: 250,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          setShowCopyToast(false);
-          toastSlideAnim.setValue(0); // Reset position
-        });
+      };
+
+      // Format ABN for display
+      const formatABN = (abn: string) => {
+        const cleaned = abn.replace(/\s/g, '');
+        if (cleaned.length === 11) {
+          return `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 11)}`;
+        }
+        return abn;
       };
 
       return (
@@ -783,39 +841,181 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
                 </Text>
               </View>
             ) : (
-              /* WHOLESALER/DEALER VIEW */
+              /* WHOLESALER/DEALER VIEW - Modern design with share functionality */
               <View style={styles.roleContentSection}>
-                <View style={styles.roleContentHeader}>
-                  <View style={styles.roleIconCircle}>
-                    <Ionicons name="person-outline" size={18} color={Colors.primary} />
-                  </View>
-                  <Text variant="bodySmall" weight="semibold" color="text">
-                    Buyers Contact Details
-                  </Text>
-                </View>
-                <Text variant="caption" color="textSecondary" style={styles.roleContentMessage}>
-                  Send your invoice to complete the transaction
-                </Text>
+                {message.data.consentGiven ? (
+                  /* Full buyer details when consent given */
+                  <>
+                    <TouchableOpacity
+                      style={styles.buyerDetailsHeader}
+                      onPress={() => setBuyerDetailsExpanded(!buyerDetailsExpanded)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.roleContentHeader}>
+                        <View style={styles.roleIconCircle}>
+                          <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
+                        </View>
+                        <Text variant="bodySmall" weight="semibold" color="text" style={{ flex: 1 }}>
+                          Buyer's Invoice Details
+                        </Text>
+                        <Ionicons
+                          name={buyerDetailsExpanded ? 'chevron-up' : 'chevron-down'}
+                          size={20}
+                          color={Colors.textMuted}
+                        />
+                      </View>
+                    </TouchableOpacity>
 
-                {/* Email box with copy */}
-                <TouchableOpacity
-                  style={styles.emailBox}
-                  onPress={handleCopyEmail}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.emailBoxContent}>
-                    <Ionicons name="mail-outline" size={16} color={Colors.secondary} />
-                    <Text variant="caption" weight="semibold" style={styles.emailText} numberOfLines={2}>
-                      {message.data.buyerEmail}
+                    <Text variant="caption" color="textSecondary" style={styles.roleContentMessage}>
+                      All information needed to create an invoice
                     </Text>
-                  </View>
-                  <View style={styles.copyButton}>
-                    <Ionicons name="copy-outline" size={14} color={Colors.black} />
-                    <Text variant="caption" weight="semibold" style={styles.copyButtonText}>
-                      Copy Email
+
+                    {buyerDetailsExpanded && (
+                      <>
+                        <Spacer size="sm" />
+
+                        {/* Buyer Details Card - Clean Modern Design */}
+                        <View style={styles.buyerDetailsCard}>
+                          {/* Full Name */}
+                          {message.data.buyerName && (
+                            <View style={styles.detailRow}>
+                              <Text variant="caption" weight="medium" style={styles.detailLabel}>
+                                NAME
+                              </Text>
+                              <Text variant="bodySmall" weight="semibold" style={styles.detailValue}>
+                                {message.data.buyerName}
+                              </Text>
+                            </View>
+                          )}
+
+                          {/* Email */}
+                          {message.data.buyerEmail && (
+                            <View style={styles.detailRow}>
+                              <Text variant="caption" weight="medium" style={styles.detailLabel}>
+                                EMAIL
+                              </Text>
+                              <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
+                                {message.data.buyerEmail}
+                              </Text>
+                            </View>
+                          )}
+
+                          {/* Phone */}
+                          {message.data.buyerPhone && (
+                            <View style={styles.detailRow}>
+                              <Text variant="caption" weight="medium" style={styles.detailLabel}>
+                                PHONE
+                              </Text>
+                              <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
+                                {message.data.buyerPhone}
+                              </Text>
+                            </View>
+                          )}
+
+                          {/* Divider */}
+                          <View style={styles.detailDivider} />
+
+                          {/* ABN */}
+                          {message.data.buyerABN && (
+                            <View style={styles.detailRow}>
+                              <Text variant="caption" weight="medium" style={styles.detailLabel}>
+                                ABN
+                              </Text>
+                              <Text variant="bodySmall" weight="semibold" style={styles.detailValue}>
+                                {formatABN(message.data.buyerABN)}
+                              </Text>
+                            </View>
+                          )}
+
+                          {/* Business Name */}
+                          {message.data.buyerBusinessName && (
+                            <View style={styles.detailRow}>
+                              <Text variant="caption" weight="medium" style={styles.detailLabel}>
+                                BUSINESS
+                              </Text>
+                              <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
+                                {message.data.buyerBusinessName}
+                              </Text>
+                            </View>
+                          )}
+
+                          {/* Location */}
+                          {(message.data.buyerState || message.data.buyerPostcode) && (
+                            <View style={styles.detailRow}>
+                              <Text variant="caption" weight="medium" style={styles.detailLabel}>
+                                LOCATION
+                              </Text>
+                              <Text variant="bodySmall" weight="medium" style={styles.detailValue}>
+                                {message.data.buyerState} {message.data.buyerPostcode}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <Spacer size="sm" />
+
+                        {/* Action Buttons Row - Copy & Share */}
+                        <View style={styles.actionButtonsRow}>
+                          <TouchableOpacity
+                            style={styles.secondaryActionButton}
+                            onPress={handleCopyAllDetails}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="copy-outline" size={18} color={Colors.black} />
+                            <Text variant="bodySmall" weight="semibold" style={styles.secondaryActionButtonText}>
+                              Copy
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.primaryActionButton}
+                            onPress={handleShareDetails}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="share-outline" size={18} color={Colors.black} />
+                            <Text variant="bodySmall" weight="semibold" style={styles.primaryActionButtonText}>
+                              Share Details
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  /* No consent given - show limited info */
+                  <>
+                    <View style={styles.roleContentHeader}>
+                      <View style={styles.roleIconCircle}>
+                        <Ionicons name="alert-circle-outline" size={18} color={Colors.warning} />
+                      </View>
+                      <Text variant="bodySmall" weight="semibold" color="text">
+                        Limited Information
+                      </Text>
+                    </View>
+                    <Text variant="caption" color="textSecondary" style={styles.roleContentMessage}>
+                      The buyer has not consented to share detailed information. Contact them directly.
                     </Text>
-                  </View>
-                </TouchableOpacity>
+
+                    <Spacer size="xs" />
+
+                    {/* Email only - Clean display with copy button */}
+                    <View style={styles.limitedInfoCard}>
+                      <View style={styles.limitedInfoRow}>
+                        <Ionicons name="mail" size={16} color={Colors.secondary} />
+                        <Text variant="bodySmall" weight="medium" style={styles.limitedInfoEmail}>
+                          {message.data.buyerEmail}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.limitedInfoCopyButton}
+                        onPress={handleCopyEmail}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="copy-outline" size={16} color={Colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
               </View>
             )}
 
@@ -1461,25 +1661,6 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation, rout
           }}
           actionType={currentRole === 'buyer' ? 'purchase' : 'offer'}
         />
-
-        {/* Copy Toast Notification */}
-        {showCopyToast && (
-          <Animated.View 
-            style={[
-              styles.toastContainer,
-              {
-                transform: [{ translateY: toastSlideAnim }],
-              },
-            ]}
-          >
-            <View style={styles.toast}>
-              <Ionicons name="clipboard-outline" size={16} color={Colors.white} />
-              <Text variant="caption" weight="semibold" style={styles.toastText}>
-                Email id copied to cipboard!
-              </Text>
-            </View>
-          </Animated.View>
-        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -2485,68 +2666,116 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.borderLight,
   },
 
-  // Email box (Wholesaler view)
-  emailBox: {
-    flexDirection: 'column',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.primary + '30',
-    marginBottom: Spacing.xs,
-    overflow: 'hidden',
-  },
-  emailBoxContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-  },
-  emailText: {
-    color: Colors.text,
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  copyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    backgroundColor: Colors.primary,
-  },
-  copyButtonText: {
-    color: Colors.black,
-  },
-
   // Timestamp
   dealTimestamp: {
     marginTop: Spacing.sm,
   },
 
-  // Toast notification
-  toastContainer: {
-    position: 'absolute',
-    bottom: -60, // Start below the input bar (hidden)
-    left: Spacing.md,
-    right: Spacing.md,
-    alignItems: 'center',
-    zIndex: 1500,
+  // Enhanced Buyer Details Styles
+  buyerDetailsHeader: {
+    marginBottom: Spacing.xs,
   },
-  toast: {
+  buyerDetailsCard: {
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: BorderRadius.lg,
+    padding: SpacingMobile.md,
+    borderWidth: 1,
+    borderColor: Colors.greyscale300 + '40',
+  },
+  detailRow: {
+    marginBottom: SpacingMobile.sm,
+  },
+  detailLabel: {
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    fontSize: responsive.getFontSize('xs'),
+  },
+  detailValue: {
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  detailDivider: {
+    height: 1,
+    backgroundColor: Colors.greyscale300 + '30',
+    marginVertical: SpacingMobile.sm,
+  },
+
+  // Action Buttons Row (Design System Compliant)
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  secondaryActionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.success,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.full,
-    ...Shadows.md,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    minHeight: 44, // Design system tap target
   },
-  toastText: {
-    color: Colors.white,
+  secondaryActionButtonText: {
+    letterSpacing: 0.3,
+  },
+  primaryActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    minHeight: 44, // Design system tap target
+    ...(Platform.OS === 'android' ? {
+      elevation: 2,
+    } : {
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+    }),
+  },
+  primaryActionButtonText: {
+    letterSpacing: 0.3,
+  },
+
+  // Limited Info Card (No Consent - Design System Compliant)
+  limitedInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.sm + 2,
+    borderWidth: 1,
+    borderColor: Colors.greyscale300 + '40',
+  },
+  limitedInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    flex: 1,
+  },
+  limitedInfoEmail: {
+    color: Colors.text,
+    flex: 1,
+  },
+  limitedInfoCopyButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

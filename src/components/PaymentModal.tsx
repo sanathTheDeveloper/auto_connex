@@ -41,6 +41,7 @@ export interface PaymentData {
   cvv: string;
   cardholderName: string;
   saveCard: boolean;
+  consentToShareDetails: boolean;
 }
 
 export interface VehicleInfo {
@@ -168,6 +169,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (cardholderName.trim().length < 2) {
       newErrors.cardholderName = 'Enter cardholder name';
     }
+    
+    // Consent is optional - no validation required
+    // if (!consentToShareDetails) {
+    //   newErrors.consent = 'You must consent to share your details to proceed';
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -190,6 +196,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       cvv,
       cardholderName,
       saveCard,
+      consentToShareDetails: false, // Sellers don't provide consent
     });
   }, [validateForm, cardNumber, expiryDate, cvv, cardholderName, saveCard, onPaymentSuccess]);
 
@@ -396,7 +403,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     </View>
                   </View>
 
-                  <Spacer size="md" />
+                  <Spacer size="lg" />
 
                   {/* Save Card Option */}
                   <TouchableOpacity
@@ -646,6 +653,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingBottom: Spacing.sm,
+  },
+  // Consent Section Styles
+  consentSection: {
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+  },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  consentTextContainer: {
+    flex: 1,
+  },
+  consentText: {
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: Colors.primary,
+    textDecorationLine: 'underline',
+  },
+  consentError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingLeft: 28, // Align with text after checkbox
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.success + '10',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+  },
+  infoBannerText: {
+    flex: 1,
+    lineHeight: 16,
   },
 });
 
